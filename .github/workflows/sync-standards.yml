@@ -1,0 +1,75 @@
+name: Sync engineering standards
+
+# Drop this workflow into any repository to keep its local AI rules
+# in sync with the central engineering-standards repo.
+# Language scope (dart/rust) is detected automatically.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
+  repository_dispatch:
+    types: [engineering-standards-updated]
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v6
+
+      - name: Fetch engineering standards
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/engineering-standards
+          path: _standards
+          sparse-checkout: .github/rules
+
+      - name: Detect language scope
+        id: scope
+        run: |
+          SCOPE=""
+          if [ -f "pubspec.yaml" ]; then SCOPE="dart"; fi
+          if [ -f "Cargo.toml" ]; then SCOPE="${SCOPE:+$SCOPE }rust"; fi
+          echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
+          echo "Detected scope: '${SCOPE:-none}'"
+
+      - name: Generate rule files
+        run: |
+          SCOPE="${{ steps.scope.outputs.scope }}"
+
+          # -- .cursor/rules/ (Cursor IDE) --
+          rm -rf .cursor/rules/standards
+          mkdir -p .cursor/rules/standards
+          cp _standards/.github/rules/*.md .cursor/rules/standards/
+          for lang in $SCOPE; do
+            if [ -d "_standards/.github/rules/$lang" ]; then
+              cp _standards/.github/rules/$lang/*.md .cursor/rules/standards/
+            fi
+          done
+
+          # -- CLAUDE.md (Claude Code CLI) --
+          cat _standards/.github/rules/*.md > CLAUDE.md
+          for lang in $SCOPE; do
+            if [ -d "_standards/.github/rules/$lang" ]; then
+              cat _standards/.github/rules/$lang/*.md >> CLAUDE.md
+            fi
+          done
+
+          rm -rf _standards
+
+      - name: Create PR if changed
+        uses: peter-evans/create-pull-request@v8
+        with:
+          title: "chore: sync engineering standards"
+          body: |
+            Automated sync from the [engineering-standards](https://github.com/${{ github.repository_owner }}/engineering-standards) repository.
+
+            Updates `.cursor/rules/standards/` and `CLAUDE.md` to the latest version.
+          branch: chore/sync-engineering-standards
+          commit-message: "chore: sync engineering standards"
+          delete-branch: true
