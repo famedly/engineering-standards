@@ -11,6 +11,9 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
+      ENGINEERING_STANDARDS_READ:
+        description: "PAT with read access to the engineering-standards repo"
+        required: true
 
 jobs:
   review-code:
@@ -26,6 +29,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/engineering-standards
           path: engineering-standards
+          token: ${{ secrets.ENGINEERING_STANDARDS_READ }}
 
       - name: Checkout PR repository
         uses: actions/checkout@v6

@@ -49,6 +49,7 @@ jobs:
       rule_scope: "$scope"
     secrets:
       ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+      ENGINEERING_STANDARDS_READ: \${{ secrets.ENGINEERING_STANDARDS_READ }}
 YAML
 }
 
