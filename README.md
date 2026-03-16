@@ -17,6 +17,7 @@ jobs:
       rule_scope: "dart"   # or "rust", or "dart rust"
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ENGINEERING_STANDARDS_READ: ${{ secrets.ENGINEERING_STANDARDS_READ }}
 ```
 
 Without `rule_scope`, only the general rules apply.
@@ -57,8 +58,9 @@ A GitHub Release with the changelog extract is created automatically.
 ## Setup
 
 1. Store `ANTHROPIC_API_KEY` as an org-level GitHub secret
-2. Add `claude-linter.yml` to repos that need CI review
-3. Add `sync-standards.yml` to repos that need editor rules (or use the [rollout script](#rollout))
+2. Create a PAT with `repo` scope (read access to `engineering-standards`) and store it as org secret `ENGINEERING_STANDARDS_READ`
+3. Add `claude-linter.yml` to repos that need CI review
+4. Add `sync-standards.yml` to repos that need editor rules (or use the [rollout script](#rollout))
 
 ---
 

@@ -28,6 +28,7 @@ jobs:
           repository: ${{ github.repository_owner }}/engineering-standards
           path: _standards
           sparse-checkout: .github/rules
+          token: ${{ secrets.ENGINEERING_STANDARDS_READ }}
 
       - name: Detect language scope
         id: scope
