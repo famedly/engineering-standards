@@ -191,18 +191,17 @@ for REPO in $REPOS; do
     git commit -m "chore: pin Docker images to SHA256 digests" --quiet
     git push origin "$BRANCH" --quiet 2>/dev/null
 
+    PR_BODY="Pins all Docker image references to their SHA256 digests for supply chain security.
+
+**Changed files:** $PINNED ($FILES_CHANGED)
+
+After this is merged, Dependabot's \`docker\` ecosystem will keep the digest pins updated automatically."
+
     gh pr create \
       --repo "$FULL" \
       --head "$BRANCH" \
       --title "chore: pin Docker images to SHA256 digests" \
-      --body "$(cat <<BODY
-Pins all Docker image references to their SHA256 digests for supply chain security.
-
-**Changed files:** $PINNED ($FILES_CHANGED)
-
-After this is merged, Dependabot's \`docker\` ecosystem will keep the digest pins updated automatically.
-BODY
-      )" \
+      --body "$PR_BODY" \
       --no-maintainer-edit \
       2>/dev/null
 
