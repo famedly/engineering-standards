@@ -33,7 +33,7 @@ Each repository gets a `.github/dependabot.yml` generated from the central templ
 
 - **Schedule**: daily, Europe/Berlin timezone
 - **Grouping**: major updates separate from minor+patch (fewer PRs, clear risk separation)
-- **Cooldown**: 3 days for minor/patch, 7 days for major (avoids broken releases)
+- **Cooldown**: 14 days for all update types (avoids churn from rapid successive releases)
 - **Commit messages**: `chore(deps): ` prefix with scope
 - **PR limit**: 10 per ecosystem
 - **Private registries**: `DEPENDABOT_SECRET` (PAT with repo scope) for private GitHub packages
@@ -41,7 +41,7 @@ Each repository gets a `.github/dependabot.yml` generated from the central templ
 
 ### Drift prevention
 
-The `sync-standards.yml` workflow regenerates `.github/dependabot.yml` weekly from the central template. If a repo's config drifts, the sync opens a PR to bring it back in line.
+The `sync-standards.yml` workflow regenerates `.github/dependabot.yml` weekly from the central template. The generated file contains a managed-by marker comment; repos that already have a hand-maintained `dependabot.yml` without this marker are skipped (a workflow warning is emitted instead). To opt in, either let the rollout script create the file or add the marker comment at the top.
 
 ### Example generated config (Dart repo)
 
@@ -82,8 +82,8 @@ updates:
       prefix: "chore(deps): "
       include: "scope"
     cooldown:
-      default-days: 3
-      semver-major-days: 7
+      default-days: 14
+      semver-major-days: 14
 ```
 
 ## GitHub Actions SHA pinning (pinact)

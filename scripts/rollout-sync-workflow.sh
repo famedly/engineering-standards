@@ -154,7 +154,7 @@ for REPO in $REPOS; do
 - \`.github/dependabot.yml\` – automated dependency updates (Dependabot)
 - Ecosystems: github-actions${SCOPE:+, $SCOPE}
 - Grouped PRs: major updates separate from minor+patch
-- Cooldown: 3 days (7 for major)"
+- Cooldown: 14 days"
 
       if [ -n "$WITH_AI" ]; then
         BODY="$BODY

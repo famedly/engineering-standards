@@ -41,7 +41,8 @@ resolve_digest() {
 
   local digest
   digest=$(crane digest "$image" 2>/dev/null) || return 1
-  DIGEST_CACHE="${DIGEST_CACHE}${image}=${digest}\n"
+  DIGEST_CACHE="${DIGEST_CACHE}${image}=${digest}
+"
   echo "$digest"
 }
 
