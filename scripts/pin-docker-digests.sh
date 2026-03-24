@@ -189,18 +189,12 @@ for REPO in $REPOS; do
 
     cd "$TMPDIR"
 
-    if ! git checkout -b "$BRANCH" 2>/dev/null; then
-      printf "FAIL   %-40s %s\n" "$FULL" "(branch create failed)"
-      FAILED=$((FAILED + 1))
-      cd - > /dev/null
-      rm -rf "$TMPDIR"
-      continue
-    fi
+    git checkout -B "$BRANCH" 2>/dev/null
 
     git add -A
     git commit -m "chore: pin Docker images to SHA256 digests" --quiet
 
-    if ! git push origin "$BRANCH" --quiet 2>&1; then
+    if ! git push origin "$BRANCH" --quiet --force-with-lease 2>&1; then
       printf "FAIL   %-40s %s\n" "$FULL" "(push failed)"
       FAILED=$((FAILED + 1))
       cd - > /dev/null

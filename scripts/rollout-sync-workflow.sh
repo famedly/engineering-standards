@@ -124,13 +124,7 @@ for REPO in $REPOS; do
     fi
 
     cd "$TMPDIR"
-    if ! git checkout -b "$BRANCH" 2>/dev/null; then
-      printf "FAIL   %-40s %s\n" "$FULL" "(branch create failed)"
-      FAILED=$((FAILED + 1))
-      cd - > /dev/null
-      rm -rf "$TMPDIR"
-      continue
-    fi
+    git checkout -B "$BRANCH" 2>/dev/null
 
     # --- Base (required): Dependabot ---
     mkdir -p .github
@@ -154,7 +148,7 @@ for REPO in $REPOS; do
 
       git commit -m "chore: add engineering standards ($PARTS, $LABEL)" --quiet
 
-      if ! git push origin "$BRANCH" --quiet 2>&1; then
+      if ! git push origin "$BRANCH" --quiet --force-with-lease 2>&1; then
         printf "FAIL   %-40s %s\n" "$FULL" "(push failed)"
         FAILED=$((FAILED + 1))
         cd - > /dev/null
