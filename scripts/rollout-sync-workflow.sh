@@ -38,6 +38,9 @@ detect_scope() {
   for f in "$dir/requirements.txt" "$dir/pyproject.toml" "$dir/setup.py" "$dir/Pipfile"; do
     if [ -f "$f" ]; then scope="${scope:+$scope }python"; break; fi
   done
+  for f in "$dir/Dockerfile" "$dir/docker-compose.yml" "$dir/docker-compose.yaml"; do
+    if [ -f "$f" ]; then scope="${scope:+$scope }docker"; break; fi
+  done
   echo "$scope"
 }
 

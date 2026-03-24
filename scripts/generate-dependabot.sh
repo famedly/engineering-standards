@@ -103,5 +103,27 @@ RUST
       semver-major-days: 7
 PYTHON
       ;;
+    docker)
+      cat <<'DOCKER'
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    groups:
+      major:
+        update-types: ["major"]
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+DOCKER
+      ;;
   esac
 done

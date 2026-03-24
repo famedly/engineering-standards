@@ -25,6 +25,7 @@ Each repository gets a `.github/dependabot.yml` generated from the central templ
 | Dart/Flutter | `pubspec.yaml` | `pub` |
 | Rust | `Cargo.toml` | `cargo` |
 | Python | `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile` | `pip` |
+| Docker | `Dockerfile`, `docker-compose.yml` | `docker` |
 
 ### Configuration highlights
 

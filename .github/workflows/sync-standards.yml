@@ -41,6 +41,9 @@ jobs:
           for f in requirements.txt pyproject.toml setup.py Pipfile; do
             if [ -f "$f" ]; then SCOPE="${SCOPE:+$SCOPE }python"; break; fi
           done
+          for f in Dockerfile docker-compose.yml docker-compose.yaml; do
+            if [ -f "$f" ]; then SCOPE="${SCOPE:+$SCOPE }docker"; break; fi
+          done
           echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
           echo "Detected scope: '${SCOPE:-none}'"
 
