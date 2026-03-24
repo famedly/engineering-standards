@@ -92,15 +92,20 @@ All GitHub Actions references must use full-length commit SHAs instead of tags. 
 
 > **Settings → Code security → Actions → Require actions to be pinned to a full-length commit SHA**
 
-Use [pinact](https://github.com/suzuki-shunsuke/pinact) to convert tag-based references:
+Use [pinact](https://github.com/suzuki-shunsuke/pinact) to convert tag-based references. The `pin-actions.sh` script automates this across the entire org:
 
 ```bash
-# Install
+# Install pinact
 go install github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest
 
-# Convert all workflows
-pinact run
+# Preview what would change
+./scripts/pin-actions.sh famedly --dry-run
+
+# Pin all Actions and create PRs
+./scripts/pin-actions.sh famedly
 ```
+
+For a single repo, run `pinact run` directly in the repo root.
 
 Dependabot's `github-actions` ecosystem automatically updates the SHA pins when new versions are released.
 
@@ -197,7 +202,7 @@ A GitHub Release with the changelog extract is created automatically.
 3. Store `ANTHROPIC_API_KEY` as an org-level GitHub secret (for AI features)
 4. Create a PAT with `repo` scope (read access to `engineering-standards`) and store it as org secret `ENGINEERING_STANDARDS_READ`
 5. Run the [rollout script](#rollout) to deploy to all repos
-6. Run `pinact run` in each repo to convert existing tag-based Action references to SHAs
+6. Run the [Actions SHA pinning script](#github-actions-sha-pinning-pinact) to convert existing tag-based references org-wide
 
 ---
 
