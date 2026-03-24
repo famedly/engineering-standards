@@ -203,6 +203,7 @@ A GitHub Release with the changelog extract is created automatically.
 4. Create a PAT with `repo` scope (read access to `engineering-standards`) and store it as org secret `ENGINEERING_STANDARDS_READ`
 5. Run the [rollout script](#rollout) to deploy to all repos
 6. Run the [Actions SHA pinning script](#github-actions-sha-pinning-pinact) to convert existing tag-based references org-wide
+7. Run the [Docker digest pinning script](#docker-digest-pinning) to pin Docker images to SHA256 digests org-wide
 
 ---
 
