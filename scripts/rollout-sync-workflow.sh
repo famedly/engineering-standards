@@ -41,6 +41,12 @@ detect_scope() {
   for f in "$dir/Dockerfile" "$dir/docker-compose.yml" "$dir/docker-compose.yaml"; do
     if [ -f "$f" ]; then scope="${scope:+$scope }docker"; break; fi
   done
+  if find "$dir" -name '*.tf' -maxdepth 3 2>/dev/null | grep -q .; then
+    scope="${scope:+$scope }terraform"
+  fi
+  if [ -f "$dir/Chart.yaml" ] || find "$dir" -name 'Chart.yaml' -maxdepth 3 2>/dev/null | grep -q .; then
+    scope="${scope:+$scope }helm"
+  fi
   echo "$scope"
 }
 

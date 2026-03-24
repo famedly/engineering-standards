@@ -44,6 +44,12 @@ jobs:
           for f in Dockerfile docker-compose.yml docker-compose.yaml; do
             if [ -f "$f" ]; then SCOPE="${SCOPE:+$SCOPE }docker"; break; fi
           done
+          if find . -name '*.tf' -maxdepth 3 2>/dev/null | grep -q .; then
+            SCOPE="${SCOPE:+$SCOPE }terraform"
+          fi
+          if find . -name 'Chart.yaml' -maxdepth 3 2>/dev/null | grep -q .; then
+            SCOPE="${SCOPE:+$SCOPE }helm"
+          fi
           echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
           echo "Detected scope: '${SCOPE:-none}'"
 

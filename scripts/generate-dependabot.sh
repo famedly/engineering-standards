@@ -4,7 +4,7 @@ set -euo pipefail
 # Generates a dependabot.yml to stdout based on detected language scope.
 # Used by both the rollout script and the sync-standards workflow.
 #
-# Usage: ./scripts/generate-dependabot.sh "dart rust python"
+# Usage: ./scripts/generate-dependabot.sh "dart rust python docker terraform helm"
 
 SCOPE="${1:-}"
 
@@ -124,6 +124,33 @@ PYTHON
       default-days: 3
       semver-major-days: 7
 DOCKER
+      ;;
+    terraform)
+      cat <<'TERRAFORM'
+
+  - package-ecosystem: "terraform"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    groups:
+      major:
+        update-types: ["major"]
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "chore(deps): "
+      include: "scope"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+TERRAFORM
+      ;;
+    helm)
+      # Dependabot has no native Helm ecosystem.
+      # Helm charts from OCI registries are handled by the docker ecosystem.
+      # For traditional Helm repos, chart version updates are not automated.
       ;;
   esac
 done

@@ -26,6 +26,8 @@ Each repository gets a `.github/dependabot.yml` generated from the central templ
 | Rust | `Cargo.toml` | `cargo` |
 | Python | `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile` | `pip` |
 | Docker | `Dockerfile`, `docker-compose.yml` | `docker` |
+| Terraform | `*.tf` files | `terraform` |
+| Helm (OCI) | `Chart.yaml` | via `docker` (OCI digests) |
 
 ### Configuration highlights
 
@@ -101,6 +103,10 @@ pinact run
 ```
 
 Dependabot's `github-actions` ecosystem automatically updates the SHA pins when new versions are released.
+
+### Helm charts
+
+Dependabot has no native Helm ecosystem. Helm charts from **OCI registries** (the standard since Helm 3.8+) are handled by the `docker` ecosystem and can be digest-pinned like Docker images. For traditional Helm chart repositories, version updates are not automated by Dependabot.
 
 ## Docker digest pinning
 
