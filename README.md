@@ -102,6 +102,31 @@ pinact run
 
 Dependabot's `github-actions` ecosystem automatically updates the SHA pins when new versions are released.
 
+## Docker digest pinning
+
+All Docker image references should use SHA256 digest pins for supply chain security. Use the `pin-docker-digests.sh` script to convert tag-based references across the org:
+
+```bash
+# Preview what would change
+./scripts/pin-docker-digests.sh famedly --dry-run
+
+# Pin all Docker images and create PRs
+./scripts/pin-docker-digests.sh famedly
+```
+
+This converts:
+```dockerfile
+FROM node:20-alpine
+```
+to:
+```dockerfile
+FROM node:20-alpine@sha256:7c4c5d4f...
+```
+
+After pinning, Dependabot's `docker` ecosystem keeps the digests up to date automatically.
+
+Requires `crane` (`brew install crane`) and `gh` CLI.
+
 ## CI (AI code review)
 
 Other repos call `claude-linter.yml` as a reusable workflow:
