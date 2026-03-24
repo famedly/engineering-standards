@@ -1,36 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Distributes both the sync-standards.yml and claude-linter.yml workflows
-# to all repositories in the GitHub organization. Language scope (Dart/Rust)
-# is detected automatically from the repo contents.
+# Distributes engineering standards to all repositories in the GitHub
+# organization. Dependabot config is always deployed (base/required).
+# AI workflows (sync-standards, claude-linter) are opt-in via --with-ai.
 #
 # Prerequisites:
 #   - gh CLI authenticated with an org-level PAT (repo + workflow scopes)
 #   - The PAT must have write access to the target repositories
 #
 # Usage:
-#   ./scripts/rollout-sync-workflow.sh <org>
-#   ./scripts/rollout-sync-workflow.sh <org> --dry-run
+#   ./scripts/rollout-sync-workflow.sh <org> [--dry-run] [--with-ai]
 
-ORG="${1:?Usage: $0 <org> [--dry-run]}"
-DRY_RUN="${2:-}"
+ORG="${1:?Usage: $0 <org> [--dry-run] [--with-ai]}"
+shift
+DRY_RUN=""
+WITH_AI=""
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN="true" ;;
+    --with-ai) WITH_AI="true" ;;
+  esac
+done
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GENERATE_DEPENDABOT="$REPO_ROOT/scripts/generate-dependabot.sh"
 SYNC_SOURCE="$REPO_ROOT/.github/workflows/sync-standards.yml"
 LINTER_TEMPLATE="$REPO_ROOT/.github/workflows/claude-linter.yml"
 BRANCH="chore/add-engineering-standards"
 SKIP_REPOS=("engineering-standards" ".github" "nehws")
-
-for f in "$SYNC_SOURCE" "$LINTER_TEMPLATE"; do
-  if [ ! -f "$f" ]; then echo "Error: $f not found"; exit 1; fi
-done
 
 detect_scope() {
   local dir="$1"
   local scope=""
   [ -f "$dir/pubspec.yaml" ] && scope="dart"
   [ -f "$dir/Cargo.toml" ] && scope="${scope:+$scope }rust"
+  for f in "$dir/requirements.txt" "$dir/pyproject.toml" "$dir/setup.py" "$dir/Pipfile"; do
+    if [ -f "$f" ]; then scope="${scope:+$scope }python"; break; fi
+  done
+  for f in "$dir/Dockerfile" "$dir/docker-compose.yml" "$dir/docker-compose.yaml"; do
+    if [ -f "$f" ]; then scope="${scope:+$scope }docker"; break; fi
+  done
+  if find "$dir" -name '*.tf' -maxdepth 3 2>/dev/null | grep -q .; then
+    scope="${scope:+$scope }terraform"
+  fi
+  if [ -f "$dir/Chart.yaml" ] || find "$dir" -name 'Chart.yaml' -maxdepth 3 2>/dev/null | grep -q .; then
+    scope="${scope:+$scope }helm"
+  fi
   echo "$scope"
+}
+
+generate_dependabot_yml() {
+  local scope="$1"
+  bash "$GENERATE_DEPENDABOT" "$scope"
 }
 
 generate_linter_workflow() {
@@ -57,6 +79,8 @@ echo "Fetching repositories for org: $ORG"
 REPOS=$(gh repo list "$ORG" --no-archived --source --json name -q '.[].name' --limit 500)
 TOTAL=$(echo "$REPOS" | wc -l | tr -d ' ')
 echo "Found $TOTAL repositories (excluding forks)"
+echo ""
+echo "Mode: dependabot=always${WITH_AI:+ ai=yes}${DRY_RUN:+ (dry-run)}"
 echo ""
 
 printf "%-6s %-40s %s\n" "STATUS" "REPOSITORY" "SCOPE"
@@ -91,7 +115,7 @@ for REPO in $REPOS; do
     SCOPE=$(detect_scope "$TMPDIR")
     LABEL="${SCOPE:-generic}"
 
-    if [ "$DRY_RUN" = "--dry-run" ]; then
+    if [ -n "$DRY_RUN" ]; then
       printf "DRY    %-40s %s\n" "$FULL" "$LABEL"
       CREATED=$((CREATED + 1))
       rm -rf "$TMPDIR"
@@ -101,27 +125,54 @@ for REPO in $REPOS; do
     cd "$TMPDIR"
     git checkout -b "$BRANCH" 2>/dev/null
 
-    mkdir -p .github/workflows
-    cp "$SYNC_SOURCE" .github/workflows/sync-standards.yml
-    generate_linter_workflow "$SCOPE" > .github/workflows/lint.yml
+    # --- Base (required): Dependabot ---
+    mkdir -p .github
+    generate_dependabot_yml "$SCOPE" > .github/dependabot.yml
+    git add .github/dependabot.yml
 
-    git add .github/workflows/sync-standards.yml .github/workflows/lint.yml
+    # --- Optional: AI workflows ---
+    if [ -n "$WITH_AI" ]; then
+      mkdir -p .github/workflows
+      cp "$SYNC_SOURCE" .github/workflows/sync-standards.yml
+      generate_linter_workflow "$SCOPE" > .github/workflows/lint.yml
+      git add .github/workflows/sync-standards.yml .github/workflows/lint.yml
+    fi
+
     if git diff --cached --quiet; then
       printf "SKIP   %-40s %s\n" "$FULL" "(already up to date)"
       SKIPPED=$((SKIPPED + 1))
     else
-      git commit -m "chore: add engineering standards workflows ($LABEL)" --quiet
+      PARTS="dependabot"
+      [ -n "$WITH_AI" ] && PARTS="dependabot + ai"
+
+      git commit -m "chore: add engineering standards ($PARTS, $LABEL)" --quiet
       git push origin "$BRANCH" --quiet 2>/dev/null
+
+      BODY="Automated rollout from [engineering-standards](https://github.com/$ORG/engineering-standards).
+
+**Base (always included):**
+- \`.github/dependabot.yml\` – automated dependency updates (Dependabot)
+- Ecosystems: github-actions${SCOPE:+, $SCOPE}
+- Grouped PRs: major updates separate from minor+patch
+- Cooldown: 14 days"
+
+      if [ -n "$WITH_AI" ]; then
+        BODY="$BODY
+
+**AI workflows (optional):**
+- \`lint.yml\` – Claude reviews PRs against the ruleset (scope: \`$LABEL\`)
+- \`sync-standards.yml\` – syncs \`.cursor/rules/\` and \`CLAUDE.md\` weekly"
+      fi
+
+      BODY="$BODY
+
+Detected scope: **$LABEL**"
 
       gh pr create \
         --repo "$FULL" \
         --head "$BRANCH" \
-        --title "chore: add engineering standards workflows" \
-        --body "Adds two workflows from [engineering-standards](https://github.com/$ORG/engineering-standards):
-- **lint.yml** – Claude reviews PRs against the ruleset (scope: \`$LABEL\`)
-- **sync-standards.yml** – syncs \`.cursor/rules/\` and \`CLAUDE.md\` weekly
-
-Detected scope: **$LABEL** (based on $([ -n "$SCOPE" ] && echo "project files" || echo "no pubspec.yaml or Cargo.toml found"))." \
+        --title "chore: add engineering standards ($PARTS)" \
+        --body "$BODY" \
         --no-maintainer-edit \
         2>/dev/null
 
