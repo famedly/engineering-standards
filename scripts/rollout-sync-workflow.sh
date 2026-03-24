@@ -111,7 +111,8 @@ for REPO in $REPOS; do
   fi
 
   TMPDIR=$(mktemp -d)
-  if gh repo clone "$FULL" "$TMPDIR" -- --depth 1 --quiet 2>/dev/null; then
+  CLONE_ERR=""
+  if CLONE_ERR=$(gh repo clone "$FULL" "$TMPDIR" -- --depth 1 --quiet 2>&1); then
     SCOPE=$(detect_scope "$TMPDIR")
     LABEL="${SCOPE:-generic}"
 
@@ -123,7 +124,13 @@ for REPO in $REPOS; do
     fi
 
     cd "$TMPDIR"
-    git checkout -b "$BRANCH" 2>/dev/null
+    if ! git checkout -b "$BRANCH" 2>/dev/null; then
+      printf "FAIL   %-40s %s\n" "$FULL" "(branch create failed)"
+      FAILED=$((FAILED + 1))
+      cd - > /dev/null
+      rm -rf "$TMPDIR"
+      continue
+    fi
 
     # --- Base (required): Dependabot ---
     mkdir -p .github
@@ -146,7 +153,14 @@ for REPO in $REPOS; do
       [ -n "$WITH_AI" ] && PARTS="dependabot + ai"
 
       git commit -m "chore: add engineering standards ($PARTS, $LABEL)" --quiet
-      git push origin "$BRANCH" --quiet 2>/dev/null
+
+      if ! git push origin "$BRANCH" --quiet 2>&1; then
+        printf "FAIL   %-40s %s\n" "$FULL" "(push failed)"
+        FAILED=$((FAILED + 1))
+        cd - > /dev/null
+        rm -rf "$TMPDIR"
+        continue
+      fi
 
       BODY="Automated rollout from [engineering-standards](https://github.com/$ORG/engineering-standards).
 
@@ -168,13 +182,19 @@ for REPO in $REPOS; do
 
 Detected scope: **$LABEL**"
 
-      gh pr create \
+      if ! gh pr create \
         --repo "$FULL" \
         --head "$BRANCH" \
         --title "chore: add engineering standards ($PARTS)" \
         --body "$BODY" \
         --no-maintainer-edit \
-        2>/dev/null
+        2>&1; then
+        printf "FAIL   %-40s %s\n" "$FULL" "(PR create failed)"
+        FAILED=$((FAILED + 1))
+        cd - > /dev/null
+        rm -rf "$TMPDIR"
+        continue
+      fi
 
       printf "OK     %-40s %s\n" "$FULL" "$LABEL"
       CREATED=$((CREATED + 1))
@@ -182,7 +202,8 @@ Detected scope: **$LABEL**"
 
     cd - > /dev/null
   else
-    printf "FAIL   %-40s %s\n" "$FULL" "(clone failed)"
+    CLONE_MSG=$(echo "$CLONE_ERR" | head -1)
+    printf "FAIL   %-40s %s\n" "$FULL" "(clone failed: $CLONE_MSG)"
     FAILED=$((FAILED + 1))
   fi
 

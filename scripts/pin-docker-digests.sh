@@ -144,7 +144,8 @@ for REPO in $REPOS; do
   fi
 
   TMPDIR=$(mktemp -d)
-  if gh repo clone "$FULL" "$TMPDIR" -- --depth 1 --quiet 2>/dev/null; then
+  CLONE_ERR=""
+  if CLONE_ERR=$(gh repo clone "$FULL" "$TMPDIR" -- --depth 1 --quiet 2>&1); then
     DOCKERFILES=$(find "$TMPDIR" -name 'Dockerfile' -o -name 'Dockerfile.*' -o -name '*.Dockerfile' 2>/dev/null | grep -v node_modules || true)
     COMPOSEFILES=$(find "$TMPDIR" -name 'docker-compose.yml' -o -name 'docker-compose.yaml' -o -name 'compose.yml' -o -name 'compose.yaml' 2>/dev/null | grep -v node_modules || true)
 
@@ -187,10 +188,25 @@ for REPO in $REPOS; do
     fi
 
     cd "$TMPDIR"
-    git checkout -b "$BRANCH" 2>/dev/null
+
+    if ! git checkout -b "$BRANCH" 2>/dev/null; then
+      printf "FAIL   %-40s %s\n" "$FULL" "(branch create failed)"
+      FAILED=$((FAILED + 1))
+      cd - > /dev/null
+      rm -rf "$TMPDIR"
+      continue
+    fi
+
     git add -A
     git commit -m "chore: pin Docker images to SHA256 digests" --quiet
-    git push origin "$BRANCH" --quiet 2>/dev/null
+
+    if ! git push origin "$BRANCH" --quiet 2>&1; then
+      printf "FAIL   %-40s %s\n" "$FULL" "(push failed)"
+      FAILED=$((FAILED + 1))
+      cd - > /dev/null
+      rm -rf "$TMPDIR"
+      continue
+    fi
 
     PR_BODY="Pins all Docker image references to their SHA256 digests for supply chain security.
 
@@ -198,19 +214,26 @@ for REPO in $REPOS; do
 
 After this is merged, Dependabot's \`docker\` ecosystem will keep the digest pins updated automatically."
 
-    gh pr create \
+    if ! gh pr create \
       --repo "$FULL" \
       --head "$BRANCH" \
       --title "chore: pin Docker images to SHA256 digests" \
       --body "$PR_BODY" \
       --no-maintainer-edit \
-      2>/dev/null
+      2>&1; then
+      printf "FAIL   %-40s %s\n" "$FULL" "(PR create failed)"
+      FAILED=$((FAILED + 1))
+      cd - > /dev/null
+      rm -rf "$TMPDIR"
+      continue
+    fi
 
     printf "OK     %-40s %s\n" "$FULL" "$PINNED file(s):$FILES_CHANGED"
     CREATED=$((CREATED + 1))
     cd - > /dev/null
   else
-    printf "FAIL   %-40s %s\n" "$FULL" "(clone failed)"
+    CLONE_MSG=$(echo "$CLONE_ERR" | head -1)
+    printf "FAIL   %-40s %s\n" "$FULL" "(clone failed: $CLONE_MSG)"
     FAILED=$((FAILED + 1))
   fi
 
