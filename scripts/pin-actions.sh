@@ -17,7 +17,7 @@ set -euo pipefail
 # Usage:
 #   ./scripts/pin-actions.sh <org> [--dry-run]
 
-command -v pinact >/dev/null 2>&1 || { echo "Error: pinact is not installed. Run: go install github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest"; exit 1; }
+command -v pinact >/dev/null 2>&1 || { echo "Error: pinact is not installed. Run: go install github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@v3.9.0"; exit 1; }
 
 ORG="${1:?Usage: $0 <org> [--dry-run]}"
 shift
