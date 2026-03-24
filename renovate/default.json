@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "labels": ["dependencies"],
+  "schedule": ["after 6pm every weekday", "every weekend"],
+  "timezone": "Europe/Berlin",
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "description": "GitHub Actions dependencies",
+      "matchManagers": ["github-actions"],
+      "addLabels": ["ci"],
+      "semanticCommitType": "ci"
+    }
+  ]
+}

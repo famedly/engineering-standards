@@ -1,7 +1,7 @@
 name: Sync engineering standards
 
 # Drop this workflow into any repository to keep its local AI rules
-# in sync with the central engineering-standards repo.
+# and renovate.json in sync with the central engineering-standards repo.
 # Language scope (dart/rust) is detected automatically.
 
 on:
@@ -27,7 +27,9 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/engineering-standards
           path: _standards
-          sparse-checkout: .github/rules
+          sparse-checkout: |
+            .github/rules
+            renovate
           token: ${{ secrets.ENGINEERING_STANDARDS_READ }}
 
       - name: Detect language scope
@@ -61,7 +63,29 @@ jobs:
             fi
           done
 
-          rm -rf _standards
+      - name: Sync renovate.json
+        run: |
+          ORG="${{ github.repository_owner }}"
+          SCOPE="${{ steps.scope.outputs.scope }}"
+
+          PRESETS="\"github>$ORG/engineering-standards//renovate/default\""
+          for lang in $SCOPE; do
+            PRESETS="$PRESETS, \"github>$ORG/engineering-standards//renovate/$lang\""
+          done
+          PRESETS="$PRESETS, \"github>$ORG/engineering-standards//renovate/private\""
+
+          cat > renovate.json <<EOF
+          {
+            "\$schema": "https://docs.renovatebot.com/renovate-schema.json",
+            "extends": [$PRESETS]
+          }
+          EOF
+
+          # Normalize indentation
+          python3 -c "import json,sys; d=json.load(open('renovate.json')); json.dump(d,open('renovate.json','w'),indent=2); print()" 2>/dev/null || true
+
+      - name: Cleanup
+        run: rm -rf _standards
 
       - name: Create PR if changed
         uses: peter-evans/create-pull-request@v8
@@ -70,7 +94,7 @@ jobs:
           body: |
             Automated sync from the [engineering-standards](https://github.com/${{ github.repository_owner }}/engineering-standards) repository.
 
-            Updates `.cursor/rules/standards/` and `CLAUDE.md` to the latest version.
+            Updates `.cursor/rules/standards/`, `CLAUDE.md`, and `renovate.json` to the latest version.
           branch: chore/sync-engineering-standards
           commit-message: "chore: sync engineering standards"
           delete-branch: true

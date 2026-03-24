@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["pub"],
+  "pub": {
+    "minimumReleaseAge": "3 days"
+  },
+  "packageRules": [
+    {
+      "description": "Bump pub dependency ranges",
+      "matchManagers": ["pub"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Flutter-managed packages should not be updated independently",
+      "matchManagers": ["pub"],
+      "matchPackageNames": ["collection", "intl", "material_color_utilities"],
+      "enabled": false
+    },
+    {
+      "description": "Dart SDK version is managed by Flutter, disable standalone updates",
+      "matchManagers": ["pub"],
+      "matchDepNames": ["dart"],
+      "enabled": false
+    }
+  ]
+}

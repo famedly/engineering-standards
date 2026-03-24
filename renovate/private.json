@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Track private GitHub git dependencies that use a ref field",
+  "enabledManagers": ["custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["pubspec\\.yaml$"],
+      "matchStrings": [
+        "(?<depName>\\w+):\\s*\\n\\s*git:\\s*\\n\\s*url:\\s*(?:https://github\\.com/|git@github\\.com:)(?<packageName>[^.\\s]+)(?:\\.git)?\\s*\\n(?:\\s*path:\\s*\\S+\\s*\\n)?\\s*ref:\\s*(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ]
+}
