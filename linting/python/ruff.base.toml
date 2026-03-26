@@ -1,0 +1,20 @@
+# managed-by: engineering-standards — do not edit manually
+# Regenerate with: nix run .#regenerateStandards
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+    "A",   # flake8-builtins
+    "C4",  # flake8-comprehensions
+    "T20", # flake8-print
+    "RUF", # ruff-specific
+]

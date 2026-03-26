@@ -1,16 +1,9 @@
 # Changelog
 
-All notable changes to the engineering standards are documented here.
-Format follows [Keep a Changelog](https://keepachangelog.com/).
+Format: [Keep a Changelog](https://keepachangelog.com/).
 
 ## [1.0.0] – 2026-03-16
 
-Initial release.
+First Nix-first release: flake module `famedly.standards.*`, SHA-pinned reusable GitHub Actions, templates (`rust`, `dart`, `flutter`, `flutter-rust`), GitHub App in `app/`, Dart package `engineering_standards_lints` under `linting/dart-package`.
 
-### Added
-
-- General rules: documentation, code quality, documentation style, logging policy
-- Language-specific rules: Dart/Flutter, Rust
-- CI workflow (`claude-linter.yml`) – reusable workflow for PR code review via Claude
-- Editor sync workflow (`sync-standards.yml`) – syncs rules to `.cursor/rules/` and `CLAUDE.md`
-- Rollout script for distributing workflows to all org repos
+User-facing docs: root `README.md` and `docs/adopting.md`.

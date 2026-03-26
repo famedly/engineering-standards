@@ -1,0 +1,5 @@
+# managed-by: engineering-standards — do not edit manually
+# Regenerate with: nix run .#regenerateStandards
+extend = ".engineering-standards/ruff.base.toml"
+
+# Repo-specific overrides below this line.

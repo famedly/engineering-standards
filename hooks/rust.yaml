@@ -1,0 +1,6 @@
+  - repo: https://github.com/famedly/engineering-standards.git
+    rev: main
+    hooks:
+      - id: fmt
+      - id: clippy
+      - id: cargo-lock

@@ -1,0 +1,22 @@
+[licenses]
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSD-3-Clause-Clear",
+  "BSD-4-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "MS-PL",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Zlib",
+]
+unused-allowed-license = "allow"
+confidence-threshold = 0.95

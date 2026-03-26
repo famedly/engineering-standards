@@ -1,0 +1,15 @@
+# Rust build artefacts
+app/target/
+
+# Private keys and secrets
+*.pem
+*.key
+.env
+.env.*
+
+# Nix
+result
+result-*
+
+# macOS
+.DS_Store
