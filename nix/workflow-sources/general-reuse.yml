@@ -1,0 +1,14 @@
+name: REUSE compliance
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: fsfe/reuse-action@@reuseAction@

@@ -1,0 +1,75 @@
+---
+name: Ansible Test
+on:
+  workflow_call:
+    inputs:
+      testing-type:
+        type: string
+        required: true
+      collection:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python_version:
+          - "3.9"
+          - "3.12"
+        ansible_version:
+          - "8.7.0"
+          - "9.0.1"
+        exclude:
+          - python_version: "3.12"
+            ansible_version: "8.7.0"
+
+    name: Run ${{ inputs.testing-type }} tests on Ansible ${{ matrix.ansible_version }} and Python ${{ matrix.python_version }}
+    runs-on: ubuntu-latest
+    container: registry.famedly.net/docker-oss/ansible:py-${{ matrix.python_version }}-ansible-${{ matrix.ansible_version }}
+    env:
+      TESTING_PATH: ${{ inputs.testing-type == 'units' && 'unit' || inputs.testing-type }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: "ansible_collections/${{ inputs.collection }}"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@@checkout@
+        with:
+          submodules: recursive
+          path: "ansible_collections/${{ inputs.collection }}"
+
+      - name: Prepare env
+        run: |
+          echo "HAS_TESTS=$([[ -d "tests/${{ env.TESTING_PATH }}" ]] && echo true || echo false )" >> $GITHUB_ENV
+
+      - name: Prepare exclude
+        if: inputs.testing-type != 'units'
+        run: |
+          SUBMODULES=$(for path in $(git submodule --quiet foreach pwd); do echo "${path#"$(pwd)"}/"; done)
+          export SUBMODULES
+          echo "EXCLUDE=${SUBMODULES:+--exclude ${SUBMODULES}}" >> $GITHUB_ENV
+
+      - name: Run tests
+        id: test
+        if: env.HAS_TESTS == 'true'
+        run: |
+          ansible-test ${{ inputs.testing-type }} --coverage ${{ env.EXCLUDE }}
+
+      - name: Generate coverage report
+        if: env.HAS_TESTS == 'true'
+        run: |
+          ansible-test coverage report
+          ansible-test coverage xml
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@@uploadArtifact@
+        with:
+          name: ansible-test-${{ env.TESTING_PATH }}-${{ matrix.ansible_version }}-${{ matrix.python_version }}
+          path: "ansible_collections/${{ inputs.collection }}/tests/output/"
+          if-no-files-found: ignore

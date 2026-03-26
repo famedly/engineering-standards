@@ -1,0 +1,112 @@
+name: Rust CI
+on:
+  workflow_call:
+    inputs:
+
+      container:
+        type: string
+        default: "ghcr.io/famedly/rust-container:nightly"
+      runner:
+        type: string
+        default: "ubuntu-latest"
+      features:
+        type: string
+        default: "--all-features"
+      packages:
+        description: "Space-separated list of packages (for workspaces, passed as --package)"
+        type: string
+        default: ""
+      additional_packages:
+        description: "Additional OS-level packages to install during preparation"
+        type: string
+        default: ""
+      coverage:
+        type: boolean
+        default: true
+      typos:
+        description: "Run spell-check with crate-ci/typos"
+        type: boolean
+        default: true
+      cargo_deny:
+        description: "Run license/dependency audit with cargo-deny"
+        type: boolean
+        default: false
+    secrets:
+      CRATE_REGISTRY_SSH_PRIVKEY:
+        required: false
+      CODECOV_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  lints:
+    name: "Clippy & Format"
+    runs-on: ${{ inputs.runner }}
+    container: ${{ inputs.container }}
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: ./.github/actions/rust-prepare
+        with:
+          crate_registry_ssh_privkey: ${{ secrets.CRATE_REGISTRY_SSH_PRIVKEY }}
+          additional_packages: ${{ inputs.additional_packages }}
+      - name: Clippy
+        run: cargo clippy ${{ inputs.features }} --all-targets -- -D warnings
+      - name: Format
+        run: cargo fmt --all -- --check
+
+  tests:
+    name: "Tests"
+    runs-on: ${{ inputs.runner }}
+    container: ${{ inputs.container }}
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: ./.github/actions/rust-prepare
+        with:
+          crate_registry_ssh_privkey: ${{ secrets.CRATE_REGISTRY_SSH_PRIVKEY }}
+          additional_packages: ${{ inputs.additional_packages }}
+      - name: Tests
+        run: cargo nextest run ${{ inputs.features }}
+
+  coverage:
+    if: ${{ inputs.coverage }}
+    name: "Coverage"
+    runs-on: ${{ inputs.runner }}
+    container: ${{ inputs.container }}
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: ./.github/actions/rust-prepare
+        with:
+          crate_registry_ssh_privkey: ${{ secrets.CRATE_REGISTRY_SSH_PRIVKEY }}
+          additional_packages: ${{ inputs.additional_packages }}
+      - name: Coverage
+        run: cargo llvm-cov nextest ${{ inputs.features }} --lcov --output-path lcov.info
+      - uses: codecov/codecov-action@@codecov@
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: codecov/test-results-action@@testResults@
+        if: ${{ !cancelled() }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  typos:
+    if: ${{ inputs.typos }}
+    name: "Spell Check"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: crate-ci/typos@@typos@
+
+  deny:
+    if: ${{ inputs.cargo_deny }}
+    name: "Cargo Deny"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@@checkout@
+      - uses: embarkstudios/cargo-deny-action@@cargoDeny@

@@ -1,0 +1,31 @@
+name: "Publish to GitHub Pages"
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: "Name of the artifact to publish"
+        type: string
+        required: true
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@@downloadArtifact@
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: dist
+      - uses: actions/configure-pages@@configurePages@
+      - uses: actions/upload-pages-artifact@@uploadPagesArtifact@
+        with:
+          path: dist
+      - id: deploy
+        uses: actions/deploy-pages@@deployPages@

@@ -1,0 +1,21 @@
+---
+name: Add Issue to Project
+on:
+  workflow_call:
+    inputs:
+      project-url:
+        description: "URL of the Project to add the Issue to"
+        type: string
+        required: true
+
+permissions: {}
+
+jobs:
+  add-to-project:
+    name: Add issue to project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@@addToProject@
+        with:
+          project-url: ${{ inputs.project-url }}
+          github-token: ${{ secrets.ADD_ISSUE_TO_PROJECT_PAT }}
