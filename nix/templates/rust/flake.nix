@@ -1,8 +1,8 @@
 # flake.nix template for Rust repositories.
 # Copy this file to your repo root and adjust as needed.
 #
-# This template uses crane + fenix for Rust builds — the recommended approach
-# for Nix-first Rust development (same pattern as famedly/nehws).
+# Uses crane + fenix for Rust builds: the recommended approach for
+# Nix-first Rust development.
 {
   description = "REPLACE_WITH_REPO_DESCRIPTION";
 

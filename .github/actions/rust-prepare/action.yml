@@ -1,5 +1,5 @@
 name: "Prepare rust environment"
-description: "Sets up all environmental variables and ssh, potentially also container registry"
+description: "Sets up SSH, Cargo home, and optional private crate registry for Rust builds"
 inputs:
   ssh_auth_sock:
     description: "SSH socket"

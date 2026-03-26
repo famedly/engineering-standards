@@ -48,7 +48,7 @@ The Rust service in **`app/`** is a **GitHub App** for org-scale extras: webhook
 
 - **`nix/modules/`** — flake module consumers import.
 - **`nix/modules/ci-workflow.nix`** (via root flake `famedly.standards.ci`) + **`nix/action-versions-data.nix`** — `.github/workflows/ci.yml`.
-- **`nix/workflow-sources/`** + **`nix/action-versions-data.nix`** — übrige Reusable-Workflow-YAML unter `.github/workflows/`.
+- **`nix/workflow-sources/`** + **`nix/action-versions-data.nix`** — remaining reusable workflow YAML under `.github/workflows/`.
 - **`nix/templates/`** — `nix flake init` templates.
 - **`app/`** + **`charts/`** — GitHub App (see [docs/github-app.md](docs/github-app.md)). Config: `app/.env.example`.
 

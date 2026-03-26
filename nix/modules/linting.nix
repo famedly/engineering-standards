@@ -4,8 +4,8 @@
 # Generated files in consumer repo depend on detected language:
 #
 #   Dart:   analysis_options.yaml
-#   Rust:   clippy.toml, rustfmt.toml, .cargo/config.toml, .cargo/standards.toml
-#   Python: ruff.toml, .engineering-standards/ruff.base.toml
+#   Rust:   clippy.toml, rustfmt.toml, deny.toml, cargo-lints.toml
+#   Python: ruff.toml, ruff.base.toml
 
 { flake-parts-lib, lib, ... }:
 let

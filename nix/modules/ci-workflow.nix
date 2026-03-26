@@ -1,7 +1,7 @@
 # CI Workflow module: generates a minimal .github/workflows/ci.yml.
 #
-# Following the nehws pattern: the CI workflow is just a Nix runner.
-# All build/test/lint logic lives in `nix flake check`.
+# The CI workflow is just a Nix runner — all build/test/lint logic lives
+# in `nix flake check`.
 #
 # The generated ci.yml:
 #   1. Checks out the repo

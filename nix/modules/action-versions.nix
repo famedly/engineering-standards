@@ -1,13 +1,14 @@
-# Canonical version pins — update here, propagates everywhere.
+# Nix options for workflow references and GitHub Action version pins.
 #
-# This module is the single source of truth for:
+# This module defines two options:
 #   1. workflowRef — the git ref consumers use to reference our reusable
 #      workflows (floating major tag like "v1"). Bump to "v2" for breaking changes.
-#   2. actionVersions — commit-SHA pins for all third-party GitHub Actions.
+#   2. actionVersions — commit-SHA pins for all third-party GitHub Actions,
+#      read from nix/action-versions-data.nix (the actual source of truth).
 #
-# To update: bump versions here, then run
+# To update action version pins: edit nix/action-versions-data.nix, then run
 #   nix run .#regenerateStandards
-# in every consumer repo (or let the auto-update workflow do it).
+# in this repo. Consumer repos pick up the update via their flake.lock.
 
 { flake-parts-lib, lib, ... }:
 {
