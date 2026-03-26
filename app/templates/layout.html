@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Engineering Standards{% endblock %}</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@unocss/reset@66.6.6/tailwind.min.css"
+          integrity="sha384-5No3aIPh9Fyxot7m9jZbgh0VGr2Es7rfpXHslqfLnS2+VcBdD1883jFW03WMy2gc"
+          crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime@66.6.6/uno.global.js"
+            integrity="sha384-FAcExN5wNTEAAIXTgfC/M0t7lbEg7j3RK73C0Evrqi1CwZkfu1YjuGGjTyZjdtS5"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"
+            integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+            crossorigin="anonymous"></script>
+    <style>
+        /* Prevent FOUC: hide until UnoCSS has processed */
+        [un-cloak] { display: none; }
+
+        /* htmx: hide indicators by default, show during request */
+        .htmx-indicator { opacity: 0; transition: opacity 150ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1 !important; }
+        .htmx-request.htmx-indicator  { opacity: 1 !important; }
+
+        /* Buttons with htmx-loading-btn: dim + block clicks during request */
+        .htmx-request.htmx-loading-btn { opacity: 0.65; cursor: wait; pointer-events: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen" un-cloak>
+    <nav class="bg-white border-b border-gray-200 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <a href="/dashboard" class="text-lg font-semibold text-gray-900">
+                Engineering Standards
+            </a>
+            <div class="flex items-center gap-6">
+                <a href="/dashboard" class="text-sm text-gray-600 hover:text-gray-900">Repos</a>
+                <a href="/dashboard/audit" class="text-sm text-gray-600 hover:text-gray-900">Audit Log</a>
+                <a href="/logout" class="text-sm text-gray-500 hover:text-gray-700">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-6 py-4 text-center text-xs text-gray-400">
+        engineering-standards-app v{{ version }}
+    </footer>
+</body>
+</html>
