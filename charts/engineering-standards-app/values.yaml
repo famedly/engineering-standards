@@ -1,0 +1,73 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/famedly/engineering-standards-app
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: standards.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: engineering-standards-tls
+      hosts:
+        - standards.example.com
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi
+
+env:
+  LISTEN_ADDR: "0.0.0.0:3000"
+  STANDARDS_REPO_OWNER: famedly
+  STANDARDS_REPO_NAME: engineering-standards
+
+secrets:
+  GITHUB_APP_ID: ""
+  GITHUB_WEBHOOK_SECRET: ""
+  DATABASE_URL: ""
+  ANTHROPIC_API_KEY: ""
+  OIDC_ISSUER_URL: ""
+  OIDC_CLIENT_ID: ""
+  OIDC_CLIENT_SECRET: ""
+  OIDC_REDIRECT_URL: ""
+  BASE_URL: ""
+
+githubPrivateKey:
+  existingSecret: ""
+  key: github-app-key.pem
+
+postgresql:
+  enabled: false
+
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /healthz
+    initialDelaySeconds: 3
+    periodSeconds: 5

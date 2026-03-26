@@ -1,0 +1,6 @@
+apiVersion: v2
+name: engineering-standards-app
+description: GitHub App for distributing engineering standards, AI code review, and supply-chain enforcement
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
