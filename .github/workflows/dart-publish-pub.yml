@@ -1,0 +1,30 @@
+name: "Publish to pub.dev"
+
+on:
+  workflow_call:
+    inputs:
+      env_file:
+        description: "Path to an .env file to read dart_version from."
+        type: string
+        required: false
+
+jobs:
+  publish:
+    environment: "pub.dev"
+    permissions:
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Read env file
+        if: inputs.env_file != ''
+        run: cat ${{ inputs.env_file }} >> $GITHUB_ENV
+
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+        with:
+          sdk: ${{ env.dart_version || 'stable' }}
+
+      - run: dart pub get
+      - run: dart pub publish --dry-run
+      - run: dart pub publish -f

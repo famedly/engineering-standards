@@ -1,0 +1,56 @@
+---
+name: Regenerate OpenPGP Policy
+on:
+  workflow_call:
+    inputs:
+      teams:
+        description: "List of teams"
+        required: true
+        type: string
+
+jobs:
+  regenerate-policy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: famedly/openpgp-policy
+          token: ${{ github.token }}
+          sparse-checkout: |
+            openpgp-policy.toml
+            users.yml
+      - uses: hustcer/setup-nu@92c296ba1ba2ba04cc948ab64ddefe192dc13f0c # v3.23
+        with:
+          version: "0.94.2"
+      - name: Generate Policy
+        shell: nu {0}
+        run: |
+          rm openpgp-policy.toml
+          let users = open users.yml | get users | transpose email fingerprint
+          $users | par-each {|user| sq wkd get $user.email }
+          let role_overrides = open users.yml | get teams | transpose team users | filter {|it| $it.team in ${{ inputs.teams }} } | get users | reduce {|it, acc| $acc | merge $it }
+          $users | each {|user|
+          	if ($role_overrides | get -i $user.email) == null {
+          		sq-git policy authorize --committer $user.email $user.fingerprint
+          	} else if ($role_overrides | get -i $user.email) == "project-maintainer" {
+          		sq-git policy authorize --project-maintainer $user.email $user.fingerprint
+          	} else if ($role_overrides | get -i $user.email) == "release-manager" {
+          		sq-git policy authorize --release-manager $user.email $user.fingerprint
+          	}
+          }
+          echo "Successfully regenerated openpgp-policy.toml"
+      - name: Diff Policy
+        run: |
+          echo "POLICY_CHANGED=$(git diff --exit-code openpgp-policy.toml && echo true || echo false )" >> $GITHUB_ENV
+      - name: Commit and create pull request
+        if: env.POLICY_CHANGED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git switch --create openpgp-policy-$(date --iso-8601)
+          git add openpgp-policy.toml
+          git commit -m 'chore: Update openpgp-policy.toml'
+          gh pr create --fill

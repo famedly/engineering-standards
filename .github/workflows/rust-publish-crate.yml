@@ -1,0 +1,54 @@
+name: Publish Rust crates
+
+on:
+  workflow_call:
+    inputs:
+
+      crate_registry_name:
+        description: "Name of the registry to publish to"
+        type: string
+        default: "${{ vars.CRATE_REGISTRY_NAME }}"
+      crate_registry_index_url:
+        description: "URL of the registry index"
+        type: string
+        default: "${{ vars.CRATE_REGISTRY_INDEX_URL }}"
+      packages:
+        description: "List of packages to publish; space-separated list"
+        type: string
+      features:
+        description: "List of features to publish; space-separated list"
+        type: string
+    secrets:
+      CRATE_REGISTRY_SSH_PRIVKEY:
+        description: "SSH key to use for authentication against the registry crate index"
+        required: true
+      CRATE_REGISTRY_AUTH_TOKEN:
+        description: "Auth token for the registry to publish to"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    container: ghcr.io/famedly/rust-container:nightly
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: ./.github/actions/rust-prepare
+        with:
+          crate_registry_name: ${{ inputs.crate_registry_name }}
+          crate_registry_index_url: ${{ inputs.crate_registry_index_url }}
+          crate_registry_ssh_privkey: ${{ secrets.CRATE_REGISTRY_SSH_PRIVKEY}}
+      - name: Install registry token
+        run: |
+          cat << EOF > "${CARGO_HOME}/credentials.toml"
+          [${{ inputs.crate_registry_name != 'crates-io' && format('registries.{0}', inputs.crate_registry_name) || 'registry' }}]
+          token = "${{ secrets.CRATE_REGISTRY_AUTH_TOKEN }}"
+          EOF
+      - name: Publish
+        run: |
+          cargo publish ${{ inputs.crate_registry_name != 'crates-io' && format('--registry {0}', inputs.crate_registry_name) || '' }} \
+            ${{ inputs.packages != null && format('--package {0}', inputs.packages) || '' }} \
+            ${{ inputs.features != null && format('--features {0}', inputs.features) || '' }}

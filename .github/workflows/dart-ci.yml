@@ -1,0 +1,172 @@
+name: "Dart / Flutter CI"
+
+on:
+  workflow_call:
+    inputs:
+
+      env_file:
+        description: "Path to an .env file to read flutter_version and/or dart_version from."
+        type: string
+        required: false
+      directory:
+        description: "The subdirectory for the dart project."
+        type: string
+        required: false
+        default: ""
+      ignore_formatting:
+        description: "A subdirectory to auto-format before the format check (e.g. lib/l10n/)."
+        type: string
+        required: false
+        default: ""
+    secrets:
+      ssh_key:
+        description: "SSH key to pull private dependencies"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  dart_ci:
+    runs-on: ubuntu-latest
+    env:
+      env_file: ${{ inputs.env_file }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Read env file
+        if: env.env_file != ''
+        run: cat ${{ env.env_file }} >> $GITHUB_ENV
+
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+        if: env.dart_version != ''
+        with:
+          sdk: ${{ env.dart_version }}
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.flutter_version }}
+          cache: true
+
+      - uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Set up private deps
+        uses: famedly/engineering-standards/.github/actions/dart-prepare@main
+        with:
+          ssh_key: "${{ secrets.ssh_key }}"
+          container_mode: "false"
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.directory }}
+        run: flutter pub get
+
+      - name: Check pubspec.lock is up to date
+        run: git check-ignore -q pubspec.lock || git diff --exit-code pubspec.lock
+
+      - run: dart format ${{ inputs.ignore_formatting }}
+        if: inputs.ignore_formatting != ''
+
+      - name: Check formatting
+        working-directory: ${{ inputs.directory }}
+        run: |
+          dart format lib/ --set-exit-if-changed || {
+            {
+              echo '```diff'
+              git diff
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+      - name: Run analyzer
+        working-directory: ${{ inputs.directory }}
+        run: |
+          SCRIPT=$(cat << 'EOL'
+          import json,sys,os
+
+          obj = json.load(sys.stdin)
+          diagnostics = obj["diagnostics"]
+
+          if diagnostics:
+              print('|severity|file|problem|suggestion|documentation|')
+              print('|:--|:--|:--|:--|:--|')
+          else:
+              exit(0)
+
+          sha = os.environ["GITHUB_SHA"]
+          server = os.environ["GITHUB_SERVER_URL"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          workspace = os.environ["GITHUB_WORKSPACE"]
+
+          for d in diagnostics:
+              l = d["location"]
+              file = l["file"].removeprefix(workspace + "/")
+              start = str(l["range"]["start"]["line"])
+              end = str(l["range"]["end"]["line"])
+              location = f'[{file}:{start}]({server}/{repo}/blob/{sha}/{file}#L{start}-L{end})'
+              print("", d["severity"], location, d.get("correctionMessage", "").replace("|", "\\|"), d.get("correctionMessage", "").replace("|", "\\|"), f'[{d["code"]}]({d.get("documentation", "")})', "", sep="| ")
+          exit(1)
+          EOL
+          )
+          dart analyze --format=json | python3 -c "$SCRIPT" | tee -a "$GITHUB_STEP_SUMMARY"
+          test ${PIPESTATUS[0]} -eq 0 -a ${PIPESTATUS[1]} -eq 0 -a ${PIPESTATUS[2]} -eq 0
+
+      - name: Sort imports
+        working-directory: ${{ inputs.directory }}
+        run: |
+          if ! dart run import_sorter:main --no-comments --exit-if-changed; then
+            dart run import_sorter:main --no-comments
+            {
+              echo '```diff'
+              git diff
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Check for commented-out code
+        run: |
+          if grep -R --include="*.dart" -nE '^[[:space:]]*//[^/<].*;[[:space:]]*$' lib/; then
+            echo "❌ Found commented-out Dart code ending with semicolon."
+            exit 1
+          fi
+
+      - name: Check unused dependencies
+        run: |
+          dart pub global activate dependency_validator
+          dart pub global run dependency_validator
+
+      - name: dart_code_linter — analyze
+        id: check_linter
+        continue-on-error: true
+        working-directory: ${{ inputs.directory }}
+        run: |
+          if grep -q 'dart_code_linter:' pubspec.yaml; then
+            dart run dart_code_linter:metrics analyze lib --reporter=github
+          else
+            echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+          fi
+
+      - name: dart_code_linter — unused files
+        if: steps.check_linter.outcome == 'success'
+        run: dart run dart_code_linter:metrics check-unused-files lib
+
+      - name: dart_code_linter — unused code
+        if: steps.check_linter.outcome == 'success'
+        run: dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
+
+      - name: Check unused translations
+        working-directory: ${{ inputs.directory }}
+        continue-on-error: true
+        run: |
+          if grep -q 'translations_cleaner:' pubspec.yaml; then
+            rm -f lib/l10n/l10n*.dart
+            flutter pub run translations_cleaner list-unused-terms -a
+          fi

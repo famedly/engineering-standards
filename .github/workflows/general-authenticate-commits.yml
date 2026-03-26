@@ -1,0 +1,14 @@
+name: Authenticate commits
+on:
+  workflow_call:
+
+jobs:
+  authenticate-commits:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Authenticating commits
+        uses: sequoia-pgp/authenticate-commits@7880c1fe9a32b85ba665e02fb827054a83627a04 # v1.0.1
