@@ -6,7 +6,7 @@
 #
 # To update: change versions here, then run
 #   nix run .#regenerateStandards
-# to regenerate .github/workflows/ from the templates in nix/workflow-sources/.
+# Workflow modules reference these via config.famedly.standards.actionVersions.
 {
   # ── Official GitHub Actions ──────────────────────────────────────
   checkout = {

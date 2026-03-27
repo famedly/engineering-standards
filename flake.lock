@@ -18,6 +18,29 @@
         "type": "github"
       }
     },
+    "github-actions-nix": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773808042,
+        "narHash": "sha256-97K9g40SdtDVWslJG8ytpiC3+qgeQzftsZheGQ8qoGY=",
+        "owner": "synapdeck",
+        "repo": "github-actions-nix",
+        "rev": "805a4f69856e0f3d0bcd8ae916f1625f22b0578c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "synapdeck",
+        "repo": "github-actions-nix",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1774244481,
@@ -52,6 +75,7 @@
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
+        "github-actions-nix": "github-actions-nix",
         "nixpkgs": "nixpkgs",
         "treefmt-nix": "treefmt-nix"
       }

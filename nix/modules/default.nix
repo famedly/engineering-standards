@@ -23,18 +23,10 @@
 # Then run `nix run .#regenerateStandards` to write managed files,
 # and `nix flake check` to run the standard quality checks.
 #
-# File lifecycle: regenerateStandards maintains a manifest at
-# .engineering-standards-manifest that tracks all generated files.
-# When a feature is disabled, the next regenerate run automatically
-# removes the files that belong to it. Commit the manifest alongside
-# other generated files.
+# Workflows are generated as complete YAML via github-actions-nix,
+# eliminating the need for reusable workflow_call references.
 
 { flake-parts-lib, lib, ... }:
-let
-  # Root of the engineering-standards source tree.
-  # When consumed as a flake input this is the store path of the repo.
-  root = ../..;
-in
 {
   imports = [
     ./action-versions.nix
@@ -55,16 +47,11 @@ in
     ./workflows/ansible.nix
   ];
 
-  # The regenerateStandards app collects all managed files from enabled
-  # modules and writes them to the correct locations in the repository.
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { config, pkgs, ... }:
     let
       cfg = config.famedly.standards;
 
-      # Generate one shell snippet per managed file.
-      # Files with initialOnly=true are only written when they don't exist yet,
-      # so user customisations (e.g. linting overrides) survive regeneration.
       fileSnippets = map (
         entry:
         let
@@ -91,10 +78,6 @@ in
           ''
       ) cfg._internal.managedFiles;
 
-      # Manifest tracks all currently-managed destination paths so that
-      # regenerateStandards can remove files that are no longer managed
-      # (e.g. after disabling a feature). The manifest is written into the
-      # consumer repo and should be committed alongside other generated files.
       manifestRelPath = ".engineering-standards-manifest";
       newManifestFile = pkgs.writeText "engineering-standards-manifest" (
         lib.concatMapStrings (entry: "${entry.dest}\n") cfg._internal.managedFiles
@@ -108,13 +91,11 @@ in
           MANIFEST="$REPO_ROOT/${manifestRelPath}"
           echo "Regenerating engineering-standards managed files in $REPO_ROOT"
 
-          # Remove files from the previous generation that are no longer managed.
           if [[ -f "$MANIFEST" ]]; then
             echo "Cleaning up files no longer managed..."
             while IFS= read -r old_file; do
               [[ -z "$old_file" ]] && continue
               [[ "$old_file" == "${manifestRelPath}" ]] && continue
-              # Only remove if the file is NOT in the new manifest.
               if ! grep -qxF "$old_file" ${newManifestFile}; then
                 if [[ -f "$REPO_ROOT/$old_file" ]]; then
                   echo "  Removing $old_file"
@@ -135,7 +116,6 @@ in
     in
     {
       options.famedly.standards = {
-        # Internal — modules register managed files here.
         _internal.managedFiles = lib.mkOption {
           type = lib.types.listOf (
             lib.types.submodule {
@@ -166,7 +146,6 @@ in
           description = "Collected managed files from all standards modules.";
         };
 
-        # Internal — dependabot ecosystem entries from flat options and projects.
         _internal.dependabotEntries = lib.mkOption {
           type = lib.types.listOf (
             lib.types.submodule {
@@ -193,7 +172,6 @@ in
           description = "Collected Dependabot entries from all modules.";
         };
 
-        # Internal — pre-commit hook scopes from flat options and projects.
         _internal.hookEntries = lib.mkOption {
           type = lib.types.listOf (
             lib.types.submodule {
@@ -221,6 +199,8 @@ in
       };
 
       config = {
+        githubActions.enable = true;
+
         apps.regenerateStandards = {
           type = "app";
           meta.description = "Write all engineering-standards managed files to the repo";

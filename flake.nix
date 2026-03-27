@@ -8,12 +8,20 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    github-actions-nix = {
+      url = "github:synapdeck/github-actions-nix";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     { flake-parts, ... }@inputs:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ ./nix/modules ];
+      imports = [
+        ./nix/modules
+        inputs.github-actions-nix.flakeModules.default
+      ];
 
       systems = [
         "x86_64-linux"
@@ -21,29 +29,13 @@
         "aarch64-darwin"
       ];
 
-      # Expose the standards module for consumer repos to import.
-      #
-      # Consumer repos add this to their flake.nix:
-      #   imports = [ inputs.engineering-standards.flakeModules.default ];
-      #
-      # Then configure:
-      #   famedly.standards.rules.enable = true;
-      #   famedly.standards.linting.rust = true;
-      #   etc.
-      flake.flakeModules.default = ./nix/modules;
+      flake.flakeModules.default = {
+        imports = [
+          ./nix/modules
+          inputs.github-actions-nix.flakeModules.default
+        ];
+      };
 
-      # Nix flake templates for quick bootstrapping.
-      #
-      # Usage in a new repo:
-      #   nix flake init -t github:famedly/engineering-standards#rust
-      #   nix flake init -t github:famedly/engineering-standards#dart
-      #   nix flake init -t github:famedly/engineering-standards#flutter
-      #
-      # Then:
-      #   1. Edit flake.nix — set the description
-      #   2. nix flake update
-      #   3. nix run .#regenerateStandards
-      #   4. nix flake check
       flake.templates = {
         rust = {
           path = ./nix/templates/rust;
@@ -114,61 +106,26 @@
           ...
         }:
         let
-          workflows = import ./nix/reusable-workflows.nix { inherit pkgs lib; };
-          managed = config.famedly.standards._internal.managedFiles or [ ];
-          writeManagedSnippet = lib.concatStringsSep "\n" (
-            map (entry: ''
-              echo "  Writing ${entry.dest}"
-              _dest="${entry.dest}"
-              mkdir -p "$REPO_ROOT/$(dirname "$_dest")"
-              cp -f ${entry.src} "$REPO_ROOT/$_dest"
-              chmod u+w "$REPO_ROOT/$_dest"
-            '') managed
+          ciManaged = lib.findFirst (e: e.dest == ".github/workflows/ci.yml") null (
+            config.famedly.standards._internal.managedFiles or [ ]
           );
-          compositeRegen = pkgs.writeShellApplication {
-            name = "regenerateStandards";
-            text = ''
-              set -euo pipefail
-              REPO_ROOT=$(git rev-parse --show-toplevel)
-              echo "Regenerating engineering-standards (flake module + nix/workflow-sources)"
-              ${writeManagedSnippet}
-              ${lib.getExe workflows.script}
-              echo "Done. Review: git status"
-            '';
-          };
-          ciManaged = lib.findFirst (e: e.dest == ".github/workflows/ci.yml") null managed;
         in
         {
-          # Dogfood: same `famedly.standards.ci` as consumers; do not regenerate root editorconfig/dependabot here.
           famedly.standards = {
             infrastructure.editorconfig = false;
             infrastructure.dependabot = false;
             ci.enable = true;
           };
 
-          # Development shell for working on engineering-standards itself.
           devShells.default = pkgs.mkShell {
             name = "engineering-standards-dev";
             packages = with pkgs; [
-              nil # Nix LSP
+              nil
               nixfmt
               nodePackages.prettier
             ];
           };
 
-          apps.regenerateStandards = lib.mkForce {
-            type = "app";
-            meta.description = "Regenerate ci.yml (flake module) + reusable workflows from nix/workflow-sources";
-            program = lib.getExe compositeRegen;
-          };
-
-          apps.regenerateWorkflows = {
-            type = "app";
-            meta.description = "Alias of regenerateStandards";
-            program = lib.getExe compositeRegen;
-          };
-
-          # Format check: all .nix files must be formatted with nixfmt.
           checks = {
             nixfmt = pkgs.runCommand "check-nixfmt" { } ''
               ${lib.getExe pkgs.nixfmt} --check \
@@ -177,7 +134,6 @@
               touch $out
             '';
 
-            # Syntax-only: catches malformed Nix before module evaluation tests run.
             nix-modules-parse =
               pkgs.runCommand "check-nix-modules-parse"
                 {
@@ -193,27 +149,6 @@
                   echo "PASS: all flake module files parse"
                   touch $out
                 '';
-
-            workflow-consistency = pkgs.runCommand "check-workflow-consistency" { } ''
-              echo "=== Checking .github/workflows/ matches generated output ==="
-              failed=0
-              ${lib.concatStringsSep "\n" (
-                lib.mapAttrsToList (name: src: ''
-                  if ! diff -q ${src} ${./.github/workflows}/${name} > /dev/null 2>&1; then
-                    echo "FAIL: .github/workflows/${name} is out of date"
-                    diff -u ${src} ${./.github/workflows}/${name} || true
-                    failed=1
-                  fi
-                '') workflows.files
-              )}
-              if [ "$failed" -ne 0 ]; then
-                echo ""
-                echo "Fix: nix run .#regenerateStandards"
-                exit 1
-              fi
-              echo "PASS: all workflow files match generated output"
-              touch $out
-            '';
 
             ci-workflow-dogfood =
               assert ciManaged != null;
