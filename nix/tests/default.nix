@@ -386,6 +386,58 @@ let
       famedly.github.workflows.ci.enable = true;
     };
 
+    dart-test-coverage = {
+      famedly.standards = {
+        rules.enable = true;
+        dart = {
+          enable = true;
+          flutter = false;
+        };
+      };
+      famedly.github.workflows = {
+        ci.enable = true;
+        dart-ci = {
+          enable = true;
+          sdk = "dart";
+          test = true;
+          coverage = true;
+          coverageFlags = "unit-tests";
+        };
+      };
+    };
+
+    flutter-test-coverage = {
+      famedly.standards = {
+        dart = {
+          enable = true;
+          flutter = true;
+        };
+      };
+      famedly.github.workflows = {
+        ci.enable = true;
+        dart-ci = {
+          enable = true;
+          test = true;
+          coverage = true;
+        };
+      };
+    };
+
+    dart-minimal-lint = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        dart-ci = {
+          enable = true;
+          sdk = "dart";
+          importSorter = false;
+          dependencyValidator = false;
+          dartCodeLinter = false;
+          translationsCleaner = false;
+          commentedCodeCheck = false;
+        };
+      };
+    };
+
     monorepo-selective = {
       famedly.standards = {
         infrastructure.dependabot = true;
@@ -528,6 +580,9 @@ let
   dockerBackendBundle = evalWithBundle "docker-backend" scenarios.docker-backend;
   dockerGenericBundle = evalWithBundle "docker-generic" scenarios.docker-generic;
   ansibleBundle = evalWithBundle "ansible" scenarios.ansible;
+  dartTestCoverageBundle = evalWithBundle "dart-test-coverage" scenarios.dart-test-coverage;
+  flutterTestCoverageBundle = evalWithBundle "flutter-test-coverage" scenarios.flutter-test-coverage;
+  dartMinimalLintBundle = evalWithBundle "dart-minimal-lint" scenarios.dart-minimal-lint;
   disabledBundle = evalWithBundle "disabled" scenarios.disabled;
 
   disabledScriptEval = evalConsumer "script-test-disabled" scenarios.disabled;
@@ -900,6 +955,65 @@ let
           touch $out
         '';
 
+    test-content-dart-test-coverage = pkgs.runCommand "test-content-dart-test-coverage" { } ''
+      echo "=== Checking Dart test/coverage workflow ==="
+
+      test -f ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Lint job still present
+      grep -q "import_sorter" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Test job present
+      grep -q "dart test" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Coverage job present with Codecov
+      grep -q "codecov" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+      grep -q "unit-tests" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+      grep -q "lcov.info" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Uses dart SDK, not flutter
+      grep -q "test_with_coverage" ${dartTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      echo "PASS: Dart test/coverage workflow correctly generated"
+      touch $out
+    '';
+
+    test-content-flutter-test-coverage = pkgs.runCommand "test-content-flutter-test-coverage" { } ''
+      echo "=== Checking Flutter test/coverage workflow ==="
+
+      test -f ${flutterTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Test job present
+      grep -q "flutter test" ${flutterTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      # Coverage job uses flutter-specific command
+      grep -q "flutter test --coverage" ${flutterTestCoverageBundle}/.github/workflows/dart-ci.yml
+      grep -q "codecov" ${flutterTestCoverageBundle}/.github/workflows/dart-ci.yml
+
+      echo "PASS: Flutter test/coverage workflow correctly generated"
+      touch $out
+    '';
+
+    test-content-dart-minimal-lint = pkgs.runCommand "test-content-dart-minimal-lint" { } ''
+      echo "=== Checking Dart minimal lint (all checks disabled) ==="
+
+      test -f ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+
+      # All optional lint steps should be absent
+      ! grep -q "import_sorter" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+      ! grep -q "dependency_validator" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+      ! grep -q "dart_code_linter" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+      ! grep -q "translations_cleaner" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+      ! grep -q "commented-out" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+
+      # Core steps still present
+      grep -q "pub get" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+      grep -q "pubspec.lock" ${dartMinimalLintBundle}/.github/workflows/dart-ci.yml
+
+      echo "PASS: all lint steps correctly disabled"
+      touch $out
+    '';
+
     test-content-monorepo-selective = pkgs.runCommand "test-content-monorepo-selective" { } ''
       echo "=== Checking selective monorepo ==="
 
@@ -1023,6 +1137,9 @@ let
     test-actionlint-ansible = mkActionlintTest "ansible" ansibleBundle;
     test-actionlint-monorepo-flutter-rust = mkActionlintTest "monorepo-flutter-rust" monorepoFlutterRustBundle;
     test-actionlint-monorepo-dart-rust-ffi = mkActionlintTest "monorepo-dart-rust-ffi" monorepoDartRustFfiBundle;
+    test-actionlint-dart-test-coverage = mkActionlintTest "dart-test-coverage" dartTestCoverageBundle;
+    test-actionlint-flutter-test-coverage = mkActionlintTest "flutter-test-coverage" flutterTestCoverageBundle;
+    test-actionlint-dart-minimal-lint = mkActionlintTest "dart-minimal-lint" dartMinimalLintBundle;
     test-actionlint-monorepo-selective = mkActionlintTest "monorepo-selective" monorepoSelectiveBundle;
   };
 

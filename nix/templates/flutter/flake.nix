@@ -64,7 +64,10 @@
             "authenticate-commits".enable = false;
             "ai-review".enable = false;
             # dart-ci is auto-enabled by dart.enable above
-            # "publish-pub".enable = true;       # uncomment for pub.dev publishing
+            # dart-ci.test = true;               # uncomment for test job
+            # dart-ci.coverage = true;            # uncomment for coverage + Codecov
+            # dart-ci.coverageFlags = "";         # Codecov flags (e.g. "sdk-tests")
+            # "publish-pub".enable = true;        # uncomment for pub.dev publishing
             # "review-app" = {                   # uncomment for review app deployment
             #   enable = true;
             #   projectName = "my-app";
