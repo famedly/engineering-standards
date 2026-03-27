@@ -29,17 +29,10 @@ in
       default = null;
       description = ''
         Docker container image to run jobs in.
-        When null (default), jobs run on the runner with dtolnay/rust-toolchain
-        installing the Rust toolchain. Set to a container image to use a
-        pre-built container instead (which must include cargo, nextest, etc.).
-      '';
-    };
-    rustToolchain = lib.mkOption {
-      type = lib.types.str;
-      default = "stable";
-      description = ''
-        Rust toolchain channel for dtolnay/rust-toolchain (used when container = null).
-        Examples: "stable", "nightly", "1.85.0".
+        When null (default), jobs run on the runner using
+        nix profile install .#famedly-rust-toolchain (requires fenix in the
+        consumer's flake inputs — the Rust template adds it automatically).
+        Set to a container image string to use a pre-built container instead.
       '';
     };
     features = lib.mkOption {
@@ -79,8 +72,8 @@ in
       containerAttr = lib.optionalAttrs (config.container != null) { container = config.container; };
 
       # When using a container, the container already has the Rust toolchain.
-      # When running without a container, install Rust via dtolnay/rust-toolchain
-      # and cargo-nextest via nix.
+      # When running without a container, install the pinned toolchain from the
+      # consumer flake's famedly-rust-toolchain package (built from fenix).
       jobSetupSteps =
         if config.container != null then
           [
@@ -93,15 +86,11 @@ in
         else
           [
             { uses = "actions/checkout@${av.checkout}"; }
-            {
-              uses = "dtolnay/rust-toolchain@${av.rustToolchain}";
-              with_ = {
-                toolchain = config.rustToolchain;
-                components = "clippy,rustfmt";
-              };
-            }
             (nixSetupStep av.installNix)
-            (mkNixInstallStep nixpkgsRev "cargo-nextest")
+            {
+              name = "Install Rust toolchain (pinned)";
+              run = "nix profile install .#famedly-rust-toolchain";
+            }
             (mkRustPrepareStep {
               sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
               additionalPackages = config.additionalPackages;

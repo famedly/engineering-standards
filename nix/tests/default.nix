@@ -1499,20 +1499,25 @@ let
       touch $out
     '';
 
-    # Verify the Rust CI workflow uses dtolnay/rust-toolchain (not a container).
-    test-rust-ci-uses-toolchain-action = pkgs.runCommand "test-rust-ci-uses-toolchain-action" { } ''
-      echo "=== Checking Rust CI workflow uses dtolnay/rust-toolchain ==="
+    # Verify the Rust CI workflow installs the pinned toolchain from the consumer
+    # flake (nix profile install .#famedly-rust-toolchain), not a GitHub Action.
+    test-rust-ci-uses-pinned-toolchain = pkgs.runCommand "test-rust-ci-uses-pinned-toolchain" { } ''
+      echo "=== Checking Rust CI workflow uses pinned Rust toolchain ==="
 
       wf=${rustBundle}/.github/workflows/rust-ci.yml
 
-      grep -q "dtolnay/rust-toolchain" "$wf" \
-        || (echo "FAIL: rust-ci.yml does not use dtolnay/rust-toolchain" && exit 1)
+      grep -qF "nix profile install .#famedly-rust-toolchain" "$wf" \
+        || (echo "FAIL: rust-ci.yml does not use 'nix profile install .#famedly-rust-toolchain'" && exit 1)
+
+      # No external rust-toolchain action
+      ! grep -q "dtolnay/rust-toolchain" "$wf" \
+        || (echo "FAIL: rust-ci.yml still uses dtolnay/rust-toolchain action" && exit 1)
 
       # Default: no container when container = null
       ! grep -q "^    container:" "$wf" \
         || (echo "FAIL: rust-ci.yml has a container key but container should be null" && exit 1)
 
-      echo "PASS: rust-ci.yml uses dtolnay/rust-toolchain action"
+      echo "PASS: rust-ci.yml uses pinned Rust toolchain from consumer flake"
       touch $out
     '';
   };

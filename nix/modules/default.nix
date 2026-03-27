@@ -48,6 +48,7 @@ in
       pkgs,
       lib,
       system,
+      inputs',
       ...
     }:
     let
@@ -185,19 +186,35 @@ in
         # SDK packages — same binaries used by DevShell and CI workflows.
         # famedly-dart-sdk: all 4 supported platforms.
         # famedly-flutter-sdk: not available on aarch64-linux (no upstream binary).
+        # famedly-rust-toolchain: exposed when the flake has 'fenix' as an input
+        #   (Rust template includes it). Stable Rust + nightly rustfmt + cargo-nextest.
         packages = {
           famedly-dart-sdk = pkgs.callPackage ../packages/dart-sdk.nix { inherit sdkVersions; };
         }
-        //
-          lib.optionalAttrs
-            (lib.elem system [
-              "x86_64-linux"
-              "x86_64-darwin"
-              "aarch64-darwin"
-            ])
-            {
-              famedly-flutter-sdk = pkgs.callPackage ../packages/flutter-sdk.nix { inherit sdkVersions; };
+        // lib.optionalAttrs (lib.elem system [
+          "x86_64-linux"
+          "x86_64-darwin"
+          "aarch64-darwin"
+        ]) { famedly-flutter-sdk = pkgs.callPackage ../packages/flutter-sdk.nix { inherit sdkVersions; }; }
+        // lib.optionalAttrs (inputs' ? fenix) {
+          famedly-rust-toolchain =
+            let
+              fenixPkgs = inputs'.fenix.packages;
+            in
+            pkgs.symlinkJoin {
+              name = "famedly-rust-toolchain";
+              paths = [
+                (fenixPkgs.combine [
+                  fenixPkgs.stable.cargo
+                  fenixPkgs.stable.clippy
+                  fenixPkgs.stable.rust-src
+                  fenixPkgs.stable.rustc
+                  fenixPkgs.latest.rustfmt
+                ])
+                pkgs.cargo-nextest
+              ];
             };
+        };
       };
     }
   );

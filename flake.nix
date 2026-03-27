@@ -157,27 +157,6 @@
               );
             };
 
-            # Expose the pinned Rust toolchain for engineering-standards' own DevShell.
-            # Consumer repos using rust-ci.nix use dtolnay/rust-toolchain in CI
-            # and are expected to configure their own fenix-based devShell (see templates/rust).
-            packages.famedly-rust-toolchain =
-              let
-                fenixPkgs = inputs.fenix.packages.${system};
-              in
-              pkgs.symlinkJoin {
-                name = "famedly-rust-toolchain";
-                paths = [
-                  (fenixPkgs.combine [
-                    fenixPkgs.stable.cargo
-                    fenixPkgs.stable.clippy
-                    fenixPkgs.stable.rust-src
-                    fenixPkgs.stable.rustc
-                    fenixPkgs.latest.rustfmt
-                  ])
-                  pkgs.cargo-nextest
-                ];
-              };
-
             devShells.default = pkgs.mkShell {
               name = "engineering-standards-dev";
               packages = with pkgs; [
