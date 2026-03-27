@@ -11,7 +11,7 @@
 #   Base    — BOM, case-conflicts, merge-conflicts, YAML/TOML/JSON, etc.
 #   FOSS    — REUSE license compliance
 #   Rust    — clippy, rustfmt, cargo lockfile
-#   Dart    — dart format, dart analyze
+#   Dart    — dart format, dart analyze, import_sorter, commented-out code
 #   Python  — ruff check, ruff format
 #
 # Monorepo projects (via famedly.standards.projects) automatically
@@ -96,15 +96,23 @@ _caller-args: {
 
       mkSlug = dir: if dir == "" then "root" else lib.replaceStrings [ "/" ] [ "-" ] dir;
 
+      commentedCodeChecker = pkgs.writeShellScript "check-commented-code" ''
+        dir="''${1:-.}"
+        if [ -d "$dir/lib" ] && grep -rn --include="*.dart" -E '^[[:space:]]*//[^/<].*;[[:space:]]*$' "$dir/lib/"; then
+          echo "Found commented-out Dart code ending with semicolons."
+          exit 1
+        fi
+      '';
+
       hasDartHooks = cfg.dartHooks.enable || dartProjects != { };
       dartHookIdsToSkip =
-        lib.optionals cfg.dartHooks.enable [ "dart-format" "dart-analyze" ]
+        lib.optionals cfg.dartHooks.enable [ "dart-format" "dart-analyze" "dart-import-sorter" ]
         ++ lib.concatMap (
           project:
           let
             slug = mkSlug project.directory;
           in
-          [ "dart-format-${slug}" "dart-analyze-${slug}" ]
+          [ "dart-format-${slug}" "dart-analyze-${slug}" "dart-import-sorter-${slug}" ]
         ) (lib.attrValues dartProjects);
 
       rustToolchain = config.packages.famedly-rust-toolchain or null;
@@ -330,6 +338,22 @@ _caller-args: {
               dart-analyze = {
                 enable = true;
                 entry = lib.mkForce "${dartBin} analyze --fatal-infos";
+                pass_filenames = false;
+              };
+              dart-import-sorter = {
+                enable = true;
+                name = "import_sorter";
+                entry = "bash -c '${dartBin} run import_sorter:main --no-comments --exit-if-changed'";
+                language = "system";
+                types = [ "dart" ];
+                pass_filenames = false;
+              };
+              dart-commented-code = {
+                enable = true;
+                name = "commented-out Dart code";
+                entry = "${commentedCodeChecker}";
+                language = "system";
+                types = [ "dart" ];
                 pass_filenames = false;
               };
             })

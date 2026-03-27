@@ -212,7 +212,6 @@ let
           ]
           ++ lib.optionals pkg.dartCodeLinter [
             {
-              id = "check_linter";
               name = "dart_code_linter — analyze";
               continueOnError = true;
               workingDirectory = dir;
@@ -226,13 +225,25 @@ let
             }
             {
               name = "dart_code_linter — unused files";
-              if_ = "steps.check_linter.outcome == 'success'";
-              run = "dart run dart_code_linter:metrics check-unused-files lib";
+              workingDirectory = dir;
+              run = ''
+                if grep -q 'dart_code_linter:' pubspec.yaml; then
+                  dart run dart_code_linter:metrics check-unused-files lib
+                else
+                  echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+                fi
+              '';
             }
             {
               name = "dart_code_linter — unused code";
-              if_ = "steps.check_linter.outcome == 'success'";
-              run = ''dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"'';
+              workingDirectory = dir;
+              run = ''
+                if grep -q 'dart_code_linter:' pubspec.yaml; then
+                  dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
+                else
+                  echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+                fi
+              '';
             }
           ]
           ++ lib.optionals pkg.translationsCleaner [
