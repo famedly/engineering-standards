@@ -123,7 +123,7 @@ let
           nix build .#famedly-flutter-sdk --no-link --print-out-paths > /tmp/flutter-store-path
           cp -rL "$(cat /tmp/flutter-store-path)" "$HOME/flutter-sdk"
           chmod -R u+w "$HOME/flutter-sdk"
-          echo "$HOME/flutter-sdk/bin" >> "$GITHUB_PATH"
+          echo "$HOME/flutter-sdk/flutter/bin" >> "$GITHUB_PATH"
         '';
       }
     else
