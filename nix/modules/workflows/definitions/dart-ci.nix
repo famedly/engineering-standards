@@ -72,10 +72,14 @@ let
       default = "";
       description = "Flags to pass to Codecov (e.g. 'sdk-tests').";
     };
-    aptPackages = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = "System packages to install via apt before tests (e.g. ['libsqlite3-dev']).";
+    testInDevShell = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Run test/coverage commands inside `nix develop`. Enable this when
+        tests depend on native libraries (e.g. sqlite3 for sqflite_common_ffi)
+        that the Nix-installed SDK cannot find on its own.
+      '';
     };
   };
 
@@ -130,12 +134,6 @@ let
       (nixSetupStep av.installNix)
       (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
       (mkSdkInstallStep pkg.sdk)
-    ]
-    ++ lib.optionals (pkg.aptPackages != [ ]) [
-      {
-        name = "Install system dependencies";
-        run = "sudo apt-get update -qq && sudo apt-get install -yqq --no-install-recommends ${lib.concatStringsSep " " pkg.aptPackages}";
-      }
     ]
     ++ [
       {
@@ -258,6 +256,7 @@ let
       dir = if pkg.directory != "" then pkg.directory else null;
       sdkCmd = if pkg.sdk == "flutter" then "flutter" else "dart";
       setupSteps = mkSetupSteps pkg;
+      wrap = cmd: if pkg.testInDevShell then "nix develop --command bash -c '${cmd}'" else cmd;
     in
     lib.optionalAttrs pkg.test {
       ${jobName "test" pkgName} = {
@@ -267,7 +266,7 @@ let
           {
             name = "Run tests";
             workingDirectory = dir;
-            run = "${sdkCmd} test";
+            run = wrap "${sdkCmd} test";
           }
         ];
       };
@@ -278,6 +277,7 @@ let
     let
       dir = if pkg.directory != "" then pkg.directory else null;
       setupSteps = mkSetupSteps pkg;
+      wrap = cmd: if pkg.testInDevShell then "nix develop --command bash -c '${cmd}'" else cmd;
     in
     lib.optionalAttrs pkg.coverage {
       ${jobName "coverage" pkgName} = {
@@ -289,9 +289,9 @@ let
             workingDirectory = dir;
             run =
               if pkg.sdk == "flutter" then
-                "flutter test --coverage"
+                wrap "flutter test --coverage"
               else
-                ''
+                wrap ''
                   dart pub global activate coverage
                   dart pub global run coverage:test_with_coverage
                 '';
