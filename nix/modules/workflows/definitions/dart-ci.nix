@@ -216,10 +216,12 @@ let
               continueOnError = true;
               workingDirectory = dir;
               run = ''
-                if grep -q 'dart_code_linter:' pubspec.yaml; then
-                  dart run dart_code_linter:metrics analyze lib --reporter=github --set-exit-on-violation-level=noted
-                else
+                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+                elif [ ! -d lib ]; then
+                  echo "::notice::No lib/ directory — skipping dart_code_linter analyze"
+                else
+                  dart run dart_code_linter:metrics analyze lib --reporter=github --set-exit-on-violation-level=noted
                 fi
               '';
             }
