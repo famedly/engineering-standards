@@ -218,11 +218,16 @@ let
               run = ''
                 if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                elif [ ! -d lib ]; then
-                  echo "::notice::No lib/ directory — skipping dart_code_linter analyze"
-                else
-                  dart run dart_code_linter:metrics analyze lib --reporter=github --set-exit-on-violation-level=noted
+                  exit 0
                 fi
+                dirs=""
+                [ -d lib ] && dirs="$dirs lib"
+                [ -d bin ] && dirs="$dirs bin"
+                if [ -z "$dirs" ]; then
+                  echo "::notice::No lib/ or bin/ directory — skipping"
+                  exit 0
+                fi
+                dart run dart_code_linter:metrics analyze $dirs --reporter=github --set-exit-on-violation-level=noted
               '';
             }
             {
@@ -231,11 +236,16 @@ let
               run = ''
                 if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                elif [ ! -d lib ]; then
-                  echo "::notice::No lib/ directory — skipping unused files check"
-                else
-                  dart run dart_code_linter:metrics check-unused-files lib
+                  exit 0
                 fi
+                dirs=""
+                [ -d lib ] && dirs="$dirs lib"
+                [ -d bin ] && dirs="$dirs bin"
+                if [ -z "$dirs" ]; then
+                  echo "::notice::No lib/ or bin/ directory — skipping"
+                  exit 0
+                fi
+                dart run dart_code_linter:metrics check-unused-files $dirs
               '';
             }
             {
@@ -244,11 +254,16 @@ let
               run = ''
                 if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                elif [ ! -d lib ]; then
-                  echo "::notice::No lib/ directory — skipping unused code check"
-                else
-                  dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
+                  exit 0
                 fi
+                dirs=""
+                [ -d lib ] && dirs="$dirs lib"
+                [ -d bin ] && dirs="$dirs bin"
+                if [ -z "$dirs" ]; then
+                  echo "::notice::No lib/ or bin/ directory — skipping"
+                  exit 0
+                fi
+                dart run dart_code_linter:metrics check-unused-code $dirs --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
               '';
             }
           ]

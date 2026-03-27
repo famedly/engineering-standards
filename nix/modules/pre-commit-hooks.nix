@@ -249,7 +249,7 @@ _caller-args: {
           "dart-code-linter-${slug}" = {
             enable = true;
             name = "dart_code_linter analyze (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}if grep -q dart_code_linter: pubspec.yaml 2>/dev/null && [ -d lib ]; then ${dartBin} run dart_code_linter:metrics analyze lib --set-exit-on-violation-level=noted; fi'";
+            entry = "bash -c '${cdCmd}if ! grep -q dart_code_linter: pubspec.yaml 2>/dev/null; then exit 0; fi; dirs=\"\"; [ -d lib ] && dirs=\"$dirs lib\"; [ -d bin ] && dirs=\"$dirs bin\"; [ -z \"$dirs\" ] && exit 0; ${dartBin} run dart_code_linter:metrics analyze $dirs --set-exit-on-violation-level=noted'";
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;
@@ -399,7 +399,7 @@ _caller-args: {
               dart-code-linter = {
                 enable = true;
                 name = "dart_code_linter analyze";
-                entry = "bash -c 'if grep -q dart_code_linter: pubspec.yaml 2>/dev/null && [ -d lib ]; then ${dartBin} run dart_code_linter:metrics analyze lib --set-exit-on-violation-level=noted; fi'";
+                entry = "bash -c 'if ! grep -q dart_code_linter: pubspec.yaml 2>/dev/null; then exit 0; fi; dirs=\"\"; [ -d lib ] && dirs=\"$dirs lib\"; [ -d bin ] && dirs=\"$dirs bin\"; [ -z \"$dirs\" ] && exit 0; ${dartBin} run dart_code_linter:metrics analyze $dirs --set-exit-on-violation-level=noted'";
                 language = "system";
                 types = [ "dart" ];
                 pass_filenames = false;
