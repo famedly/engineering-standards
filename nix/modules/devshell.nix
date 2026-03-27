@@ -20,6 +20,7 @@
     let
       cfg = config.famedly.standards.devShell;
       hooksEnabled = config.famedly.standards.preCommitHooks.enable or false;
+      fossEnabled = (config.famedly.standards.preCommitHooks.fossHooks.enable or false) && hooksEnabled;
     in
     {
       options.famedly.standards.devShell = {
@@ -41,6 +42,7 @@
           packages = [
             pkgs.nixfmt-classic
           ]
+          ++ lib.optionals fossEnabled [ pkgs.reuse ]
           ++ cfg.extraPackages;
         };
       };

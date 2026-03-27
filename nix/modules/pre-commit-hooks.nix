@@ -38,6 +38,18 @@ _caller-args: {
           description = "Enable FOSS licensing hooks (REUSE compliance).";
         };
 
+        fossHooks.copyright = lib.mkOption {
+          type = lib.types.str;
+          default = "Famedly GmbH";
+          description = "Default copyright holder for SPDX headers (used by addLicenseHeaders app).";
+        };
+
+        fossHooks.license = lib.mkOption {
+          type = lib.types.str;
+          default = "AGPL-3.0-only";
+          description = "Default SPDX license identifier for headers (used by addLicenseHeaders app).";
+        };
+
         rustHooks.enable = lib.mkOption {
           type = lib.types.bool;
           default = false;
@@ -77,6 +89,22 @@ _caller-args: {
         _: p: p.language == "dart" || p.language == "flutter"
       ) projectsWithHooks;
       pythonProjects = lib.filterAttrs (_: p: p.language == "python") projectsWithHooks;
+
+      addLicenseHeadersScript = pkgs.writeShellApplication {
+        name = "addLicenseHeaders";
+        runtimeInputs = [
+          pkgs.reuse
+          pkgs.git
+        ];
+        text = ''
+          echo "Adding SPDX headers: --copyright=${lib.escapeShellArg cfg.fossHooks.copyright} --license=${lib.escapeShellArg cfg.fossHooks.license}"
+          git ls-files -z | xargs -0 reuse annotate \
+            --copyright=${lib.escapeShellArg cfg.fossHooks.copyright} \
+            --license=${lib.escapeShellArg cfg.fossHooks.license} \
+            --skip-unrecognised
+          echo "Done. Run 'reuse lint' to verify compliance."
+        '';
+      };
 
       mkSlug = dir: if dir == "" then "root" else lib.replaceStrings [ "/" ] [ "-" ] dir;
 
@@ -180,6 +208,14 @@ _caller-args: {
       ) pythonProjects;
     in
     lib.mkIf cfg.enable {
+      apps = lib.mkIf cfg.fossHooks.enable {
+        addLicenseHeaders = {
+          type = "app";
+          meta.description = "Add SPDX license headers to all git-tracked files";
+          program = lib.getExe addLicenseHeadersScript;
+        };
+      };
+
       pre-commit = {
         check.enable = true;
 

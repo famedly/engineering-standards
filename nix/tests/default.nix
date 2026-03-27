@@ -946,6 +946,20 @@ let
       echo "PASS: generated workflows include concurrency blocks"
       touch $out
     '';
+
+    test-app-add-license-headers =
+      let
+        minimalEval = evalConsumer "app-license-headers" scenarios.minimal;
+        minimalApps = minimalEval.config.flake.apps.${system} or { };
+        disabledEval = evalConsumer "app-license-headers-disabled" scenarios.disabled;
+        disabledApps = disabledEval.config.flake.apps.${system} or { };
+      in
+      assert minimalApps ? addLicenseHeaders;
+      assert !(disabledApps ? addLicenseHeaders);
+      pkgs.runCommand "test-app-add-license-headers" { } ''
+        echo "PASS: addLicenseHeaders app present when enabled, absent when disabled"
+        touch $out
+      '';
   };
 
   # ---------------------------------------------------------------------------
