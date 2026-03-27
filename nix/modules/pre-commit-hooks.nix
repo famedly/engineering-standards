@@ -60,7 +60,7 @@ _caller-args: {
         dartHooks.enable = lib.mkOption {
           type = lib.types.bool;
           default = false;
-          description = "Enable Dart hooks (dart format, dart analyze) at the repo root.";
+          description = "Enable Dart hooks (dart format, dart analyze, import_sorter, commented-out code) at the repo root.";
         };
 
         pythonHooks.enable = lib.mkOption {
@@ -106,13 +106,21 @@ _caller-args: {
 
       hasDartHooks = cfg.dartHooks.enable || dartProjects != { };
       dartHookIdsToSkip =
-        lib.optionals cfg.dartHooks.enable [ "dart-format" "dart-analyze" "dart-import-sorter" ]
+        lib.optionals cfg.dartHooks.enable [
+          "dart-format"
+          "dart-analyze"
+          "dart-import-sorter"
+        ]
         ++ lib.concatMap (
           project:
           let
             slug = mkSlug project.directory;
           in
-          [ "dart-format-${slug}" "dart-analyze-${slug}" "dart-import-sorter-${slug}" ]
+          [
+            "dart-format-${slug}"
+            "dart-analyze-${slug}"
+            "dart-import-sorter-${slug}"
+          ]
         ) (lib.attrValues dartProjects);
 
       rustToolchain = config.packages.famedly-rust-toolchain or null;
@@ -210,6 +218,26 @@ _caller-args: {
             enable = true;
             name = "dart analyze (${if dir == "" then "root" else dir})";
             entry = "bash -c '${cdCmd}${dartBin} analyze --fatal-infos'";
+            language = "system";
+            types = [ "dart" ];
+            pass_filenames = false;
+          }
+          // filesAttr;
+
+          "dart-import-sorter-${slug}" = {
+            enable = true;
+            name = "import_sorter (${if dir == "" then "root" else dir})";
+            entry = "bash -c '${cdCmd}${dartBin} run import_sorter:main --no-comments --exit-if-changed'";
+            language = "system";
+            types = [ "dart" ];
+            pass_filenames = false;
+          }
+          // filesAttr;
+
+          "dart-commented-code-${slug}" = {
+            enable = true;
+            name = "commented-out code (${if dir == "" then "root" else dir})";
+            entry = if dir == "" then "${commentedCodeChecker}" else "${commentedCodeChecker} ${dir}";
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;

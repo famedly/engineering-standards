@@ -227,10 +227,12 @@ let
               name = "dart_code_linter — unused files";
               workingDirectory = dir;
               run = ''
-                if grep -q 'dart_code_linter:' pubspec.yaml; then
-                  dart run dart_code_linter:metrics check-unused-files lib
-                else
+                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+                elif [ ! -d lib ]; then
+                  echo "::notice::No lib/ directory — skipping unused files check"
+                else
+                  dart run dart_code_linter:metrics check-unused-files lib
                 fi
               '';
             }
@@ -238,10 +240,12 @@ let
               name = "dart_code_linter — unused code";
               workingDirectory = dir;
               run = ''
-                if grep -q 'dart_code_linter:' pubspec.yaml; then
-                  dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
-                else
+                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
+                elif [ ! -d lib ]; then
+                  echo "::notice::No lib/ directory — skipping unused code check"
+                else
+                  dart run dart_code_linter:metrics check-unused-code lib --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
                 fi
               '';
             }

@@ -26,6 +26,16 @@
       hooksEnabled = config.famedly.standards.preCommitHooks.enable or false;
       fossEnabled = (config.famedly.standards.preCommitHooks.fossHooks.enable or false) && hooksEnabled;
 
+      dartHooksEnabled =
+        (config.famedly.standards.preCommitHooks.dartHooks.enable or false) && hooksEnabled;
+      projects = config.famedly.standards.projects or { };
+      dartProjects = lib.filterAttrs (
+        _: p: (p.language or "") == "dart" || (p.language or "") == "flutter"
+      ) projects;
+      hasDart = dartHooksEnabled || dartProjects != { };
+      dartProjectDirs =
+        lib.optionals dartHooksEnabled [ "" ] ++ lib.mapAttrsToList (_: p: p.directory or "") dartProjects;
+
       famedly-regen = pkgs.writeShellApplication {
         name = "famedly-regen";
         text = ''
@@ -65,6 +75,7 @@
       famedly-lint = pkgs.writeShellApplication {
         name = "famedly-lint";
         text = ''
+          rc=0
           if [[ "''${1:-}" == "--fix" || "''${1:-}" == "-f" ]]; then
             echo "Running pre-commit hooks (with auto-fix)..."
             pre-commit run --all-files || true
@@ -72,8 +83,38 @@
             echo "Done. Review the changes with: git diff"
           else
             echo "Running pre-commit hooks..."
-            pre-commit run --all-files
+            pre-commit run --all-files || rc=$?
           fi
+        ''
+        + lib.optionalString hasDart (
+          let
+            checks = lib.concatMapStringsSep "\n" (
+              dir:
+              let
+                label = if dir == "" then "root" else dir;
+                cmd =
+                  if dir == "" then
+                    "dart pub global run dependency_validator || rc=1"
+                  else
+                    "(cd ${dir} && dart pub global run dependency_validator) || rc=1";
+              in
+              "echo \"  → ${label}\"\n${cmd}"
+            ) dartProjectDirs;
+          in
+          ''
+
+            echo ""
+            echo "Running dependency_validator..."
+            if dart pub global activate dependency_validator 2>/dev/null; then
+            ${checks}
+            else
+              echo "  ⚠ Could not activate dependency_validator — skipping."
+            fi
+          ''
+        )
+        + ''
+
+          exit "$rc"
         '';
       };
 
