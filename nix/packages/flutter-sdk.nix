@@ -73,6 +73,22 @@ stdenv.mkDerivation {
     runHook preInstall
     mkdir -p $out
     cp -R . $out/flutter
+
+    # Flutter tries to write stamp/cache files at runtime.
+    # Since we pin the SDK version, patch the internal update scripts
+    # to be no-ops so Flutter doesn't attempt writes to the Nix store.
+    for f in $out/flutter/bin/internal/update_engine_version.sh \
+             $out/flutter/bin/internal/update_dart_sdk.sh; do
+      if [ -f "$f" ]; then
+        printf '#!/usr/bin/env bash\nexit 0\n' > "$f"
+      fi
+    done
+
+    # Pre-create stamp files so Flutter considers the cache up-to-date.
+    mkdir -p $out/flutter/bin/cache
+    echo "${v.version}" > $out/flutter/bin/cache/flutter.version.stamp
+    touch $out/flutter/bin/cache/engine.stamp
+
     # Symlink binaries for PATH
     mkdir -p $out/bin
     ln -s $out/flutter/bin/flutter $out/bin/flutter
