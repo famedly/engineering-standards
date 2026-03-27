@@ -11,6 +11,12 @@
   git,
   unzip,
   xz,
+  fontconfig,
+  gtk3,
+  libGL,
+  libepoxy,
+  pango,
+  glib,
   sdkVersions,
 }:
 
@@ -55,6 +61,12 @@ stdenv.mkDerivation {
     bash
     curl
     git
+    fontconfig
+    gtk3
+    libGL
+    libepoxy
+    pango
+    glib
   ];
 
   installPhase = ''
