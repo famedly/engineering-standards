@@ -112,17 +112,25 @@ let
   jobDisplayName = base: pkgName: if multiPackage then "${base} — ${pkgName}" else base;
 
   # Install SDK from the consumer flake's pinned package (same as DevShell).
-  # sdk = "dart"    → nix profile install .#famedly-dart-sdk
-  # sdk = "flutter" → nix profile install .#famedly-flutter-sdk
+  # Dart is installed directly via nix profile (read-only store is fine).
+  # Flutter needs a writable copy because it writes to bin/cache/ at runtime.
   mkSdkInstallStep =
     sdk:
-    let
-      pkg = if sdk == "flutter" then "famedly-flutter-sdk" else "famedly-dart-sdk";
-    in
-    {
-      name = "Install ${sdk} SDK (pinned)";
-      run = "nix profile install .#${pkg}";
-    };
+    if sdk == "flutter" then
+      {
+        name = "Install flutter SDK (pinned)";
+        run = ''
+          nix build .#famedly-flutter-sdk --no-link --print-out-paths > /tmp/flutter-store-path
+          cp -rL "$(cat /tmp/flutter-store-path)" "$HOME/flutter-sdk"
+          chmod -R u+w "$HOME/flutter-sdk"
+          echo "$HOME/flutter-sdk/bin" >> "$GITHUB_PATH"
+        '';
+      }
+    else
+      {
+        name = "Install dart SDK (pinned)";
+        run = "nix profile install .#famedly-dart-sdk";
+      };
 
   mkSetupSteps =
     pkg:
