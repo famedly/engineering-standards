@@ -44,7 +44,7 @@ in
           uses = "cachix/install-nix-action@${av.installNix}";
           with_.extra_nix_config = "experimental-features = nix-command flakes";
         }
-        (mkNixGitAuthStep { sshKey = ghSecret "ssh_key"; })
+        (mkNixGitAuthStep { sshKey = ghSecret "CI_SSH_PRIVATE_KEY"; })
         {
           uses = "cachix/cachix-action@${av.cachixAction}";
           with_ = {
