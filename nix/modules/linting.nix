@@ -3,7 +3,9 @@
 # Source files live in engineering-standards under linting/<scope>/.
 # Generated files in consumer repo depend on detected language:
 #
-#   Dart:   analysis_options.yaml
+#   Dart/Flutter:
+#     analysis_options.standards.yaml  (managed — always overwritten)
+#     analysis_options.yaml            (initialOnly — created once, user-editable)
 #   Rust:   clippy.toml, rustfmt.toml, deny.toml, cargo-lints.toml
 #   Python: ruff.toml, ruff.base.toml
 
@@ -11,6 +13,10 @@
 let
   root = ../..;
   lintingDir = "${root}/linting";
+
+  # Files named analysis_options.yaml are user-editable (initialOnly);
+  # analysis_options.standards.yaml and everything else is always managed.
+  isInitialOnly = name: name == "analysis_options.yaml";
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -18,7 +24,6 @@ in
     let
       cfg = config.famedly.standards.linting;
 
-      # Collect all files from a linting scope directory.
       filesForScope =
         scope:
         let
@@ -28,6 +33,7 @@ in
           lib.mapAttrsToList (name: _: {
             src = "${dir}/${name}";
             dest = name;
+            initialOnly = isInitialOnly name;
           }) (builtins.readDir dir)
         else
           [ ];

@@ -63,18 +63,32 @@ in
       cfg = config.famedly.standards;
 
       # Generate one shell snippet per managed file.
-      # builtins.dirOf gives us the parent directory without bash tricks.
+      # Files with initialOnly=true are only written when they don't exist yet,
+      # so user customisations (e.g. linting overrides) survive regeneration.
       fileSnippets = map (
         entry:
         let
           destDir = builtins.dirOf entry.dest;
+          writeCmd = ''
+            mkdir -p "$REPO_ROOT/${destDir}"
+            cp ${entry.src} "$REPO_ROOT/${entry.dest}"
+            chmod u+w "$REPO_ROOT/${entry.dest}"
+          '';
         in
-        ''
-          echo "  Writing ${entry.dest}"
-          mkdir -p "$REPO_ROOT/${destDir}"
-          cp ${entry.src} "$REPO_ROOT/${entry.dest}"
-          chmod u+w "$REPO_ROOT/${entry.dest}"
-        ''
+        if entry.initialOnly then
+          ''
+            if [[ ! -f "$REPO_ROOT/${entry.dest}" ]]; then
+              echo "  Creating ${entry.dest} (initial)"
+              ${writeCmd}
+            else
+              echo "  Skipping ${entry.dest} (already exists, user-managed)"
+            fi
+          ''
+        else
+          ''
+            echo "  Writing ${entry.dest}"
+            ${writeCmd}
+          ''
       ) cfg._internal.managedFiles;
 
       # Manifest tracks all currently-managed destination paths so that
@@ -99,12 +113,14 @@ in
             echo "Cleaning up files no longer managed..."
             while IFS= read -r old_file; do
               [[ -z "$old_file" ]] && continue
-              # Never delete the manifest itself.
               [[ "$old_file" == "${manifestRelPath}" ]] && continue
-              if [[ -f "$REPO_ROOT/$old_file" ]]; then
-                echo "  Removing $old_file"
-                rm "$REPO_ROOT/$old_file"
-                rmdir "$(dirname "$REPO_ROOT/$old_file")" 2>/dev/null || true
+              # Only remove if the file is NOT in the new manifest.
+              if ! grep -qxF "$old_file" ${newManifestFile}; then
+                if [[ -f "$REPO_ROOT/$old_file" ]]; then
+                  echo "  Removing $old_file"
+                  rm "$REPO_ROOT/$old_file"
+                  rmdir "$(dirname "$REPO_ROOT/$old_file")" 2>/dev/null || true
+                fi
               fi
             done < "$MANIFEST"
           fi
@@ -131,6 +147,16 @@ in
                 dest = lib.mkOption {
                   type = lib.types.str;
                   description = "Destination path relative to the repo root.";
+                };
+                initialOnly = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = ''
+                    When true the file is only written on first run (if it does
+                    not exist yet). Subsequent regenerations skip it so that
+                    user customisations are preserved. The file is still tracked
+                    in the manifest for cleanup when the feature is disabled.
+                  '';
                 };
               };
             }

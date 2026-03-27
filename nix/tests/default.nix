@@ -554,6 +554,9 @@ let
   minimalScriptEval = evalConsumer "script-test-minimal" scenarios.minimal;
   minimalScript = minimalScriptEval.config.flake.apps.${system}.regenerateStandards.program;
 
+  dartScriptEval = evalConsumer "script-test-dart" scenarios.dart-full;
+  dartScript = dartScriptEval.config.flake.apps.${system}.regenerateStandards.program;
+
   allowedWorkflowPinNamesFile = pkgs.writeText "allowed-workflow-pins" (
     lib.concatStringsSep "\n" (lib.sort lib.lessThan (builtins.attrNames workflowPins))
   );
@@ -630,6 +633,8 @@ let
       grep -q "pub" ${dartBundle}/.github/dependabot.yml
       test -f ${dartBundle}/.pre-commit-config.yaml
       test -f ${dartBundle}/analysis_options.yaml
+      test -f ${dartBundle}/analysis_options.standards.yaml
+      grep -q "analysis_options.standards.yaml" ${dartBundle}/analysis_options.yaml
       test -f ${dartBundle}/CLAUDE.md
 
       echo "PASS: all expected Dart managed files present and correct"
@@ -639,8 +644,10 @@ let
     test-content-flutter = pkgs.runCommand "test-content-flutter" { } ''
       echo "=== Checking Flutter consumer managed files ==="
       test -f ${flutterBundle}/analysis_options.yaml
-      grep -q "flutter" ${flutterBundle}/analysis_options.yaml
-      ! grep -q "engineering_standards_lints" ${flutterBundle}/analysis_options.yaml
+      test -f ${flutterBundle}/analysis_options.standards.yaml
+      grep -q "flutter" ${flutterBundle}/analysis_options.standards.yaml
+      ! grep -q "engineering_standards_lints" ${flutterBundle}/analysis_options.standards.yaml
+      grep -q "analysis_options.standards.yaml" ${flutterBundle}/analysis_options.yaml
 
       test -f ${flutterBundle}/.github/workflows/ci.yml
       test -f ${flutterBundle}/.github/workflows/dart-ci.yml
@@ -715,6 +722,7 @@ let
 
       # Flutter linting config in frontend/
       test -f ${monorepoFlutterRustBundle}/frontend/analysis_options.yaml
+      test -f ${monorepoFlutterRustBundle}/frontend/analysis_options.standards.yaml
 
       # Rust configs should NOT be at root
       ! test -f ${monorepoFlutterRustBundle}/clippy.toml
@@ -914,6 +922,64 @@ let
           echo "  PASS: manifest updated to reflect current managed files"
 
           echo "PASS: manifest cleanup works correctly"
+          touch $out
+        '';
+
+    # Verify that initialOnly files are not overwritten on subsequent runs.
+    test-manifest-initial-only =
+      pkgs.runCommand "test-manifest-initial-only"
+        {
+          nativeBuildInputs = [ pkgs.git ];
+        }
+        ''
+          set -euo pipefail
+          echo "=== Checking initialOnly file preservation ==="
+
+          REPO=$(mktemp -d)
+          export HOME="$TMPDIR"
+          export GIT_CONFIG_NOSYSTEM=1
+          git -C "$REPO" init -q
+          git -C "$REPO" config user.email "ci@test"
+          git -C "$REPO" config user.name "CI"
+          git -C "$REPO" commit --allow-empty -m "init" -q
+
+          cd "$REPO"
+
+          # First run: both files should be created.
+          ${dartScript}
+          test -f analysis_options.yaml \
+            || { echo "FAIL: analysis_options.yaml not created on first run"; exit 1; }
+          test -f analysis_options.standards.yaml \
+            || { echo "FAIL: analysis_options.standards.yaml not created on first run"; exit 1; }
+          echo "  PASS: both files created on first run"
+
+          # Simulate user adding overrides to analysis_options.yaml.
+          cat >> analysis_options.yaml <<'OVERRIDE'
+
+          analyzer:
+            exclude:
+              - example/**
+          OVERRIDE
+
+          BEFORE=$(cat analysis_options.yaml)
+
+          # Second run: analysis_options.yaml must be untouched,
+          # analysis_options.standards.yaml must be overwritten.
+          ${dartScript}
+
+          AFTER=$(cat analysis_options.yaml)
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "FAIL: analysis_options.yaml was overwritten on second run"
+            diff <(echo "$BEFORE") <(echo "$AFTER") || true
+            exit 1
+          fi
+          echo "  PASS: analysis_options.yaml preserved on second run"
+
+          grep -q "example" analysis_options.yaml \
+            || { echo "FAIL: user override lost"; exit 1; }
+          echo "  PASS: user overrides intact"
+
+          echo "PASS: initialOnly files correctly preserved"
           touch $out
         '';
 
