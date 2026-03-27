@@ -279,7 +279,11 @@ _caller-args: {
 
             (lib.mkIf cfg.dartHooks.enable {
               dart-format.enable = true;
-              dart-analyze.enable = true;
+              dart-analyze = {
+                enable = true;
+                entry = lib.mkForce "${pkgs.dart}/bin/dart analyze --fatal-infos";
+                pass_filenames = false;
+              };
             })
 
             (lib.mkIf cfg.pythonHooks.enable {
