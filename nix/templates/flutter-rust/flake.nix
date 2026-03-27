@@ -62,29 +62,14 @@
         in
         {
           famedly.standards = {
-            # AI rules for both languages
-            rules = {
-              enable = false;
-              extraScopes = [
-                "rust"
-                "dart"
-                "flutter"
-              ];
-            };
-
+            rules.enable = false;
             preCommitHooks.enable = true;
-            ci = {
-              enable = true;
-              armRunners = false;
-            };
             infrastructure = {
               editorconfig = true;
               dependabot = true;
             };
             devShell.enable = true;
 
-            # Monorepo project definitions — each gets scoped linting,
-            # Dependabot, and pre-commit hooks in its directory.
             projects = {
               backend = {
                 language = "rust";
@@ -96,27 +81,30 @@
               };
             };
 
-            # Workflow files (repo-level)
-            workflows = {
-              conventionalCommits = true;
-              authenticateCommits = false;
-              # Reusable rust-ci expects Cargo at repo root. This layout uses backend/;
-              # use `nix flake check` for Rust, or add a root workspace / extend rust-ci.
-              rustCi.enable = false;
-              # dartCi.enable is auto-set by dart.enable; only directory needs overriding
-              dartCi.directory = "frontend";
-              # rustPublish.enable = true;       # uncomment for crate publishing
-              # dockerBackend = {                # uncomment for Docker builds
-              #   enable = true;
-              #   targets = "backend-service";
-              # };
-              # fastForward = true;              # uncomment for /fast-forward PR merges
-            };
-
             dart = {
               enable = true;
               flutter = true;
             };
+          };
+
+          famedly.github.workflows = {
+            ci = {
+              enable = true;
+              armRunners = false;
+            };
+            "general-checks".enable = true;
+            "authenticate-commits".enable = false;
+            "ai-review".enable = false;
+            # rust-ci expects Cargo at repo root; this layout uses backend/
+            "rust-ci".enable = false;
+            # dart-ci is auto-enabled by dart.enable; only directory needs overriding
+            "dart-ci".directory = "frontend";
+            # "publish-crate".enable = true;     # uncomment for crate publishing
+            # "docker-backend" = {               # uncomment for Docker builds
+            #   enable = true;
+            #   targets = "backend-service";
+            # };
+            # "fast-forward".enable = true;      # uncomment for /fast-forward PR merges
           };
 
           # Rust-specific checks via crane.

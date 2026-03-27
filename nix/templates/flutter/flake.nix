@@ -33,16 +33,10 @@
         }:
         {
           famedly.standards = {
-            rules = {
-              enable = false;
-              extraScopes = [
-                "dart"
-                "flutter"
-              ];
-            };
+            rules.enable = false;
             linting = {
               enable = true;
-              flutter = true; # Generates analysis_options.yaml (Flutter variant)
+              flutter = true;
             };
             preCommitHooks = {
               enable = true;
@@ -53,30 +47,30 @@
               dependabot = true;
               dependabotDart = true;
             };
+            devShell.enable = true;
+
+            dart = {
+              enable = true;
+              flutter = true;
+            };
+          };
+
+          famedly.github.workflows = {
             ci = {
               enable = true;
               armRunners = false;
             };
-            devShell.enable = true;
-
-            # Workflow files (generated as thin callers of reusable workflows)
-            workflows = {
-              conventionalCommits = true;
-              authenticateCommits = false;
-              # dartCi is auto-enabled by dart.enable below
-              # dartPublish.enable = true;       # uncomment for pub.dev publishing
-              # dartReviewApp = {                # uncomment for review app deployment
-              #   enable = true;
-              #   projectName = "my-app";
-              # };
-              # docker.enable = true;            # uncomment for multi-arch Docker builds
-              # githubPages.enable = true;       # uncomment for GitHub Pages deployment
-            };
-
-            dart = {
-              enable = true;
-              flutter = true; # Use Flutter SDK; also enables dart-ci.yml workflow
-            };
+            "general-checks".enable = true;
+            "authenticate-commits".enable = false;
+            "ai-review".enable = false;
+            # dart-ci is auto-enabled by dart.enable above
+            # "publish-pub".enable = true;       # uncomment for pub.dev publishing
+            # "review-app" = {                   # uncomment for review app deployment
+            #   enable = true;
+            #   projectName = "my-app";
+            # };
+            # docker.enable = true;              # uncomment for multi-arch Docker builds
+            # "github-pages".enable = true;      # uncomment for GitHub Pages deployment
           };
 
           devShells.default = pkgs.mkShell {

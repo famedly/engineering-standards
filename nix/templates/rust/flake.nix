@@ -56,13 +56,10 @@
         in
         {
           famedly.standards = {
-            rules = {
-              enable = false;
-              extraScopes = [ "rust" ];
-            };
+            rules.enable = false;
             linting = {
               enable = true;
-              rust = true; # clippy.toml, rustfmt.toml, .cargo/
+              rust = true;
             };
             preCommitHooks = {
               enable = true;
@@ -73,23 +70,21 @@
               dependabot = true;
               dependabotRust = true;
             };
+            devShell.enable = true;
+          };
+
+          famedly.github.workflows = {
             ci = {
               enable = true;
-              # true only if your GitHub org provides Famedly ARM runners
               armRunners = false;
             };
-            devShell.enable = true;
-
-            # Workflow files (generated as thin callers of reusable workflows)
-            workflows = {
-              conventionalCommits = true;
-              # Enable if your org uses OpenPGP commit authentication
-              authenticateCommits = false;
-              rustCi.enable = true;
-              # rustPublish.enable = true;       # uncomment for crate publishing
-              # dockerBackend.enable = true;     # uncomment for Docker builds
-              # fastForward = true;              # uncomment for /fast-forward PR merges
-            };
+            "general-checks".enable = true;
+            "authenticate-commits".enable = false;
+            "ai-review".enable = false;
+            "rust-ci".enable = true;
+            # "publish-crate".enable = true;     # uncomment for crate publishing
+            # "docker-backend".enable = true;    # uncomment for Docker builds
+            # "fast-forward".enable = true;      # uncomment for /fast-forward PR merges
           };
 
           # Rust-specific checks via crane.

@@ -34,13 +34,10 @@
         }:
         {
           famedly.standards = {
-            rules = {
-              enable = false;
-              extraScopes = [ "dart" ];
-            };
+            rules.enable = false;
             linting = {
               enable = true;
-              dart = true; # Generates analysis_options.yaml
+              dart = true;
             };
             preCommitHooks = {
               enable = true;
@@ -51,25 +48,24 @@
               dependabot = true;
               dependabotDart = true;
             };
+            devShell.enable = true;
+
+            dart = {
+              enable = true;
+              flutter = false;
+            };
+          };
+
+          famedly.github.workflows = {
             ci = {
               enable = true;
               armRunners = false;
             };
-            devShell.enable = true;
-
-            # Workflow files (generated as thin callers of reusable workflows)
-            workflows = {
-              conventionalCommits = true;
-              authenticateCommits = false;
-              # dartCi is auto-enabled by dart.enable below
-              # dartPublish.enable = true;       # uncomment for pub.dev publishing
-            };
-
-            # Dart SDK in nix develop; also enables dart-ci.yml workflow
-            dart = {
-              enable = true;
-              flutter = false; # Set to true for Flutter projects
-            };
+            "general-checks".enable = true;
+            "authenticate-commits".enable = false;
+            "ai-review".enable = false;
+            # dart-ci is auto-enabled by dart.enable above
+            # "publish-pub".enable = true;       # uncomment for pub.dev publishing
           };
 
           devShells.default = pkgs.mkShell {

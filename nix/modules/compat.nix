@@ -4,12 +4,24 @@
 # automatic migration with deprecation warnings on evaluation.
 #
 # Migration map:
-#   famedly.standards.ci.*                    → famedly.github.workflows.ci.*
-#   famedly.standards.workflows.<name>        → famedly.github.workflows.<name>.*
-#   famedly.standards.hooks.*                 → famedly.standards.preCommitHooks.*
-#   famedly.standards.checks.{enable,reuse}   → famedly.standards.preCommitHooks.*
-#   famedly.standards.checks.{typos,typosConfig}  — removed (CI via Nix)
-#   famedly.standards.workflows.reuse              — removed (preCommitHooks.fossHooks)
+#   famedly.standards.ci.*                          → famedly.github.workflows.ci.*
+#   famedly.standards.workflows.conventionalCommits → famedly.github.workflows.general-checks.enable
+#   famedly.standards.workflows.authenticateCommits → famedly.github.workflows.authenticate-commits.enable
+#   famedly.standards.workflows.fastForward         → famedly.github.workflows.fast-forward.enable
+#   famedly.standards.workflows.addToProject.*      → famedly.github.workflows.add-to-project.*
+#   famedly.standards.workflows.updateOpenpgpPolicy.*→ famedly.github.workflows.update-openpgp-policy.*
+#   famedly.standards.workflows.aiReview.*          → famedly.github.workflows.ai-review.*
+#   famedly.standards.workflows.release.*           → famedly.github.workflows.release.*
+#   famedly.standards.workflows.rustCi.*            → famedly.github.workflows.rust-ci.*
+#   famedly.standards.workflows.dartCi.*            → famedly.github.workflows.dart-ci.*
+#   famedly.standards.workflows.rustPublish.*       → famedly.github.workflows.publish-crate.*
+#   famedly.standards.workflows.dartPublish.*       → famedly.github.workflows.publish-pub.*
+#   famedly.standards.workflows.dockerBackend.*     → famedly.github.workflows.docker-backend.*
+#   famedly.standards.workflows.githubPages.*       → famedly.github.workflows.github-pages.*
+#   famedly.standards.hooks.*                       → famedly.standards.preCommitHooks.*
+#   famedly.standards.checks.{enable,reuse}         → famedly.standards.preCommitHooks.*
+#   famedly.standards.checks.{typos,typosConfig}    — removed (CI via Nix)
+#   famedly.standards.workflows.reuse               — removed (preCommitHooks.fossHooks)
 
 { flake-parts-lib, lib, ... }:
 let
@@ -253,6 +265,188 @@ in
             ])
             (pch [
               "fossHooks"
+              "enable"
+            ])
+          )
+
+          # ── Language CI workflows ───────────────────────────────────
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "enable"
+            ])
+            (wf [
+              "rust-ci"
+              "enable"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "container"
+            ])
+            (wf [
+              "rust-ci"
+              "container"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "runner"
+            ])
+            (wf [
+              "rust-ci"
+              "runner"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "features"
+            ])
+            (wf [
+              "rust-ci"
+              "features"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "coverage"
+            ])
+            (wf [
+              "rust-ci"
+              "coverage"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "typos"
+            ])
+            (wf [
+              "rust-ci"
+              "typos"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "rustCi"
+              "cargoDeny"
+            ])
+            (wf [
+              "rust-ci"
+              "cargoDeny"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dartCi"
+              "enable"
+            ])
+            (wf [
+              "dart-ci"
+              "enable"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dartCi"
+              "directory"
+            ])
+            (wf [
+              "dart-ci"
+              "directory"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dartCi"
+              "sdk"
+            ])
+            (wf [
+              "dart-ci"
+              "sdk"
+            ])
+          )
+
+          # ── Publishing workflows ─────────────────────────────────────
+          (rename
+            (std [
+              "workflows"
+              "rustPublish"
+              "enable"
+            ])
+            (wf [
+              "publish-crate"
+              "enable"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dartPublish"
+              "enable"
+            ])
+            (wf [
+              "publish-pub"
+              "enable"
+            ])
+          )
+
+          # ── Docker / deployment workflows ────────────────────────────
+          (rename
+            (std [
+              "workflows"
+              "dockerBackend"
+              "enable"
+            ])
+            (wf [
+              "docker-backend"
+              "enable"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dockerBackend"
+              "targets"
+            ])
+            (wf [
+              "docker-backend"
+              "targets"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "dockerBackend"
+              "oss"
+            ])
+            (wf [
+              "docker-backend"
+              "oss"
+            ])
+          )
+          (rename
+            (std [
+              "workflows"
+              "githubPages"
+              "enable"
+            ])
+            (wf [
+              "github-pages"
               "enable"
             ])
           )
