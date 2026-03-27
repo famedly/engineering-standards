@@ -7,7 +7,7 @@
 }:
 let
   av = famedlyConfig.standards.actionVersions;
-  inherit (workflowsLib) ghExpr ghSecret ciConcurrency;
+  inherit (workflowsLib) ghExpr ciConcurrency;
 
   isSimple = config.mode == "simple";
   isWorkflowRun = config.triggerMode == "workflowRun";
@@ -64,7 +64,7 @@ let
           if_ = pushCondition;
           uses = "docker/login-action@${av.dockerLogin}";
           with_ = {
-            registry = config.registry;
+            inherit (config) registry;
             username = config.registryUser;
             password = ghExpr "secrets.${config.registryPasswordSecret}";
           };
@@ -79,7 +79,7 @@ let
           name = "Build and push Docker image";
           uses = "docker/build-push-action@${av.dockerBuildPush}";
           with_ = {
-            context = config.context;
+            inherit (config) context;
             file = config.dockerfile;
             push = pushCondition;
             tags = ghExpr "steps.meta.outputs.tags";
@@ -134,7 +134,7 @@ let
           if_ = notPR;
           uses = "docker/login-action@${av.dockerLogin}";
           with_ = {
-            registry = config.registry;
+            inherit (config) registry;
             username = config.registryUser;
             password = ghExpr "secrets.${config.registryPasswordSecret}";
           };
@@ -150,7 +150,7 @@ let
           name = "Build and push Docker image";
           uses = "docker/build-push-action@${av.dockerBuildPush}";
           with_ = {
-            context = config.context;
+            inherit (config) context;
             file = config.dockerfile;
             push = notPR;
             labels = ghExpr "steps.meta.outputs.labels";
@@ -247,7 +247,7 @@ let
           name = "Log into registry ${config.registry}";
           uses = "docker/login-action@${av.dockerLogin}";
           with_ = {
-            registry = config.registry;
+            inherit (config) registry;
             username = config.registryUser;
             password = ghExpr "secrets.${config.registryPasswordSecret}";
           };

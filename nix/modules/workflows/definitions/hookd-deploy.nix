@@ -8,7 +8,7 @@
 }:
 let
   av = famedlyConfig.standards.actionVersions;
-  inherit (workflowsLib) ghExpr ghSecret;
+  inherit (workflowsLib) ghSecret;
 in
 {
   options = {

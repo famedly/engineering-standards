@@ -38,7 +38,7 @@
         }:
         let
           # Stable toolchain for builds, clippy, and tests.
-          toolchain = inputs.fenix.packages.${system}.stable.toolchain;
+          inherit (inputs.fenix.packages.${system}.stable) toolchain;
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
           # Nightly toolchain for rustfmt and cargo-udeps.
@@ -119,10 +119,10 @@
                 config.devShells.famedly-standards
               ]
               ++ [ (craneLib.devShell { }) ];
-            packages = with pkgs; [
-              cargo-watch
-              cargo-edit
-              cargo-deny
+            packages = [
+              pkgs.cargo-watch
+              pkgs.cargo-edit
+              pkgs.cargo-deny
             ];
           };
         };

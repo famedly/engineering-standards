@@ -40,7 +40,7 @@ let
   # ---------------------------------------------------------------------------
 
   evalConsumer =
-    name: perSystemConfig:
+    _name: perSystemConfig:
     inputs.flake-parts.lib.evalFlakeModule
       {
         inherit inputs;
@@ -53,7 +53,7 @@ let
           preCommitHooksModule
         ];
         systems = [ system ];
-        perSystem = { ... }: perSystemConfig;
+        perSystem = _: perSystemConfig;
       };
 
   evalWithBundle =

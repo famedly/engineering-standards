@@ -9,11 +9,7 @@ let
   av = famedlyConfig.standards.actionVersions;
   inherit (workflowsLib) ghSecret;
 
-  ciCfg =
-    if famedlyConfig.github.workflows ? ci then
-      famedlyConfig.github.workflows.ci
-    else
-      { armRunners = false; };
+  ciCfg = famedlyConfig.github.workflows.ci or { armRunners = false; };
 
   runsOn = if (ciCfg.armRunners or false) then "arm-ubuntu-latest-8core" else "ubuntu-latest";
 in
@@ -41,7 +37,7 @@ in
     };
     jobs.update = {
       name = "Update engineering-standards";
-      runsOn = runsOn;
+      inherit runsOn;
       steps = [
         { uses = "actions/checkout@${av.checkout}"; }
         {

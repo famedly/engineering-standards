@@ -90,7 +90,7 @@ in
           url = "https://${config.projectName}-pr-${prNumber}.web-review.famedly.de";
         };
         steps = [
-          ({
+          {
             uses = "actions/download-artifact@${av.downloadArtifact}";
             with_ = {
               name = config.artifactName;
@@ -100,7 +100,7 @@ in
               run-id = ghExpr "github.event.workflow_run.run_id";
               github-token = ghSecret "GITHUB_TOKEN";
             };
-          })
+          }
           {
             name = "Deploy to review server";
             run = ''

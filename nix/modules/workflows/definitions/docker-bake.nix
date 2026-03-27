@@ -7,7 +7,7 @@
 }:
 let
   av = famedlyConfig.standards.actionVersions;
-  inherit (workflowsLib) ghExpr ghSecret ciConcurrency;
+  inherit (workflowsLib) ghExpr ciConcurrency;
 in
 {
   options = {
@@ -66,7 +66,7 @@ in
           uses = "docker/bake-action@${av.dockerBake}";
           with_ = {
             files = "${config.files}\n${ghExpr "steps.meta.outputs.bake-file"}";
-            targets = config.targets;
+            inherit (config) targets;
             push = ghExpr "github.event_name != 'pull_request'";
             set = "*.cache-from=type=gha\n*.cache-to=type=gha,mode=max";
           };

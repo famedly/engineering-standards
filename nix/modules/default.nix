@@ -26,7 +26,7 @@
 # Workflows are generated as complete YAML via github-actions-nix,
 # eliminating the need for reusable workflow_call references.
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 let
   sdkVersions = import ../sdk-versions.nix;
 in

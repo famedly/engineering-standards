@@ -9,7 +9,7 @@
 #   2. The projects module (_internal.dependabotEntries)
 # Both are merged into a single dependabot.yml.
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 let
   root = ../..;
 in

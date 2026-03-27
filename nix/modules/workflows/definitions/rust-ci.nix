@@ -69,7 +69,7 @@ in
 
   config.definition =
     let
-      containerAttr = lib.optionalAttrs (config.container != null) { container = config.container; };
+      containerAttr = lib.optionalAttrs (config.container != null) { inherit (config) container; };
 
       # When using a container, the container already has the Rust toolchain.
       # When running without a container, install the pinned toolchain from the
@@ -80,7 +80,7 @@ in
             { uses = "actions/checkout@${av.checkout}"; }
             (mkRustPrepareStep {
               sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
-              additionalPackages = config.additionalPackages;
+              inherit (config) additionalPackages;
             })
           ]
         else
@@ -93,7 +93,7 @@ in
             }
             (mkRustPrepareStep {
               sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
-              additionalPackages = config.additionalPackages;
+              inherit (config) additionalPackages;
             })
           ];
     in

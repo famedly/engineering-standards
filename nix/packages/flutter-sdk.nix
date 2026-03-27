@@ -16,7 +16,7 @@
 
 let
   v = sdkVersions.flutter;
-  system = stdenv.hostPlatform.system;
+  inherit (stdenv.hostPlatform) system;
 
   archives = {
     x86_64-linux = {
@@ -39,7 +39,7 @@ let
 in
 stdenv.mkDerivation {
   pname = "famedly-flutter-sdk";
-  version = v.version;
+  inherit (v) version;
 
   src = fetchurl { inherit (archive) url hash; };
 
@@ -74,9 +74,18 @@ stdenv.mkDerivation {
   meta = {
     description = "Flutter SDK ${v.version} (Famedly-pinned)";
     homepage = "https://flutter.dev";
+    changelog = "https://github.com/flutter/flutter/blob/main/CHANGELOG.md";
     mainProgram = "flutter";
     platforms = lib.attrNames archives;
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     license = lib.licenses.bsd3;
+    maintainers = [
+      {
+        name = "Famedly GmbH";
+        email = "info@famedly.com";
+        github = "famedly";
+        githubId = 46558835;
+      }
+    ];
   };
 }

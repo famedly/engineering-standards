@@ -117,6 +117,27 @@ devShells.default = pkgs.mkShell {
 };
 ```
 
+### direnv / .envrc (recommended)
+
+For automatic shell activation, install [direnv](https://direnv.net/) and create a `.envrc` in your project root:
+
+```sh
+# .envrc (do NOT commit this file)
+use flake
+```
+
+Then run `direnv allow`. The dev shell activates automatically when you `cd` into the project.
+
+> **Important**: Do not commit `.envrc` — add it to your personal global gitignore (`~/.config/git/ignore`).
+
+### Editor integration
+
+**VS Code / Cursor**: Install the [direnv extension](https://marketplace.visualstudio.com/items?itemName=mkhl.direnv). With `devShell.enable = true`, a `.nixd.json` is generated for [nixd](https://github.com/nix-community/nixd) language server support (option completion, goto definition).
+
+**Neovim**: Use [direnv.vim](https://github.com/direnv/direnv.vim) or the built-in direnv integration in modern plugin managers. nixd works out of the box with the generated `.nixd.json`.
+
+**IntelliJ / Android Studio**: Install the [Direnv integration plugin](https://plugins.jetbrains.com/plugin/15285-direnv-integration). For Flutter projects, point the Flutter SDK path to the `nix develop` shell output.
+
 ### CLI commands
 
 | Command | What it does |
@@ -152,7 +173,7 @@ devShells.default = pkgs.mkShell {
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `rules.enable` | bool | `false` | Generate `.cursor/rules/standards/`, `CLAUDE.md` |
-| `rules.extraScopes` | listOf enum | `[]` | `"dart"`, `"flutter"`, `"rust"`, `"python"`, `"typescript"` |
+| `rules.extraScopes` | listOf enum | `[]` | `"dart"`, `"flutter"`, `"nix"`, `"rust"`, `"python"`, `"typescript"` |
 | `linting.enable` | bool | `false` | Master switch for lint configs |
 | `linting.dart` | bool | `false` | `analysis_options.yaml` (Dart) |
 | `linting.flutter` | bool | `false` | `analysis_options.yaml` (Flutter) |
@@ -290,6 +311,51 @@ Configure copyright/license:
 ```nix
 preCommitHooks.fossHooks = { copyright = "Your Company"; license = "Apache-2.0"; };
 ```
+
+---
+
+## Useful Nix commands
+
+Beyond the `famedly-*` CLI tools, these built-in Nix commands are helpful for daily work:
+
+| Command | What it does |
+|---------|-------------|
+| `nix flake show` | List all outputs (packages, checks, apps, devShells) of the flake |
+| `nix develop -c <cmd>` | Run a single command inside the dev shell without entering it |
+| `nix build --print-out-paths` | Build the default package and print the store path |
+| `nix log <drv>` | Show build logs for a derivation (useful for debugging failed builds) |
+| `nix why-depends .#a .#b` | Analyze why package `a` depends on package `b` |
+| `nix flake metadata` | Show flake inputs, their revisions, and last modified dates |
+| `nix flake update --commit-lock-file` | Update all inputs and auto-commit `flake.lock` |
+| `nom build .#default` | Build with [nix-output-monitor](https://github.com/maralorn/nix-output-monitor) for readable output (available in dev shell) |
+
+---
+
+## Caching
+
+### CI cache (Cachix)
+
+CI workflows use [Cachix](https://www.cachix.org/) to cache build artifacts. The `famedly` cache is pre-configured in the `ci` workflow via `cachix/cachix-action`. Required repository secrets:
+
+- `CACHIX_SIGNING_KEY_FAMEDLY` — signs store paths pushed to cache
+- `CACHIX_AUTH_TOKEN_FAMEDLY` — authenticates with Cachix API
+
+### Using the cache locally
+
+To pull from the shared cache during local builds:
+
+```sh
+cachix use famedly
+```
+
+This adds the `famedly` cache to your Nix configuration. Subsequent builds will download pre-built artifacts instead of rebuilding.
+
+### What gets cached
+
+Everything built by `nix flake check` in CI is pushed to Cachix, including:
+- All `checks.*` derivations (tests, lints, formatting)
+- All `packages.*` derivations (SDKs, toolchains, built binaries)
+- Dev shell closures
 
 ---
 

@@ -9,7 +9,7 @@
 #   Rust:   clippy.toml, rustfmt.toml, deny.toml, cargo-lints.toml
 #   Python: ruff.toml, ruff.base.toml
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 let
   root = ../..;
   lintingDir = "${root}/linting";

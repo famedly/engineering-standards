@@ -9,7 +9,7 @@
 # `pub get` which requires network access). The real quality checks
 # are performed by the reusable dart-ci.yml GitHub Actions workflow.
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     {

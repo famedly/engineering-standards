@@ -41,7 +41,7 @@ in
           uses = "anthropics/claude-code-action@${av.claudeCodeAction}";
           with_ = {
             anthropic_api_key = ghSecret "ANTHROPIC_API_KEY";
-            model = config.model;
+            inherit (config) model;
           };
         }
       ];

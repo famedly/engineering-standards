@@ -41,7 +41,7 @@
         };
       in
       {
-        imports = lib.attrValues flakeModules;
+        imports = lib.attrValues flakeModules ++ [ inputs.treefmt-nix.flakeModule ];
 
         systems = [
           "x86_64-linux"
@@ -157,20 +157,32 @@
               );
             };
 
+            treefmt = {
+              projectRootFile = "flake.nix";
+              programs.nixfmt.enable = true;
+              programs.prettier.enable = true;
+            };
+
             devShells.default = pkgs.mkShell {
               name = "engineering-standards-dev";
-              packages = with pkgs; [
-                nil
-                nixfmt
-                nodePackages.prettier
+              packages = [
+                pkgs.nil
+                pkgs.nixfmt
+                pkgs.nodePackages.prettier
+                pkgs.statix
+                pkgs.deadnix
+                pkgs.nix-output-monitor
               ];
             };
 
             checks = {
-              nixfmt = pkgs.runCommand "check-nixfmt" { } ''
-                ${lib.getExe pkgs.nixfmt} --check \
-                  $(find ${./.}/nix -name "*.nix") \
-                  ${./flake.nix}
+              statix = pkgs.runCommand "check-statix" { } ''
+                ${lib.getExe pkgs.statix} check ${./nix}
+                touch $out
+              '';
+
+              deadnix = pkgs.runCommand "check-deadnix" { } ''
+                ${lib.getExe pkgs.deadnix} --fail ${./nix} ${./flake.nix}
                 touch $out
               '';
 

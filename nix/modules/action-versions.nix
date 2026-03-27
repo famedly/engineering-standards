@@ -6,7 +6,7 @@
 # Workflow modules reference these via config.famedly.standards.actionVersions
 # to pin action versions in generated workflow YAML.
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { lib, ... }:

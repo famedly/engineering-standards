@@ -11,7 +11,7 @@
 
 let
   v = sdkVersions.dart;
-  system = stdenv.hostPlatform.system;
+  inherit (stdenv.hostPlatform) system;
 
   platforms = {
     x86_64-linux = "linux-x64";
@@ -28,7 +28,7 @@ let
 in
 stdenv.mkDerivation {
   pname = "famedly-dart-sdk";
-  version = v.version;
+  inherit (v) version;
 
   src = fetchurl {
     url = "https://storage.googleapis.com/dart-archive/channels/stable/release/${v.version}/sdk/dartsdk-${archiveName}-release.zip";
@@ -61,9 +61,18 @@ stdenv.mkDerivation {
   meta = {
     description = "Dart SDK ${v.version} (Famedly-pinned)";
     homepage = "https://dart.dev";
+    changelog = "https://github.com/dart-lang/sdk/blob/main/CHANGELOG.md";
     mainProgram = "dart";
     platforms = lib.attrNames platforms;
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     license = lib.licenses.bsd3;
+    maintainers = [
+      {
+        name = "Famedly GmbH";
+        email = "info@famedly.com";
+        github = "famedly";
+        githubId = 46558835;
+      }
+    ];
   };
 }

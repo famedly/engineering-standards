@@ -58,6 +58,7 @@ in
             lib.types.enum [
               "dart"
               "flutter"
+              "nix"
               "rust"
               "python"
               "typescript"

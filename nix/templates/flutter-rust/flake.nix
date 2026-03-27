@@ -47,7 +47,7 @@
           ...
         }:
         let
-          toolchain = inputs.fenix.packages.${system}.stable.toolchain;
+          inherit (inputs.fenix.packages.${system}.stable) toolchain;
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
           nightlyToolchain = inputs.fenix.packages.${system}.latest.toolchain;

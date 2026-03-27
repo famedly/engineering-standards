@@ -13,7 +13,7 @@
 # A project with directory = "" places files at the repo root (equivalent
 # to using the flat linting/hooks options directly).
 
-{ flake-parts-lib, lib, ... }:
+{ flake-parts-lib, ... }:
 let
   root = ../..;
   lintingDir = "${root}/linting";
@@ -33,13 +33,12 @@ in
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     {
       config,
-      pkgs,
       lib,
       ...
     }:
     let
       cfg = config.famedly.standards;
-      projects = cfg.projects;
+      inherit (cfg) projects;
       projectList = lib.attrsToList projects;
 
       # Collect linting files for a single project, prefixed with its directory.
