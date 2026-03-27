@@ -119,16 +119,7 @@ devShells.default = pkgs.mkShell {
 
 ### direnv / .envrc (recommended)
 
-For automatic shell activation, install [direnv](https://direnv.net/) and create a `.envrc` in your project root:
-
-```sh
-# .envrc (do NOT commit this file)
-use flake
-```
-
-Then run `direnv allow`. The dev shell activates automatically when you `cd` into the project.
-
-> **Important**: Do not commit `.envrc` — add it to your personal global gitignore (`~/.config/git/ignore`).
+When `devShell.enable = true`, a `.envrc` is generated automatically by `famedly-regen`. Install [direnv](https://direnv.net/) and run `direnv allow` — the dev shell then activates automatically when you `cd` into the project.
 
 ### Editor integration
 

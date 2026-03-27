@@ -9,6 +9,7 @@
 # responsibility of the consumer repo's own devShell configuration.
 #
 # Generated files in consumer repo:
+#   .envrc      — direnv integration (use flake)
 #   .nixd.json  — nixd language server config for option completion
 
 { flake-parts-lib, ... }:
@@ -119,6 +120,8 @@
         '';
       };
 
+      envrc = pkgs.writeText ".envrc" "use flake\n";
+
       nixdJson = pkgs.writeText ".nixd.json" (
         builtins.toJSON {
           nixpkgs = {
@@ -169,6 +172,10 @@
         };
 
         famedly.standards._internal.managedFiles = [
+          {
+            src = envrc;
+            dest = ".envrc";
+          }
           {
             src = nixdJson;
             dest = ".nixd.json";
