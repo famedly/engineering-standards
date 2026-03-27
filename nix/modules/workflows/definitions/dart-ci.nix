@@ -192,6 +192,7 @@ let
           ++ lib.optionals pkg.commentedCodeCheck [
             {
               name = "Check for commented-out code";
+              workingDirectory = dir;
               run = ''
                 if grep -R --include="*.dart" -nE '^[[:space:]]*//[^/<].*;[[:space:]]*$' lib/; then
                   echo "❌ Found commented-out Dart code ending with semicolon."
@@ -203,6 +204,7 @@ let
           ++ lib.optionals pkg.dependencyValidator [
             {
               name = "Check unused dependencies";
+              workingDirectory = dir;
               run = ''
                 dart pub global activate dependency_validator
                 dart pub global run dependency_validator
