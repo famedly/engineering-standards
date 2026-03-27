@@ -26,7 +26,7 @@ void main() async {
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const SplashScreen());
-  
+
   // Fire-and-forget: parallel initialization
   unawaited(_initializeNonCritical());
 }
@@ -145,7 +145,7 @@ static int _currentCacheBytes = 0;
 static const _maxCacheBytes = 50 * 1024 * 1024; // 50 MB
 
 void _cacheImage(String key, Uint8List data) {
-  while (_currentCacheBytes + data.length > _maxCacheBytes && 
+  while (_currentCacheBytes + data.length > _maxCacheBytes &&
          _imageDataCache.isNotEmpty) {
     final firstKey = _imageDataCache.keys.first;
     _currentCacheBytes -= _imageDataCache[firstKey]!.length;
@@ -224,8 +224,8 @@ GoRoute(
   builder: (context, state) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return constraints.maxWidth > 600 
-          ? WideLayout() 
+        return constraints.maxWidth > 600
+          ? WideLayout()
           : NarrowLayout();
       },
     );

@@ -12,7 +12,7 @@
 #       └── src/
 #
 # The flake uses the projects abstraction to scope linting configs,
-# Dependabot entries, and pre-commit hooks to their respective directories.
+# Dependabot entries, and pre-commit hooks to their directories.
 {
   description = "REPLACE_WITH_REPO_DESCRIPTION";
 
@@ -72,7 +72,7 @@
               ];
             };
 
-            checks.enable = true;
+            preCommitHooks.enable = true;
             ci = {
               enable = true;
               armRunners = false;
@@ -95,9 +95,6 @@
                 directory = "frontend";
               };
             };
-
-            # Hooks need to be enabled for project hook entries to take effect.
-            hooks.enable = true;
 
             # Workflow files (repo-level)
             workflows = {

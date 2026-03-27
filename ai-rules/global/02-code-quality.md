@@ -14,4 +14,3 @@ All workarounds and non-obvious implementations MUST be documented:
 1. Include links to relevant issues, PRs, documentation, Stack Overflow, or other sources
 2. Add `HOURS WASTED: X` to workarounds that took significant debugging effort
 3. For technical debt, create an issue with the label `tech debt` for future resolution
-

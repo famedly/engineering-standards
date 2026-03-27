@@ -27,11 +27,6 @@ in
       default = "";
       description = "Subdirectory for the dart project.";
     };
-    ignoreFormatting = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      description = "Subdirectory to auto-format before the format check.";
-    };
   };
 
   config = {
@@ -108,59 +103,7 @@ in
               run = "git check-ignore -q pubspec.lock || git diff --exit-code pubspec.lock";
             }
           ]
-          ++ lib.optionals (config.ignoreFormatting != "") [
-            { run = "dart format ${config.ignoreFormatting}"; }
-          ]
           ++ [
-            {
-              name = "Check formatting";
-              workingDirectory = if config.directory != "" then config.directory else null;
-              run = ''
-                dart format lib/ --set-exit-if-changed || {
-                  {
-                    echo '```diff'
-                    git diff
-                    echo '```'
-                  } >> "$GITHUB_STEP_SUMMARY"
-                  exit 1
-                }
-              '';
-            }
-            {
-              name = "Run analyzer";
-              workingDirectory = if config.directory != "" then config.directory else null;
-              run = ''
-                SCRIPT=$(cat << 'EOL'
-                import json,sys,os
-
-                obj = json.load(sys.stdin)
-                diagnostics = obj["diagnostics"]
-
-                if diagnostics:
-                    print('|severity|file|problem|suggestion|documentation|')
-                    print('|:--|:--|:--|:--|:--|')
-                else:
-                    exit(0)
-
-                sha = os.environ["GITHUB_SHA"]
-                server = os.environ["GITHUB_SERVER_URL"]
-                repo = os.environ["GITHUB_REPOSITORY"]
-                workspace = os.environ["GITHUB_WORKSPACE"]
-
-                for d in diagnostics:
-                    l = d["location"]
-                    file = l["file"].removeprefix(workspace + "/")
-                    start = str(l["range"]["start"]["line"])
-                    end = str(l["range"]["end"]["line"])
-                    location = f'[{file}:{start}]({server}/{repo}/blob/{sha}/{file}#L{start}-L{end})'
-                    print("", d["severity"], location, d.get("correctionMessage", "").replace("|", "\\|"), d.get("correctionMessage", "").replace("|", "\\|"), f'[{d["code"]}]({d.get("documentation", "")})', "", sep="| ")
-                exit(1)
-                EOL
-                )
-                dart analyze --format=json | python3 -c "$SCRIPT" | tee -a "$GITHUB_STEP_SUMMARY"
-                test ''${PIPESTATUS[0]} -eq 0 -a ''${PIPESTATUS[1]} -eq 0 -a ''${PIPESTATUS[2]} -eq 0
-              '';
-            }
             {
               name = "Sort imports";
               workingDirectory = if config.directory != "" then config.directory else null;

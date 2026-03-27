@@ -13,6 +13,10 @@
       inputs.flake-parts.follows = "flake-parts";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -29,6 +33,7 @@
         flakeModules = {
           standards = ./nix/modules;
           workflows = importApply ./nix/modules/workflows args;
+          preCommitHooks = importApply ./nix/modules/pre-commit-hooks.nix args;
         };
       in
       {
@@ -124,6 +129,10 @@
             famedly.standards = {
               infrastructure.editorconfig = false;
               infrastructure.dependabot = false;
+              preCommitHooks = {
+                enable = true;
+                fossHooks.enable = false;
+              };
             };
             famedly.github.workflows.ci.enable = true;
 

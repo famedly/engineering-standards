@@ -1,10 +1,9 @@
 # DevShell module: adds standard development tools to `nix develop`.
 #
-# Consumer repos that enable this get these tools in their dev shell:
-#   - pre-commit (for running hooks locally)
-#   - typos (spell checker)
-#   - reuse (license compliance)
-#   - nixfmt-classic (Nix formatter)
+# When preCommitHooks are enabled, the devShell composes with
+# git-hooks.nix's devShell which provides:
+#   - shellHook to auto-install pre-commit hooks on `nix develop`
+#   - all hook tool packages (typos, reuse, clippy, etc.)
 #
 # Language-specific toolchains (Dart SDK, Rust/fenix, etc.) are the
 # responsibility of the consumer repo's own devShell configuration.
@@ -20,16 +19,11 @@
     }:
     let
       cfg = config.famedly.standards.devShell;
+      hooksEnabled = config.famedly.standards.preCommitHooks.enable or false;
     in
     {
       options.famedly.standards.devShell = {
         enable = lib.mkEnableOption "shared dev shell tools";
-
-        preCommit = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Include pre-commit in the dev shell.";
-        };
 
         extraPackages = lib.mkOption {
           type = lib.types.listOf lib.types.package;
@@ -41,12 +35,12 @@
       config = lib.mkIf cfg.enable {
         devShells.famedly-standards = pkgs.mkShell {
           name = "famedly-standards";
+          inputsFrom = lib.optionals hooksEnabled [
+            config.pre-commit.devShell
+          ];
           packages = [
-            pkgs.typos
             pkgs.nixfmt-classic
-            pkgs.reuse
           ]
-          ++ lib.optionals cfg.preCommit [ pkgs.pre-commit ]
           ++ cfg.extraPackages;
         };
       };

@@ -29,7 +29,7 @@ Platform restrictions are handled automatically via `FeaturePlatform` enum (`all
    /// Brief description of what this flag controls.
    ///
    /// Detailed explanation of when/why this flag is used.
-   /// 
+   ///
    /// Controlled by server well-known configuration (`features.x.y.enabled`).
    /// Defaults to `true`/`false` if not configured.
    myNewFeatureEnabled(
@@ -135,11 +135,11 @@ class MyWidget extends ConsumerWidget {
     final callsEnabled = ref.watch(
       isFeatureEnabledProvider(FeatureFlag.callsEnabled),
     );
-    
+
     if (!callsEnabled) {
       return const SizedBox.shrink();
     }
-    
+
     return CallButton();
   }
 }
@@ -294,7 +294,7 @@ test('isEnabled resolves Local Override > Server > Default', () {
     serverValues: {FeatureFlag.callsEnabled: false},
     localOverrides: {FeatureFlag.callsEnabled: true},
   );
-  
+
   // Local override wins
   expect(state.isEnabled(FeatureFlag.callsEnabled), true);
 });
@@ -303,13 +303,13 @@ test('isEnabled falls back to server value when no override', () {
   final state = FeatureFlagState(
     serverValues: {FeatureFlag.callsEnabled: false},
   );
-  
+
   expect(state.isEnabled(FeatureFlag.callsEnabled), false);
 });
 
 test('isEnabled falls back to enum default when no server value', () {
   final state = const FeatureFlagState();
-  
+
   expect(
     state.isEnabled(FeatureFlag.callsEnabled),
     FeatureFlag.callsEnabled.defaultValue,
@@ -327,9 +327,9 @@ test('updateFromServer maps server features correctly', () {
   final features = ServerFhirFeatures(
     calls: Calls(enabled: false),
   );
-  
+
   controller.updateFromServer(features);
-  
+
   expect(
     controller.state.isEnabled(FeatureFlag.callsEnabled),
     false,
@@ -339,7 +339,7 @@ test('updateFromServer maps server features correctly', () {
 test('setOverride persists and takes precedence', () async {
   final controller = FeatureFlagController();
   await controller.setOverride(FeatureFlag.callsEnabled, false);
-  
+
   expect(controller.state.hasOverride(FeatureFlag.callsEnabled), true);
   expect(controller.state.isEnabled(FeatureFlag.callsEnabled), false);
 });
@@ -360,7 +360,7 @@ testWidgets('Widget respects feature flag', (tester) async {
       child: MyWidget(),
     ),
   );
-  
+
   expect(find.byType(CallButton), findsNothing);
 });
 ```

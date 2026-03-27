@@ -30,6 +30,11 @@ let
     flake-parts-lib = inputs.flake-parts.lib;
   };
 
+  preCommitHooksModule = (import ../modules/pre-commit-hooks.nix) {
+    inherit inputs lib;
+    flake-parts-lib = inputs.flake-parts.lib;
+  };
+
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
@@ -45,6 +50,7 @@ let
         imports = [
           ../modules
           workflowsModule
+          preCommitHooksModule
         ];
         systems = [ system ];
         perSystem = { ... }: perSystemConfig;
@@ -63,6 +69,7 @@ let
             imports = [
               ../modules
               workflowsModule
+              preCommitHooksModule
             ];
             systems = [ system ];
             perSystem =
@@ -110,7 +117,7 @@ let
     minimal = {
       famedly.standards = {
         rules.enable = true;
-        checks.enable = true;
+        preCommitHooks.enable = true;
       };
     };
 
@@ -124,11 +131,10 @@ let
           enable = true;
           rust = true;
         };
-        hooks = {
+        preCommitHooks = {
           enable = true;
-          rust = true;
+          rustHooks.enable = true;
         };
-        checks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -157,7 +163,7 @@ let
           enable = true;
           rust = true;
         };
-        checks.enable = true;
+        preCommitHooks.enable = true;
       };
       famedly.github.workflows = {
         ci.enable = true;
@@ -176,11 +182,10 @@ let
           enable = true;
           rust = true;
         };
-        hooks = {
+        preCommitHooks = {
           enable = true;
-          rust = true;
+          rustHooks.enable = true;
         };
-        checks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -215,11 +220,10 @@ let
           enable = true;
           dart = true;
         };
-        hooks = {
+        preCommitHooks = {
           enable = true;
-          dart = true;
+          dartHooks.enable = true;
         };
-        checks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -254,11 +258,10 @@ let
           enable = true;
           flutter = true;
         };
-        hooks = {
+        preCommitHooks = {
           enable = true;
-          dart = true;
+          dartHooks.enable = true;
         };
-        checks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -325,12 +328,11 @@ let
             "flutter"
           ];
         };
-        checks.enable = true;
+        preCommitHooks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
         };
-        hooks.enable = true;
         devShell.enable = true;
         projects = {
           backend = {
@@ -365,12 +367,11 @@ let
             "rust"
           ];
         };
-        checks.enable = true;
+        preCommitHooks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
         };
-        hooks.enable = true;
         projects = {
           main = {
             language = "dart";
@@ -388,7 +389,7 @@ let
     monorepo-selective = {
       famedly.standards = {
         infrastructure.dependabot = true;
-        hooks.enable = true;
+        preCommitHooks.enable = true;
         projects = {
           api = {
             language = "rust";
@@ -423,13 +424,12 @@ let
           python = true;
           typescript = true;
         };
-        hooks = {
+        preCommitHooks = {
           enable = true;
-          rust = true;
-          dart = true;
-          python = true;
+          rustHooks.enable = true;
+          dartHooks.enable = true;
+          pythonHooks.enable = true;
         };
-        checks.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -548,7 +548,7 @@ let
 
       # Rust CI — complete workflow (no workflow_call reference)
       test -f ${rustBundle}/.github/workflows/rust-ci.yml
-      grep -q "Clippy" ${rustBundle}/.github/workflows/rust-ci.yml
+      grep -q "Tests" ${rustBundle}/.github/workflows/rust-ci.yml
       ! grep -q "workflow_call" ${rustBundle}/.github/workflows/rust-ci.yml
 
       # Composite action for rust-prepare
@@ -562,7 +562,6 @@ let
       test -f ${rustBundle}/.github/dependabot.yml
       grep -q "cargo" ${rustBundle}/.github/dependabot.yml
 
-      test -f ${rustBundle}/.pre-commit-config.yaml
       test -f ${rustBundle}/clippy.toml
       test -f ${rustBundle}/rustfmt.toml
       test -f ${rustBundle}/CLAUDE.md
@@ -605,7 +604,6 @@ let
       test -f ${dartBundle}/.editorconfig
       test -f ${dartBundle}/.github/dependabot.yml
       grep -q "pub" ${dartBundle}/.github/dependabot.yml
-      test -f ${dartBundle}/.pre-commit-config.yaml
       test -f ${dartBundle}/analysis_options.yaml
       test -f ${dartBundle}/analysis_options.standards.yaml
       grep -q "analysis_options.standards.yaml" ${dartBundle}/analysis_options.yaml
@@ -630,7 +628,6 @@ let
       test -f ${flutterBundle}/.github/workflows/authenticate-commits.yml
       test -f ${flutterBundle}/.github/workflows/docker.yml
       test -f ${flutterBundle}/.github/workflows/github-pages.yml
-      test -f ${flutterBundle}/.pre-commit-config.yaml
       test -f ${flutterBundle}/.editorconfig
       test -f ${flutterBundle}/CLAUDE.md
 
@@ -663,7 +660,6 @@ let
 
       test -f ${kitchenSinkBundle}/.editorconfig
       test -f ${kitchenSinkBundle}/.github/dependabot.yml
-      test -f ${kitchenSinkBundle}/.pre-commit-config.yaml
       test -f ${kitchenSinkBundle}/CLAUDE.md
 
       grep -q "cargo"     ${kitchenSinkBundle}/.github/dependabot.yml
@@ -701,10 +697,6 @@ let
       grep -q "pub" ${monorepoFlutterRustBundle}/.github/dependabot.yml
       grep -q "/backend" ${monorepoFlutterRustBundle}/.github/dependabot.yml
       grep -q "/frontend" ${monorepoFlutterRustBundle}/.github/dependabot.yml
-
-      test -f ${monorepoFlutterRustBundle}/.pre-commit-config.yaml
-      grep -q "backend" ${monorepoFlutterRustBundle}/.pre-commit-config.yaml
-      grep -q "frontend" ${monorepoFlutterRustBundle}/.pre-commit-config.yaml
 
       test -f ${monorepoFlutterRustBundle}/.editorconfig
       test -f ${monorepoFlutterRustBundle}/.github/workflows/ci.yml
@@ -744,7 +736,6 @@ let
       test -f ${disabledBundle}/.github/dependabot.yml
 
       ! test -d ${disabledBundle}/.github/workflows
-      ! test -f ${disabledBundle}/.pre-commit-config.yaml
       ! test -f ${disabledBundle}/CLAUDE.md
       ! test -f ${disabledBundle}/clippy.toml
       ! test -f ${disabledBundle}/analysis_options.yaml
@@ -925,9 +916,6 @@ let
       test -f ${monorepoSelectiveBundle}/.github/dependabot.yml
       ! grep -q "cargo" ${monorepoSelectiveBundle}/.github/dependabot.yml
       grep -q "pip" ${monorepoSelectiveBundle}/.github/dependabot.yml
-
-      test -f ${monorepoSelectiveBundle}/.pre-commit-config.yaml
-      ! grep -q "worker" ${monorepoSelectiveBundle}/.pre-commit-config.yaml
 
       echo "PASS: selective monorepo features correctly scoped"
       touch $out

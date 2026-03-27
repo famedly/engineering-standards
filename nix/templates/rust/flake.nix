@@ -64,11 +64,10 @@
               enable = true;
               rust = true; # clippy.toml, rustfmt.toml, .cargo/
             };
-            hooks = {
+            preCommitHooks = {
               enable = true;
-              rust = true; # cargo fmt + cargo clippy pre-commit hooks
+              rustHooks.enable = true;
             };
-            checks.enable = true;
             infrastructure = {
               editorconfig = true;
               dependabot = true;
@@ -118,7 +117,7 @@
           # Default package
           packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
 
-          # Dev shell: famedly-standards tools (pre-commit, typos, …) + crane toolchain
+          # Dev shell: famedly-standards tools (git-hooks.nix, typos, …) + crane toolchain
           devShells.default = pkgs.mkShell {
             inputsFrom =
               lib.optionals (config.famedly.standards.devShell.enable && config.devShells ? famedly-standards) [

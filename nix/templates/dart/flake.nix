@@ -42,11 +42,10 @@
               enable = true;
               dart = true; # Generates analysis_options.yaml
             };
-            hooks = {
+            preCommitHooks = {
               enable = true;
-              dart = true; # dart format + dart analyze pre-commit hooks
+              dartHooks.enable = true;
             };
-            checks.enable = true;
             infrastructure = {
               editorconfig = true;
               dependabot = true;

@@ -74,30 +74,6 @@ in
       permissions.contents = "read";
       concurrency = ciConcurrency;
       jobs = {
-        lints = {
-          name = "Clippy & Format";
-          runsOn = config.runner;
-          container = config.container;
-          steps = [
-            { uses = "actions/checkout@${av.checkout}"; }
-            {
-              uses = "./.github/actions/rust-prepare";
-              with_ = {
-                crate_registry_ssh_privkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
-                additional_packages = config.additionalPackages;
-              };
-            }
-            {
-              name = "Clippy";
-              run = "cargo clippy ${config.features} --all-targets -- -D warnings";
-            }
-            {
-              name = "Format";
-              run = "cargo fmt --all -- --check";
-            }
-          ];
-        };
-
         tests = {
           name = "Tests";
           runsOn = config.runner;

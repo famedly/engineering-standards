@@ -6,7 +6,7 @@
 #     famedly.standards = {
 #       rules.enable = true;
 #       linting.rust = true;
-#       checks.enable = true;
+#       preCommitHooks.enable = true;
 #       infrastructure.editorconfig = true;
 #     };
 #   };
@@ -32,8 +32,6 @@
     ./action-versions.nix
     ./rules.nix
     ./linting.nix
-    ./hooks.nix
-    ./checks.nix
     ./infrastructure.nix
     ./devshell.nix
     ./dart.nix
@@ -165,30 +163,6 @@
           description = "Collected Dependabot entries from all modules.";
         };
 
-        _internal.hookEntries = lib.mkOption {
-          type = lib.types.listOf (
-            lib.types.submodule {
-              options = {
-                scope = lib.mkOption {
-                  type = lib.types.enum [
-                    "rust"
-                    "dart"
-                    "python"
-                  ];
-                  description = "Language scope for this hook group.";
-                };
-                directory = lib.mkOption {
-                  type = lib.types.str;
-                  default = "";
-                  description = "Subdirectory for this project (empty = repo root).";
-                };
-              };
-            }
-          );
-          default = [ ];
-          internal = true;
-          description = "Collected pre-commit hook entries from all modules.";
-        };
       };
 
       config = {

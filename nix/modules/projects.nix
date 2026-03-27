@@ -28,13 +28,6 @@ let
     typescript = "npm";
   };
 
-  languageToHookScope = {
-    rust = "rust";
-    dart = "dart";
-    flutter = "dart";
-    python = "python";
-    typescript = null;
-  };
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -85,22 +78,6 @@ in
           [ ]
       ) projectList;
 
-      # Collect hook entries for all projects.
-      hookEntries = lib.concatMap (
-        project:
-        let
-          scope = languageToHookScope.${project.value.language} or null;
-        in
-        if project.value.hooks && scope != null then
-          [
-            {
-              inherit scope;
-              directory = project.value.directory;
-            }
-          ]
-        else
-          [ ]
-      ) projectList;
     in
     {
       options.famedly.standards.projects = lib.mkOption {
@@ -168,7 +145,6 @@ in
       config = lib.mkIf (projects != { }) {
         famedly.standards._internal.managedFiles = allLintingFiles;
         famedly.standards._internal.dependabotEntries = dependabotEntries;
-        famedly.standards._internal.hookEntries = hookEntries;
       };
     }
   );
