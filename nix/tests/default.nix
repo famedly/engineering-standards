@@ -25,6 +25,11 @@ let
     inherit inputs;
   };
 
+  workflowsModule = (import ../modules/workflows) {
+    inherit inputs lib;
+    flake-parts-lib = inputs.flake-parts.lib;
+  };
+
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
@@ -39,7 +44,7 @@ let
       {
         imports = [
           ../modules
-          inputs.github-actions-nix.flakeModules.default
+          workflowsModule
         ];
         systems = [ system ];
         perSystem = { ... }: perSystemConfig;
@@ -57,7 +62,7 @@ let
           {
             imports = [
               ../modules
-              inputs.github-actions-nix.flakeModules.default
+              workflowsModule
             ];
             systems = [ system ];
             perSystem =
@@ -129,16 +134,16 @@ let
           dependabot = true;
           dependabotRust = true;
         };
+        devShell.enable = true;
+      };
+      famedly.github.workflows = {
         ci = {
           enable = true;
           armRunners = true;
         };
-        devShell.enable = true;
-        workflows = {
-          conventionalCommits = true;
-          authenticateCommits = true;
-          rustCi.enable = true;
-        };
+        general-checks.enable = true;
+        authenticate-commits.enable = true;
+        rust-ci.enable = true;
       };
     };
 
@@ -153,11 +158,11 @@ let
           rust = true;
         };
         checks.enable = true;
+      };
+      famedly.github.workflows = {
         ci.enable = true;
-        workflows = {
-          conventionalCommits = true;
-          rustPublish.enable = true;
-        };
+        general-checks.enable = true;
+        publish-crate.enable = true;
       };
     };
 
@@ -181,21 +186,21 @@ let
           dependabot = true;
           dependabotRust = true;
         };
+      };
+      famedly.github.workflows = {
         ci.enable = true;
-        workflows = {
-          conventionalCommits = true;
-          authenticateCommits = true;
-          rustCi.enable = true;
-          rustPublish.enable = true;
-          dockerBackend = {
-            enable = true;
-            targets = "backend-service";
-          };
-          fastForward = true;
-          addToProject = {
-            enable = true;
-            projectUrl = "https://github.com/orgs/famedly/projects/50";
-          };
+        general-checks.enable = true;
+        authenticate-commits.enable = true;
+        rust-ci.enable = true;
+        publish-crate.enable = true;
+        docker-backend = {
+          enable = true;
+          targets = "backend-service";
+        };
+        fast-forward.enable = true;
+        add-to-project = {
+          enable = true;
+          projectUrl = "https://github.com/orgs/famedly/projects/50";
         };
       };
     };
@@ -220,19 +225,19 @@ let
           dependabot = true;
           dependabotDart = true;
         };
-        ci = {
-          enable = true;
-          armRunners = true;
-        };
         devShell.enable = true;
         dart = {
           enable = true;
           flutter = false;
         };
-        workflows = {
-          conventionalCommits = true;
-          dartCi.enable = true;
+      };
+      famedly.github.workflows = {
+        ci = {
+          enable = true;
+          armRunners = true;
         };
+        general-checks.enable = true;
+        dart-ci.enable = true;
       };
     };
 
@@ -259,31 +264,31 @@ let
           dependabot = true;
           dependabotDart = true;
         };
-        ci.enable = true;
         devShell.enable = true;
         dart = {
           enable = true;
           flutter = true;
         };
-        workflows = {
-          conventionalCommits = true;
-          authenticateCommits = true;
-          dartCi.enable = true;
-          dartPublish.enable = true;
-          dartReviewApp = {
-            enable = true;
-            projectName = "test-app";
-          };
-          docker.enable = true;
-          githubPages.enable = true;
+      };
+      famedly.github.workflows = {
+        ci.enable = true;
+        general-checks.enable = true;
+        authenticate-commits.enable = true;
+        dart-ci.enable = true;
+        publish-pub.enable = true;
+        review-app = {
+          enable = true;
+          projectName = "test-app";
         };
+        docker.enable = true;
+        github-pages.enable = true;
       };
     };
 
     docker-backend = {
-      famedly.standards = {
+      famedly.github.workflows = {
         ci.enable = true;
-        workflows.dockerBackend = {
+        docker-backend = {
           enable = true;
           targets = "my-service";
         };
@@ -291,9 +296,9 @@ let
     };
 
     docker-generic = {
-      famedly.standards = {
+      famedly.github.workflows = {
         ci.enable = true;
-        workflows.docker = {
+        docker = {
           enable = true;
           imageName = "my-app";
         };
@@ -301,9 +306,9 @@ let
     };
 
     ansible = {
-      famedly.standards = {
+      famedly.github.workflows = {
         ci.enable = true;
-        workflows.ansible = {
+        ansible-ci = {
           enable = true;
           collection = "famedly.dns";
         };
@@ -321,10 +326,6 @@ let
           ];
         };
         checks.enable = true;
-        ci = {
-          enable = true;
-          armRunners = true;
-        };
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -341,12 +342,16 @@ let
             directory = "frontend";
           };
         };
-        workflows = {
-          conventionalCommits = true;
-          dartCi = {
-            enable = true;
-            directory = "frontend";
-          };
+      };
+      famedly.github.workflows = {
+        ci = {
+          enable = true;
+          armRunners = true;
+        };
+        general-checks.enable = true;
+        dart-ci = {
+          enable = true;
+          directory = "frontend";
         };
       };
     };
@@ -361,7 +366,6 @@ let
           ];
         };
         checks.enable = true;
-        ci.enable = true;
         infrastructure = {
           editorconfig = true;
           dependabot = true;
@@ -378,11 +382,11 @@ let
           };
         };
       };
+      famedly.github.workflows.ci.enable = true;
     };
 
     monorepo-selective = {
       famedly.standards = {
-        ci.enable = true;
         infrastructure.dependabot = true;
         hooks.enable = true;
         projects = {
@@ -398,6 +402,7 @@ let
           };
         };
       };
+      famedly.github.workflows.ci.enable = true;
     };
 
     kitchen-sink = {
@@ -435,49 +440,49 @@ let
           dependabotNpm = true;
           dependabotTerraform = true;
         };
+        devShell.enable = true;
+      };
+      famedly.github.workflows = {
         ci = {
           enable = true;
           armRunners = true;
         };
-        devShell.enable = true;
-        workflows = {
-          conventionalCommits = true;
-          authenticateCommits = true;
-          fastForward = true;
-          addToProject = {
-            enable = true;
-            projectUrl = "https://github.com/orgs/famedly/projects/42";
-          };
-          updateOpenpgpPolicy = {
-            enable = true;
-            teams = ''["backend"]'';
-          };
-          rustCi.enable = true;
-          rustPublish.enable = true;
-          dartCi.enable = true;
-          dartPublish.enable = true;
-          dartReviewApp = {
-            enable = true;
-            projectName = "test-app";
-            environment = "review";
-          };
-          dockerBackend = {
-            enable = true;
-            targets = "svc-a,svc-b";
-          };
-          docker = {
-            enable = true;
-            imageName = "my-app";
-            registry = "ghcr.io";
-          };
-          githubPages = {
-            enable = true;
-            artifactName = "docs";
-          };
-          ansible = {
-            enable = true;
-            collection = "famedly.test";
-          };
+        general-checks.enable = true;
+        authenticate-commits.enable = true;
+        fast-forward.enable = true;
+        add-to-project = {
+          enable = true;
+          projectUrl = "https://github.com/orgs/famedly/projects/42";
+        };
+        update-openpgp-policy = {
+          enable = true;
+          teams = ''["backend"]'';
+        };
+        rust-ci.enable = true;
+        publish-crate.enable = true;
+        dart-ci.enable = true;
+        publish-pub.enable = true;
+        review-app = {
+          enable = true;
+          projectName = "test-app";
+          environment = "review";
+        };
+        docker-backend = {
+          enable = true;
+          targets = "svc-a,svc-b";
+        };
+        docker = {
+          enable = true;
+          imageName = "my-app";
+          registry = "ghcr.io";
+        };
+        github-pages = {
+          enable = true;
+          artifactName = "docs";
+        };
+        ansible-ci = {
+          enable = true;
+          collection = "famedly.test";
         };
       };
     };
@@ -937,7 +942,6 @@ let
       touch $out
     '';
 
-    # Verify no workflow_call references exist (core Option C guarantee)
     test-no-workflow-call = pkgs.runCommand "test-no-workflow-call" { } ''
       echo "=== Checking no workflow_call references in generated workflows ==="
       if grep -rq "workflow_call" ${kitchenSinkBundle}/.github/workflows/; then

@@ -59,9 +59,7 @@
         lib.mkIf cfg.enable {
           devShells.dart = dartShell;
 
-          # Auto-enable the Dart CI workflow so quality checks actually run.
-          # Users can still override with workflows.dartCi.enable = false.
-          famedly.standards.workflows.dartCi.enable = lib.mkDefault true;
+          famedly.github.workflows.dart-ci.enable = lib.mkDefault true;
         };
     }
   );

@@ -36,15 +36,8 @@
     ./checks.nix
     ./infrastructure.nix
     ./devshell.nix
-    ./ci-workflow.nix
-    ./update-workflow.nix
     ./dart.nix
     ./projects.nix
-    ./workflows/general.nix
-    ./workflows/dart.nix
-    ./workflows/rust.nix
-    ./workflows/docker.nix
-    ./workflows/ansible.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -199,8 +192,6 @@
       };
 
       config = {
-        githubActions.enable = true;
-
         apps.regenerateStandards = {
           type = "app";
           meta.description = "Write all engineering-standards managed files to the repo";

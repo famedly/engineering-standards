@@ -133,10 +133,6 @@
   };
 
   # ── Misc ─────────────────────────────────────────────────────────
-  setupNu = {
-    sha = "92c296ba1ba2ba04cc948ab64ddefe192dc13f0c";
-    v = "v3.23";
-  };
   famedlyLogin = {
     sha = "465a07811f14bebb1938fbed4728c6a1ff8901fc";
     v = "v2.2.0";
