@@ -90,12 +90,13 @@ _caller-args: {
       ) projectsWithHooks;
       pythonProjects = lib.filterAttrs (_: p: p.language == "python") projectsWithHooks;
 
-      dep5File = pkgs.writeText "dep5" ''
-        Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+      reuseToml = pkgs.writeText "REUSE.toml" ''
+        version = 1
 
-        Files: .editorconfig .engineering-standards-manifest .github/* .cursor/rules/standards/* CLAUDE.md *.standards.yaml
-        Copyright: ${cfg.fossHooks.copyright}
-        License: ${cfg.fossHooks.license}
+        [[annotations]]
+        path = [".editorconfig", ".engineering-standards-manifest", ".github/**", ".cursor/rules/standards/**", "CLAUDE.md", "**.standards.yaml"]
+        SPDX-FileCopyrightText = "${cfg.fossHooks.copyright}"
+        SPDX-License-Identifier = "${cfg.fossHooks.license}"
       '';
 
       addLicenseHeadersScript = pkgs.writeShellApplication {
@@ -230,8 +231,8 @@ _caller-args: {
 
       famedly.standards._internal.managedFiles = lib.optionals cfg.fossHooks.enable [
         {
-          src = dep5File;
-          dest = ".reuse/dep5";
+          src = reuseToml;
+          dest = "REUSE.toml";
           initialOnly = true;
         }
       ];
