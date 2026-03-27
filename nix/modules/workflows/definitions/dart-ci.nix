@@ -123,7 +123,7 @@ let
     [
       { uses = "actions/checkout@${av.checkout}"; }
       (nixSetupStep av.installNix)
-      (mkNixGitAuthStep { sshKey = ghSecret "CI_SSH_PRIVATE_KEY"; })
+      (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
       (mkSdkInstallStep pkg.sdk)
       {
         uses = "actions/cache@${av.cache}";

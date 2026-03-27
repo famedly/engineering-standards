@@ -90,28 +90,18 @@ rec {
       '';
     };
 
-  # Configure git auth for the Nix daemon so it can fetch private flake inputs.
-  # The daemon may run as root or nixbld users, so we configure SSH system-wide.
+  # Configure git HTTPS credentials so the Nix daemon can fetch private flake inputs.
+  # Uses a PAT via git credential helper — works for any user (root, nixbld, runner).
   mkNixGitAuthStep =
-    { sshKey }:
+    { token }:
     {
       name = "Configure Git auth for Nix daemon";
       shell = "bash";
-      env.SSH_KEY = sshKey;
+      env.GH_TOKEN = token;
       run = ''
         set -euo pipefail
-        if [[ -n "''${SSH_KEY:-}" ]]; then
-          sudo mkdir -p /etc/nix
-          printf '%s\n' "''${SSH_KEY}" | sudo tee /etc/nix/git_ssh_key > /dev/null
-          sudo chmod 600 /etc/nix/git_ssh_key
-
-          sudo mkdir -p /etc/ssh/ssh_config.d
-          printf '%s\n' "Host github.com" \
-                        "  IdentityFile /etc/nix/git_ssh_key" \
-                        "  StrictHostKeyChecking accept-new" \
-            | sudo tee /etc/ssh/ssh_config.d/github.conf > /dev/null
-
-          sudo git config --system url."git@github.com:".insteadOf "https://github.com/"
+        if [[ -n "''${GH_TOKEN:-}" ]]; then
+          sudo git config --system url."https://x-access-token:''${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
         fi
       '';
     };
