@@ -94,6 +94,10 @@ _caller-args: {
       dartSdk = config.packages.famedly-dart-sdk or pkgs.dart;
       dartBin = "${dartSdk}/bin/dart";
 
+      rustToolchain = config.packages.famedly-rust-toolchain or null;
+      hasRustToolchain = rustToolchain != null;
+      rustHooksActive = cfg.rustHooks.enable || rustProjects != { };
+
       reuseToml = pkgs.writeText "REUSE.toml" ''
         version = 1
 
@@ -244,9 +248,16 @@ _caller-args: {
       pre-commit = {
         check.enable = true;
 
-        settings.tools = lib.mkIf (cfg.dartHooks.enable || dartProjects != { }) {
-          dart = dartSdk;
-        };
+        settings.tools = lib.mkMerge [
+          (lib.mkIf (cfg.dartHooks.enable || dartProjects != { }) {
+            dart = lib.mkDefault dartSdk;
+          })
+          (lib.mkIf (rustHooksActive && hasRustToolchain) {
+            cargo = lib.mkDefault rustToolchain;
+            clippy = lib.mkDefault rustToolchain;
+            rustfmt = lib.mkDefault rustToolchain;
+          })
+        ];
 
         settings.hooks = lib.mkMerge (
           [
