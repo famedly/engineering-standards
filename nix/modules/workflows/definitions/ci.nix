@@ -34,6 +34,7 @@ in
       };
       mergeGroup = { };
     };
+    permissions.contents = "read";
     concurrency = ciConcurrency;
     jobs.nix-checks = {
       name = "Nix checks";
