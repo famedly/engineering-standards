@@ -64,7 +64,7 @@
           famedly.standards = {
             # AI rules for both languages
             rules = {
-              enable = true;
+              enable = false;
               extraScopes = [
                 "rust"
                 "dart"

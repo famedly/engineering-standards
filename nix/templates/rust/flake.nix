@@ -57,7 +57,7 @@
         {
           famedly.standards = {
             rules = {
-              enable = true;
+              enable = false;
               extraScopes = [ "rust" ];
             };
             linting = {

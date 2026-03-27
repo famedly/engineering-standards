@@ -35,7 +35,7 @@
         {
           famedly.standards = {
             rules = {
-              enable = true;
+              enable = false;
               extraScopes = [ "dart" ];
             };
             linting = {
