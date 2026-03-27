@@ -30,6 +30,7 @@
 {
   imports = [
     ./action-versions.nix
+    ./compat.nix
     ./rules.nix
     ./linting.nix
     ./infrastructure.nix
