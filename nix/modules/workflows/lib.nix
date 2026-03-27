@@ -90,6 +90,25 @@ rec {
       '';
     };
 
+  # Configure git auth for the Nix daemon (root) so it can fetch private flake inputs.
+  mkNixGitAuthStep =
+    { sshKey }:
+    {
+      name = "Configure Git auth for Nix daemon";
+      shell = "bash";
+      env.SSH_KEY = sshKey;
+      run = ''
+        set -euo pipefail
+        if [[ -n "''${SSH_KEY:-}" ]]; then
+          sudo mkdir -p /root/.ssh
+          echo "''${SSH_KEY}" | sudo tee /root/.ssh/id_rsa > /dev/null
+          sudo chmod 600 /root/.ssh/id_rsa
+          sudo ssh-keyscan github.com 2>/dev/null | sudo tee -a /root/.ssh/known_hosts > /dev/null
+          sudo git config --system url."git@github.com:".insteadOf "https://github.com/"
+        fi
+      '';
+    };
+
   mkDartPrepareStep =
     { sshKey }:
     {

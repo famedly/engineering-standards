@@ -7,7 +7,7 @@
 }:
 let
   av = famedlyConfig.standards.actionVersions;
-  inherit (workflowsLib) ghSecret ciConcurrency;
+  inherit (workflowsLib) ghSecret mkNixGitAuthStep ciConcurrency;
 in
 {
   options.armRunners = lib.mkOption {
@@ -44,6 +44,7 @@ in
           uses = "cachix/install-nix-action@${av.installNix}";
           with_.extra_nix_config = "experimental-features = nix-command flakes";
         }
+        (mkNixGitAuthStep { sshKey = ghSecret "ssh_key"; })
         {
           uses = "cachix/cachix-action@${av.cachixAction}";
           with_ = {

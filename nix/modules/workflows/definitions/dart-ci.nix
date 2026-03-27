@@ -11,6 +11,7 @@ let
     ghExpr
     ghSecret
     nixSetupStep
+    mkNixGitAuthStep
     mkDartPrepareStep
     ciConcurrency
     ;
@@ -122,6 +123,7 @@ let
     [
       { uses = "actions/checkout@${av.checkout}"; }
       (nixSetupStep av.installNix)
+      (mkNixGitAuthStep { sshKey = ghSecret "ssh_key"; })
       (mkSdkInstallStep pkg.sdk)
       {
         uses = "actions/cache@${av.cache}";
