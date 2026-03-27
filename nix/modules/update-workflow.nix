@@ -3,8 +3,8 @@
 # This workflow keeps consumer repos in sync with the latest
 # engineering-standards. It is triggered:
 #
-#   1. By `repository_dispatch` (type: engineering-standards-update) — fired by
-#      the GitHub App when engineering-standards pushes to main.
+#   1. By `repository_dispatch` (type: engineering-standards-update) — e.g.
+#      fired by external automation when engineering-standards pushes to main.
 #   2. On a weekly schedule (Monday 06:00 UTC) as a safety net.
 #   3. Manually via `workflow_dispatch`.
 #

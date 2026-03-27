@@ -38,19 +38,12 @@ Details and migration steps: **[docs/adopting.md](docs/adopting.md)**.
 
 ---
 
-## GitHub App (optional)
-
-The Rust service in **`app/`** is a **GitHub App** for org-scale extras: webhook handling at **`/api/webhooks`**, an **OIDC**-protected dashboard, **flake.lock** / standards bump automation (including **`repository_dispatch`** to consumer repos when standards moves on `main`), optional **AI PR review** (Anthropic), and workflow/Docker **pinning** helpers. It needs PostgreSQL and is configured via env vars — see **`app/.env.example`** and the full English guide **[docs/github-app.md](docs/github-app.md)**. Helm: **`charts/engineering-standards-app/`**. Ordinary repo adoption via the Nix module does **not** require running this app.
-
----
-
 ## This repository
 
 - **`nix/modules/`** — flake module consumers import.
 - **`nix/modules/ci-workflow.nix`** (via root flake `famedly.standards.ci`) + **`nix/action-versions-data.nix`** — `.github/workflows/ci.yml`.
 - **`nix/workflow-sources/`** + **`nix/action-versions-data.nix`** — remaining reusable workflow YAML under `.github/workflows/`.
 - **`nix/templates/`** — `nix flake init` templates.
-- **`app/`** + **`charts/`** — GitHub App (see [docs/github-app.md](docs/github-app.md)). Config: `app/.env.example`.
 
 **Maintainers:** `nix run .#regenerateStandards` refreshes generated workflows (and dogfooded `ci.yml`); `nix flake check` must pass (includes workflow consistency checks).
 
