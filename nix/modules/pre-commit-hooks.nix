@@ -151,7 +151,7 @@ _caller-args: {
           "rustfmt-${slug}" = {
             enable = true;
             name = "rustfmt (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}cargo +nightly fmt -- --check'";
+            entry = "bash -c '${cdCmd}cargo fmt -- --check'";
             language = "system";
             types = [ "rust" ];
           }
@@ -250,7 +250,7 @@ _caller-args: {
 
         settings.tools = lib.mkMerge [
           (lib.mkIf (cfg.dartHooks.enable || dartProjects != { }) {
-            dart = lib.mkDefault dartSdk;
+            dart = lib.mkForce dartSdk;
           })
           (lib.mkIf (rustHooksActive && hasRustToolchain) {
             cargo = lib.mkDefault rustToolchain;
