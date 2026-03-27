@@ -26,8 +26,8 @@ nix flake check
 | You enable | You get (examples) |
 |------------|-------------------|
 | `rules` | `.cursor/rules/…`, `CLAUDE.md` |
-| `linting` / `hooks` | language configs, `.pre-commit-config.yaml` |
-| `checks` | hooks into `nix flake check` |
+| `linting` | language lint configs (`analysis_options.yaml`, `deny.toml`, …) |
+| `preCommitHooks` | git hooks via git-hooks.nix; also runs as part of `nix flake check` |
 | `infrastructure` | `.editorconfig`, Dependabot |
 | `famedly.github.workflows.ci` | `.github/workflows/ci.yml` → Nix in CI |
 | `famedly.github.workflows.*` | complete workflow YAML generated from Nix definitions |
