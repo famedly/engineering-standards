@@ -115,7 +115,6 @@
         }:
         let
           workflows = import ./nix/reusable-workflows.nix { inherit pkgs lib; };
-          engineering-standards-app = import ./nix/app-package.nix { inherit pkgs lib; };
           managed = config.famedly.standards._internal.managedFiles or [ ];
           writeManagedSnippet = lib.concatStringsSep "\n" (
             map (entry: ''
@@ -147,7 +146,6 @@
             ci.enable = true;
           };
 
-          packages.engineering-standards-app = engineering-standards-app;
           # Development shell for working on engineering-standards itself.
           devShells.default = pkgs.mkShell {
             name = "engineering-standards-dev";
@@ -172,9 +170,6 @@
 
           # Format check: all .nix files must be formatted with nixfmt.
           checks = {
-            # Rust app (clippy + tests) — keeps CI a single `nix flake check` job (see ci-workflow.nix).
-            engineering-standards-app = engineering-standards-app;
-
             nixfmt = pkgs.runCommand "check-nixfmt" { } ''
               ${lib.getExe pkgs.nixfmt} --check \
                 $(find ${./.}/nix -name "*.nix") \
