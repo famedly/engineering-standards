@@ -94,6 +94,19 @@ _caller-args: {
       dartSdk = config.packages.famedly-dart-sdk or pkgs.dart;
       dartBin = "${dartSdk}/bin/dart";
 
+      mkSlug = dir: if dir == "" then "root" else lib.replaceStrings [ "/" ] [ "-" ] dir;
+
+      hasDartHooks = cfg.dartHooks.enable || dartProjects != { };
+      dartHookIdsToSkip =
+        lib.optionals cfg.dartHooks.enable [ "dart-format" "dart-analyze" ]
+        ++ lib.concatMap (
+          project:
+          let
+            slug = mkSlug project.directory;
+          in
+          [ "dart-format-${slug}" "dart-analyze-${slug}" ]
+        ) (lib.attrValues dartProjects);
+
       rustToolchain = config.packages.famedly-rust-toolchain or null;
       hasRustToolchain = rustToolchain != null;
       rustHooksActive = cfg.rustHooks.enable || rustProjects != { };
@@ -126,8 +139,6 @@ _caller-args: {
           echo "Done. Run 'reuse lint' to verify compliance."
         '';
       };
-
-      mkSlug = dir: if dir == "" then "root" else lib.replaceStrings [ "/" ] [ "-" ] dir;
 
       scopedRustHooks = lib.concatMapAttrs (
         _: project:
@@ -184,7 +195,6 @@ _caller-args: {
             entry = "bash -c '${cdCmd}${dartBin} format'";
             language = "system";
             types = [ "dart" ];
-            stages = [ "manual" ];
           }
           // filesAttr;
 
@@ -195,7 +205,6 @@ _caller-args: {
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;
-            stages = [ "manual" ];
           }
           // filesAttr;
         }
@@ -246,6 +255,14 @@ _caller-args: {
           initialOnly = true;
         }
       ];
+
+      checks = lib.mkIf (dartHookIdsToSkip != [ ]) {
+        pre-commit = lib.mkForce (
+          config.pre-commit.settings.run.overrideAttrs (_: {
+            SKIP = lib.concatStringsSep "," dartHookIdsToSkip;
+          })
+        );
+      };
 
       pre-commit = {
         check.enable = true;
@@ -309,13 +326,11 @@ _caller-args: {
               dart-format = {
                 enable = true;
                 entry = lib.mkForce "${dartBin} format";
-                stages = lib.mkForce [ "manual" ];
               };
               dart-analyze = {
                 enable = true;
                 entry = lib.mkForce "${dartBin} analyze --fatal-infos";
                 pass_filenames = false;
-                stages = lib.mkForce [ "manual" ];
               };
             })
 
