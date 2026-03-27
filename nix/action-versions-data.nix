@@ -63,6 +63,10 @@
     sha = "030e881283bb7a6894de51c315a6bfe6a94e05cf";
     v = "v6.0.0";
   };
+  dockerBake = {
+    sha = "82490499d2e5613fcead7e128237ef0b0ea210f7";
+    v = "v7.0.0";
+  };
 
   # ── Nix / Cachix ─────────────────────────────────────────────────
   installNix = {
@@ -74,20 +78,6 @@
     v = "v17";
   };
 
-  # ── Language SDKs ────────────────────────────────────────────────
-  setupDart = {
-    sha = "65eb853c7ba17dde3be364c3d2858773e7144260";
-    v = "v1.7.2";
-  };
-  flutterAction = {
-    sha = "1a449444c387b1966244ae4d4f8c696479add0b2";
-    v = "v2.23.0";
-  };
-  rustCache = {
-    sha = "c19371144df3bb44fab255c43d04cbc2ab54d1c4";
-    v = "v2.9.1";
-  };
-
   # ── Code Quality / Security ──────────────────────────────────────
   codecov = {
     sha = "1af58845a975a7985b0beb0cbe6fbbb71a41dbad";
@@ -97,29 +87,9 @@
     sha = "0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3";
     v = "v1.2.1";
   };
-  typos = {
-    sha = "631208b7aac2daa8b707f55e7331f9112b0e062d";
-    v = "v1.44.0";
-  };
-  cargoDeny = {
-    sha = "3fd3802e88374d3fe9159b834c7714ec57d6c979";
-    v = "v2.0.15";
-  };
   claudeCodeAction = {
     sha = "3ac52d0da9f8ec9ca7b4dc23bb477e36ef9c77a9";
     v = "v1.0.79";
-  };
-  ghRelease = {
-    sha = "b25b93d384199fc0fc8c2e126b2d937a0cbeb2ae";
-    v = "v2.5.2";
-  };
-  dockerBake = {
-    sha = "82490499d2e5613fcead7e128237ef0b0ea210f7";
-    v = "v7.0.0";
-  };
-  reuseAction = {
-    sha = "676e2d560c9a403aa252096d99fcab3e1132b0f5";
-    v = "v6.0.0";
   };
 
   # ── Sequoia PGP ──────────────────────────────────────────────────
@@ -136,9 +106,5 @@
   famedlyLogin = {
     sha = "465a07811f14bebb1938fbed4728c6a1ff8901fc";
     v = "v2.2.0";
-  };
-  famedlyBlack = {
-    sha = "6fdf8a4af28071ed1d079c01122b34c5d587207a";
-    v = "stable";
   };
 }

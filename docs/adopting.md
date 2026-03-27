@@ -10,7 +10,7 @@ experimental-features = nix-command flakes
 
 ## Day-to-day model
 
-1. Edit **`flake.nix`** — `famedly.standards` options.
+1. Edit **`flake.nix`** — `famedly.standards` and `famedly.github.workflows` options.
 2. Run **`nix run .#regenerateStandards`** — writes tracked files (workflows, rules, lint configs, …) and removes any files that belonged to features you just disabled.
 3. Run **`nix flake check`** locally; commit outputs + lockfile (including `.engineering-standards-manifest`).
 
@@ -40,7 +40,7 @@ inputs.engineering-standards.url = "github:famedly/engineering-standards";
 imports = [ inputs.engineering-standards.flakeModules.default ];
 ```
 
-2. Under `perSystem`, set `famedly.standards` — start small, expand later:
+2. Under `perSystem`, set `famedly.standards` and `famedly.github.workflows`:
 
 ```nix
 famedly.standards = {
@@ -49,8 +49,16 @@ famedly.standards = {
   hooks = { enable = true; rust = true; };
   checks.enable = true;
   infrastructure = { editorconfig = true; dependabot = true; };
+};
+
+famedly.github.workflows = {
   ci.enable = true;
-  workflows.conventionalCommits = true;
+  general-checks.enable = true;
+  rust-ci.enable = true;             # Rust CI with tests, coverage, typos
+  # publish-crate.enable = true;     # Crate publishing
+  # dart-ci.enable = true;           # Dart/Flutter CI
+  # docker.enable = true;            # Docker build & push
+  # release.enable = true;           # GitHub Releases via gh CLI
 };
 ```
 
@@ -63,12 +71,12 @@ famedly.standards = {
 Enable:
 
 ```nix
-famedly.standards.updateWorkflow.enable = true;
+famedly.github.workflows.update-engineering-standards.enable = true;
 ```
 
 Regenerate once so `.github/workflows/update-engineering-standards.yml` appears. That workflow can run on a schedule, on **`repository_dispatch`**, or manually.
 
-Consumers pin the **engineering-standards** input in `flake.lock`. Workflows are generated inline — the `famedly.standards.workflowRef` option is deprecated and ignored.
+Consumers pin the **engineering-standards** input in `flake.lock`. Workflows are generated as complete YAML — no `workflow_call` indirection.
 
 ## Monorepos
 
@@ -76,23 +84,40 @@ Use `famedly.standards.projects` for multiple roots (e.g. `backend/` Rust + `fro
 
 Avoid turning on the **same** language both at the root and inside `projects` — you would duplicate configs.
 
-## GitHub Actions layout (mental model)
+## GitHub Actions layout
 
-- **Your repo** gets small **caller** workflows under `.github/workflows/` (names like `publish-crate.yml`, `general-checks.yml`).
-- They **`workflow_call`** into **`famedly/engineering-standards`** (reusable YAML in *this* repo: `rust-ci.yml`, `general-checks.yml`, `infra-docker.yml`, …).
-- Third-party actions inside those reusables are **SHA-pinned** here; pins are maintained via `nix/workflow-sources/` and `nix/action-versions-data.nix`.
+Workflows are **generated entirely from Nix** using [`github-actions-nix`](https://github.com/synapdeck/github-actions-nix). Each workflow definition lives in `nix/modules/workflows/definitions/<name>.nix` as a self-contained Nix submodule with its own options and `enable` flag.
 
-To see which `famedly.standards.workflows` option generates which file, open `nix/modules/workflows/*.nix`. Rough map:
+- **No `workflow_call`** — each generated `.github/workflows/<name>.yml` is a complete, standalone workflow.
+- **Nix-first tooling** — CLI tools (typos, cargo-deny, black, dart, flutter, nushell) are installed at CI time via `nix profile install` from the flake's pinned nixpkgs, rather than through third-party GitHub Actions.
+- **Third-party actions** that remain (checkout, cache, Docker, Codecov, Cachix, Sequoia PGP) are SHA-pinned in `nix/action-versions-data.nix`.
 
-| Area | Options (all under `famedly.standards.workflows`) |
-|------|---------------------------------------------------|
-| Git hygiene / org | `conventionalCommits`, `authenticateCommits`, `fastForward`, `addToProject`, `updateOpenpgpPolicy`, `aiReview`, `release`, `reuse` |
-| Rust | `rustCi`, `rustPublish` |
-| Dart / Flutter | `dartCi`, `dartPublish`, `dartReviewApp` |
-| Shipping | `docker`, `dockerBackend`, `dockerBake`, `githubPages` |
-| Ansible | `ansible` |
+Available workflows (all under `famedly.github.workflows`):
 
-Separate from that table: **`ci.enable`** → root `ci.yml` (Nix only). **`updateWorkflow.enable`** → standards bump automation.
+| Area | Workflow options |
+|------|-----------------|
+| CI & Nix | `ci` |
+| Git hygiene / org | `general-checks`, `authenticate-commits`, `fast-forward`, `add-to-project`, `ai-review`, `release` |
+| Rust | `rust-ci` (tests, coverage, typos, cargo-deny), `publish-crate` |
+| Dart / Flutter | `dart-ci` (sdk option: `"flutter"` or `"dart"`), `publish-pub` |
+| Docker | `docker`, `docker-backend`, `docker-bake` |
+| Deployment | `github-pages`, `review-app` |
+| Ansible | `ansible-ci` |
+| Maintenance | `update-engineering-standards`, `update-openpgp-policy` |
+
+### Workflow helper library
+
+`nix/modules/workflows/lib.nix` provides shared functions used across definitions:
+
+| Helper | Purpose |
+|--------|---------|
+| `ghExpr`, `ghVar`, `ghSecret`, `ghEnv` | Produce GitHub Actions `${{ }}` expressions without Nix escaping issues |
+| `nixSetupStep` | `cachix/install-nix-action` step |
+| `mkNixInstallStep` | Install any nixpkgs package via `nix profile install`, pinned to the flake's nixpkgs rev |
+| `mkRustPrepareStep` | Inline Rust environment setup (SSH, Cargo, private registry) |
+| `mkDartPrepareStep` | Inline Dart/Flutter SSH setup for private dependencies |
+| `ciConcurrency` | Reusable concurrency block (cancel in-progress on same branch) |
+| `sharedValueNames` | Centralized registry of GitHub secrets and variables as camelCase maps |
 
 ## Dart lints
 
@@ -114,8 +139,12 @@ dev_dependencies:
 
 ## Legacy replacements (orientation)
 
-| Old | New idea |
-|-----|----------|
-| Scattered `famedly/*-workflows` repos | `famedly.standards.checks` + reusable workflows here |
+| Old | New |
+|-----|-----|
+| Scattered `famedly/*-workflows` repos | `famedly.github.workflows.*` — complete workflow generation from Nix |
+| `workflow_call` reusable workflows | Standalone generated YAML per workflow |
+| `hustcer/setup-nu`, `crate-ci/typos`, `embarkstudios/cargo-deny`, `softprops/action-gh-release`, `famedly/black`, `dart-lang/setup-dart`, `subosito/flutter-action` | Nix-installed tools via `nix profile install` |
+| `.github/actions/rust-prepare/` composite action | `mkRustPrepareStep` inline helper in `lib.nix` |
+| `.github/actions/dart-prepare/` composite action | `mkDartPrepareStep` inline helper in `lib.nix` |
 | `frontend-ci-templates` Dart lints | `linting/dart-package` + `famedly.standards.dart` |
 | Per-repo YAML-only standards | `flake.nix` + regenerate |

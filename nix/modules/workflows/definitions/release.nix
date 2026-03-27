@@ -7,6 +7,7 @@
 }:
 let
   av = famedlyConfig.standards.actionVersions;
+  inherit (workflowsLib) ghExpr;
 in
 {
   options.draft = lib.mkOption {
@@ -25,12 +26,12 @@ in
       steps = [
         { uses = "actions/checkout@${av.checkout}"; }
         {
-          uses = "softprops/action-gh-release@${av.ghRelease}";
-          with_ = {
-            draft = config.draft;
-            generate_release_notes = true;
-            prerelease = false;
-          };
+          name = "Create GitHub Release";
+          env.GH_TOKEN = ghExpr "github.token";
+          run =
+            "gh release create ${ghExpr "github.ref_name"} --generate-notes"
+            + lib.optionalString config.draft " --draft"
+            + " --verify-tag";
         }
       ];
     };

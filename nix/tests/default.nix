@@ -551,10 +551,6 @@ let
       grep -q "Tests" ${rustBundle}/.github/workflows/rust-ci.yml
       ! grep -q "workflow_call" ${rustBundle}/.github/workflows/rust-ci.yml
 
-      # Composite action for rust-prepare
-      test -f ${rustBundle}/.github/actions/rust-prepare/action.yml
-      test -f ${rustBundle}/.github/actions/rust-prepare/prepare.sh
-
       test -f ${rustBundle}/.github/workflows/general-checks.yml
       test -f ${rustBundle}/.github/workflows/authenticate-commits.yml
 
@@ -600,7 +596,6 @@ let
       test -f ${dartBundle}/.github/workflows/ci.yml
       test -f ${dartBundle}/.github/workflows/dart-ci.yml
       test -f ${dartBundle}/.github/workflows/general-checks.yml
-      test -f ${dartBundle}/.github/actions/dart-prepare/action.yml
       test -f ${dartBundle}/.editorconfig
       test -f ${dartBundle}/.github/dependabot.yml
       grep -q "pub" ${dartBundle}/.github/dependabot.yml

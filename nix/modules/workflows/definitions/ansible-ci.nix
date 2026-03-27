@@ -1,13 +1,20 @@
 {
   config,
   lib,
+  inputs,
   workflowsLib,
   famedlyConfig,
   ...
 }:
 let
   av = famedlyConfig.standards.actionVersions;
-  inherit (workflowsLib) ghEnv ciConcurrency;
+  inherit (workflowsLib)
+    ghEnv
+    ciConcurrency
+    nixSetupStep
+    mkNixInstallStep
+    ;
+  nixpkgsRev = inputs.nixpkgs.rev;
 in
 {
   options.collection = lib.mkOption {
@@ -261,7 +268,6 @@ in
       black = {
         name = "Format using black";
         runsOn = "ubuntu-latest";
-        container = "registry.famedly.net/docker-oss/ansible:py-3.11-ansible-8.3.0";
         steps = [
           {
             name = "Checkout";
@@ -271,10 +277,12 @@ in
               path = "ansible_collections/${config.collection}";
             };
           }
+          (nixSetupStep av.installNix)
+          (mkNixInstallStep nixpkgsRev "black")
           {
             name = "Run Black";
-            uses = "famedly/black@${av.famedlyBlack}";
-            with_.options = "--check --verbose";
+            workingDirectory = "ansible_collections/${config.collection}";
+            run = "black --check --verbose .";
           }
         ];
       };

@@ -2,7 +2,7 @@
 
 | Doc | Purpose |
 |-----|---------|
-| [adopting.md](adopting.md) | Use engineering-standards in a repo: Nix setup, regenerate, updates, monorepos, workflow overview |
+| [adopting.md](adopting.md) | Use engineering-standards in a repo: Nix setup, regenerate, updates, monorepos, workflow overview, helper library |
 | [../README.md](../README.md) | Project overview and quick start |
 
-Everything else lives in code (`nix/modules/`, `nix/templates/`).
+Everything else lives in code (`nix/modules/`, `nix/modules/workflows/`, `nix/templates/`).
