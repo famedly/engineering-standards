@@ -1410,5 +1410,112 @@ let
         '';
   };
 
+  sdkTests = {
+    # Verify sdk-versions.nix has expected structure and non-empty hashes.
+    test-sdk-versions-structure = pkgs.runCommand "test-sdk-versions-structure" { } (
+      let
+        versions = import ../sdk-versions.nix;
+      in
+      ''
+        echo "=== Checking sdk-versions.nix structure ==="
+
+        echo "  Dart version: ${versions.dart.version}"
+        echo "  Flutter version: ${versions.flutter.version}"
+
+        # Verify all expected platform hashes are present and non-empty
+        ${lib.concatMapStrings
+          (sys: ''
+            [[ -n "${versions.dart.hashes.${sys}}" ]] \
+              || (echo "FAIL: dart.hashes.${sys} is empty" && exit 1)
+            echo "  dart.${sys}: ${versions.dart.hashes.${sys}}"
+          '')
+          [
+            "x86_64-linux"
+            "aarch64-linux"
+            "x86_64-darwin"
+            "aarch64-darwin"
+          ]
+        }
+
+        ${lib.concatMapStrings
+          (sys: ''
+            [[ -n "${versions.flutter.hashes.${sys}}" ]] \
+              || (echo "FAIL: flutter.hashes.${sys} is empty" && exit 1)
+            echo "  flutter.${sys}: ${versions.flutter.hashes.${sys}}"
+          '')
+          [
+            "x86_64-linux"
+            "x86_64-darwin"
+            "aarch64-darwin"
+          ]
+        }
+
+        echo "PASS: sdk-versions.nix is well-formed"
+        touch $out
+      ''
+    );
+
+    # Verify the module exposes famedly-dart-sdk as a derivation.
+    test-sdk-packages-exposed =
+      let
+        eval = evalConsumer "sdk-packages" {
+          famedly.standards = {
+            dart.enable = true;
+            linting.rust = true;
+          };
+        };
+        perSystemCfg = eval.config.flake.packages.${system} or { };
+      in
+      pkgs.runCommand "test-sdk-packages-exposed" { } ''
+        echo "=== Checking SDK packages are exposed in perSystem.packages ==="
+
+        ${
+          if perSystemCfg ? famedly-dart-sdk then
+            "echo '  famedly-dart-sdk: exposed (drv path: ${perSystemCfg.famedly-dart-sdk})'"
+          else
+            "echo 'FAIL: famedly-dart-sdk not in perSystem.packages' && exit 1"
+        }
+
+        echo "PASS: SDK packages exposed correctly"
+        touch $out
+      '';
+
+    # Verify the Dart CI workflow installs the pinned SDK from the consumer flake
+    # (via nix profile install .#famedly-{dart,flutter}-sdk) instead of nixpkgs.
+    test-dart-ci-uses-pinned-sdk = pkgs.runCommand "test-dart-ci-uses-pinned-sdk" { } ''
+      echo "=== Checking Dart CI workflow installs pinned SDK ==="
+
+      wf=${dartBundle}/.github/workflows/dart-ci.yml
+
+      # The workflow installs either .#famedly-dart-sdk or .#famedly-flutter-sdk
+      grep -qF "nix profile install .#famedly-" "$wf" \
+        || (echo "FAIL: dart-ci.yml does not use 'nix profile install .#famedly-*'" && exit 1)
+
+      # Ensure old nixpkgs-based install is gone
+      ! grep -q "nix profile install.*nixpkgs" "$wf" \
+        || (echo "FAIL: dart-ci.yml still uses nixpkgs-based dart install" && exit 1)
+
+      echo "PASS: dart-ci.yml uses pinned SDK from consumer flake"
+      touch $out
+    '';
+
+    # Verify the Rust CI workflow uses dtolnay/rust-toolchain (not a container).
+    test-rust-ci-uses-toolchain-action = pkgs.runCommand "test-rust-ci-uses-toolchain-action" { } ''
+      echo "=== Checking Rust CI workflow uses dtolnay/rust-toolchain ==="
+
+      wf=${rustBundle}/.github/workflows/rust-ci.yml
+
+      grep -q "dtolnay/rust-toolchain" "$wf" \
+        || (echo "FAIL: rust-ci.yml does not use dtolnay/rust-toolchain" && exit 1)
+
+      # Default: no container when container = null
+      ! grep -q "^    container:" "$wf" \
+        || (echo "FAIL: rust-ci.yml has a container key but container should be null" && exit 1)
+
+      echo "PASS: rust-ci.yml uses dtolnay/rust-toolchain action"
+      touch $out
+    '';
+  };
+
 in
-evalTests // contentTests // workflowValidationTests // templateTests
+evalTests // contentTests // workflowValidationTests // templateTests // sdkTests

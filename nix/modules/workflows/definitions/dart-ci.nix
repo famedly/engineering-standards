@@ -12,11 +12,9 @@ let
     ghExpr
     ghSecret
     nixSetupStep
-    mkNixInstallStep
     mkDartPrepareStep
     ciConcurrency
     ;
-  nixpkgsRev = inputs.nixpkgs.rev;
 
   packageOptions = {
     directory = lib.mkOption {
@@ -103,6 +101,19 @@ let
 
   jobDisplayName = base: pkgName: if multiPackage then "${base} — ${pkgName}" else base;
 
+  # Install SDK from the consumer flake's pinned package (same as DevShell).
+  # sdk = "dart"    → nix profile install .#famedly-dart-sdk
+  # sdk = "flutter" → nix profile install .#famedly-flutter-sdk
+  mkSdkInstallStep =
+    sdk:
+    let
+      pkg = if sdk == "flutter" then "famedly-flutter-sdk" else "famedly-dart-sdk";
+    in
+    {
+      name = "Install ${sdk} SDK (pinned)";
+      run = "nix profile install .#${pkg}";
+    };
+
   mkSetupSteps =
     pkg:
     let
@@ -112,7 +123,7 @@ let
     [
       { uses = "actions/checkout@${av.checkout}"; }
       (nixSetupStep av.installNix)
-      (mkNixInstallStep nixpkgsRev pkg.sdk)
+      (mkSdkInstallStep pkg.sdk)
       {
         uses = "actions/cache@${av.cache}";
         with_ = {

@@ -20,9 +20,7 @@ let
     else
       "github.event_name != 'pull_request'";
 
-  buildArgsStr = lib.concatStringsSep "\n" (
-    lib.mapAttrsToList (k: v: "${k}=${v}") config.buildArgs
-  );
+  buildArgsStr = lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "${k}=${v}") config.buildArgs);
 
   # ── Trigger ──────────────────────────────────────────────────────
 
@@ -80,19 +78,18 @@ let
         {
           name = "Build and push Docker image";
           uses = "docker/build-push-action@${av.dockerBuildPush}";
-          with_ =
-            {
-              context = config.context;
-              file = config.dockerfile;
-              push = pushCondition;
-              tags = ghExpr "steps.meta.outputs.tags";
-              labels = ghExpr "steps.meta.outputs.labels";
-              cache-from = "type=gha";
-              cache-to = "type=gha,mode=max";
-            }
-            // lib.optionalAttrs (config.buildArgs != { }) {
-              build-args = buildArgsStr;
-            };
+          with_ = {
+            context = config.context;
+            file = config.dockerfile;
+            push = pushCondition;
+            tags = ghExpr "steps.meta.outputs.tags";
+            labels = ghExpr "steps.meta.outputs.labels";
+            cache-from = "type=gha";
+            cache-to = "type=gha,mode=max";
+          }
+          // lib.optionalAttrs (config.buildArgs != { }) {
+            build-args = buildArgsStr;
+          };
         }
       ];
     };
@@ -152,21 +149,20 @@ let
           id = "build";
           name = "Build and push Docker image";
           uses = "docker/build-push-action@${av.dockerBuildPush}";
-          with_ =
-            {
-              context = config.context;
-              file = config.dockerfile;
-              push = notPR;
-              labels = ghExpr "steps.meta.outputs.labels";
-              platforms = "linux/${ghExpr "matrix.platform"}";
-              cache-from = "type=gha";
-              cache-to = "type=gha,mode=max";
-              sbom = true;
-              outputs = "type=image,name=${image},push-by-digest=${notPR},name-canonical=true,push=${notPR}";
-            }
-            // lib.optionalAttrs (config.buildArgs != { }) {
-              build-args = buildArgsStr;
-            };
+          with_ = {
+            context = config.context;
+            file = config.dockerfile;
+            push = notPR;
+            labels = ghExpr "steps.meta.outputs.labels";
+            platforms = "linux/${ghExpr "matrix.platform"}";
+            cache-from = "type=gha";
+            cache-to = "type=gha,mode=max";
+            sbom = true;
+            outputs = "type=image,name=${image},push-by-digest=${notPR},name-canonical=true,push=${notPR}";
+          }
+          // lib.optionalAttrs (config.buildArgs != { }) {
+            build-args = buildArgsStr;
+          };
         }
         {
           id = "tag";

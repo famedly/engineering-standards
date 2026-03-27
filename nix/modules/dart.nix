@@ -35,8 +35,10 @@
           type = lib.types.nullOr lib.types.package;
           default = null;
           description = ''
-            Override the Dart SDK package.
-            Defaults to pkgs.dart (or pkgs.flutter when flutter = true).
+            Override the Dart/Flutter SDK package.
+            Defaults to packages.famedly-dart-sdk or packages.famedly-flutter-sdk
+            (from nix/sdk-versions.nix). Set to pkgs.dart or pkgs.flutter to use
+            the nixpkgs version instead.
           '';
         };
       };
@@ -47,9 +49,9 @@
             if cfg.dartSdk != null then
               cfg.dartSdk
             else if cfg.flutter then
-              pkgs.flutter
+              config.packages.famedly-flutter-sdk or pkgs.flutter
             else
-              pkgs.dart;
+              config.packages.famedly-dart-sdk;
 
           dartShell = pkgs.mkShell {
             name = "dart-dev";

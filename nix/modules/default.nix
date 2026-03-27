@@ -27,6 +27,9 @@
 # eliminating the need for reusable workflow_call references.
 
 { flake-parts-lib, lib, ... }:
+let
+  sdkVersions = import ../sdk-versions.nix;
+in
 {
   imports = [
     ./action-versions.nix
@@ -40,7 +43,13 @@
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      lib,
+      system,
+      ...
+    }:
     let
       cfg = config.famedly.standards;
 
@@ -172,6 +181,23 @@
           meta.description = "Write all engineering-standards managed files to the repo";
           program = lib.getExe regenerateScript;
         };
+
+        # SDK packages — same binaries used by DevShell and CI workflows.
+        # famedly-dart-sdk: all 4 supported platforms.
+        # famedly-flutter-sdk: not available on aarch64-linux (no upstream binary).
+        packages = {
+          famedly-dart-sdk = pkgs.callPackage ../packages/dart-sdk.nix { inherit sdkVersions; };
+        }
+        //
+          lib.optionalAttrs
+            (lib.elem system [
+              "x86_64-linux"
+              "x86_64-darwin"
+              "aarch64-darwin"
+            ])
+            {
+              famedly-flutter-sdk = pkgs.callPackage ../packages/flutter-sdk.nix { inherit sdkVersions; };
+            };
       };
     }
   );

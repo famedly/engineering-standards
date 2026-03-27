@@ -108,16 +108,18 @@
         echo "  ENGINEERING_STANDARDS_PATH   Override path for --dev (default: ../engineering-standards)"
       '';
 
-      nixdJson = pkgs.writeText ".nixd.json" (builtins.toJSON {
-        nixpkgs = {
-          expr = "import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }";
-        };
-        options = {
-          target = {
-            installable = ".#debug.options";
+      nixdJson = pkgs.writeText ".nixd.json" (
+        builtins.toJSON {
+          nixpkgs = {
+            expr = "import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }";
           };
-        };
-      });
+          options = {
+            target = {
+              installable = ".#debug.options";
+            };
+          };
+        }
+      );
     in
     {
       options.famedly.standards.devShell = {

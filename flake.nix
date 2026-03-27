@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -135,6 +139,44 @@
               };
             };
             famedly.github.workflows.ci.enable = true;
+
+            apps.updateSdkVersions = {
+              type = "app";
+              meta.description = "Update nix/sdk-versions.nix to the latest stable Dart and Flutter releases";
+              program = lib.getExe (
+                pkgs.writeShellApplication {
+                  name = "updateSdkVersions";
+                  runtimeInputs = [
+                    pkgs.nix
+                    pkgs.python3
+                  ];
+                  text = ''
+                    exec python3 ${./nix/packages/update-sdk-versions.py} "$@"
+                  '';
+                }
+              );
+            };
+
+            # Expose the pinned Rust toolchain for engineering-standards' own DevShell.
+            # Consumer repos using rust-ci.nix use dtolnay/rust-toolchain in CI
+            # and are expected to configure their own fenix-based devShell (see templates/rust).
+            packages.famedly-rust-toolchain =
+              let
+                fenixPkgs = inputs.fenix.packages.${system};
+              in
+              pkgs.symlinkJoin {
+                name = "famedly-rust-toolchain";
+                paths = [
+                  (fenixPkgs.combine [
+                    fenixPkgs.stable.cargo
+                    fenixPkgs.stable.clippy
+                    fenixPkgs.stable.rust-src
+                    fenixPkgs.stable.rustc
+                    fenixPkgs.latest.rustfmt
+                  ])
+                  pkgs.cargo-nextest
+                ];
+              };
 
             devShells.default = pkgs.mkShell {
               name = "engineering-standards-dev";

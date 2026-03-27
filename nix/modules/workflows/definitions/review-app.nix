@@ -90,20 +90,17 @@ in
           url = "https://${config.projectName}-pr-${prNumber}.web-review.famedly.de";
         };
         steps = [
-          (
-            {
-              uses = "actions/download-artifact@${av.downloadArtifact}";
-              with_ =
-                {
-                  name = config.artifactName;
-                  path = "public";
-                }
-                // lib.optionalAttrs isWorkflowRun {
-                  run-id = ghExpr "github.event.workflow_run.run_id";
-                  github-token = ghSecret "GITHUB_TOKEN";
-                };
+          ({
+            uses = "actions/download-artifact@${av.downloadArtifact}";
+            with_ = {
+              name = config.artifactName;
+              path = "public";
             }
-          )
+            // lib.optionalAttrs isWorkflowRun {
+              run-id = ghExpr "github.event.workflow_run.run_id";
+              github-token = ghSecret "GITHUB_TOKEN";
+            };
+          })
           {
             name = "Deploy to review server";
             run = ''
@@ -121,8 +118,7 @@ in
 
       cleanup_review_apps = {
         runsOn = "ubuntu-latest";
-        if_ =
-          if isWorkflowRun then "github.event_name == 'pull_request'" else null;
+        if_ = if isWorkflowRun then "github.event_name == 'pull_request'" else null;
         steps = [
           {
             name = "Clean up closed PR deployments";

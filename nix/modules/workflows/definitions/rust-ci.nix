@@ -16,19 +16,31 @@ let
     mkRustPrepareStep
     ;
   nixpkgsRev = inputs.nixpkgs.rev;
-  defaultContainer = "ghcr.io/famedly/rust-container:nightly";
 in
 {
   options = {
     runner = lib.mkOption {
       type = lib.types.str;
       default = "ubuntu-latest";
-      description = "Override the runner for Rust CI jobs.";
+      description = "Runner label for Rust CI jobs.";
     };
     container = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Docker container image to run jobs in.
+        When null (default), jobs run on the runner with dtolnay/rust-toolchain
+        installing the Rust toolchain. Set to a container image to use a
+        pre-built container instead (which must include cargo, nextest, etc.).
+      '';
+    };
+    rustToolchain = lib.mkOption {
       type = lib.types.str;
-      default = defaultContainer;
-      description = "Override the container image for Rust CI jobs.";
+      default = "stable";
+      description = ''
+        Rust toolchain channel for dtolnay/rust-toolchain (used when container = null).
+        Examples: "stable", "nightly", "1.85.0".
+      '';
     };
     features = lib.mkOption {
       type = lib.types.str;
@@ -62,100 +74,124 @@ in
     };
   };
 
-  config.definition = {
-    name = "Rust CI";
-    on = {
-      push.branches = [ "main" ];
-      pullRequest = {
-        branches = [ "**" ];
-        types = [
-          "opened"
-          "reopened"
-          "synchronize"
-          "ready_for_review"
-        ];
+  config.definition =
+    let
+      containerAttr = lib.optionalAttrs (config.container != null) { container = config.container; };
+
+      # When using a container, the container already has the Rust toolchain.
+      # When running without a container, install Rust via dtolnay/rust-toolchain
+      # and cargo-nextest via nix.
+      jobSetupSteps =
+        if config.container != null then
+          [
+            { uses = "actions/checkout@${av.checkout}"; }
+            (mkRustPrepareStep {
+              sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
+              additionalPackages = config.additionalPackages;
+            })
+          ]
+        else
+          [
+            { uses = "actions/checkout@${av.checkout}"; }
+            {
+              uses = "dtolnay/rust-toolchain@${av.rustToolchain}";
+              with_ = {
+                toolchain = config.rustToolchain;
+                components = "clippy,rustfmt";
+              };
+            }
+            (nixSetupStep av.installNix)
+            (mkNixInstallStep nixpkgsRev "cargo-nextest")
+            (mkRustPrepareStep {
+              sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
+              additionalPackages = config.additionalPackages;
+            })
+          ];
+    in
+    {
+      name = "Rust CI";
+      on = {
+        push.branches = [ "main" ];
+        pullRequest = {
+          branches = [ "**" ];
+          types = [
+            "opened"
+            "reopened"
+            "synchronize"
+            "ready_for_review"
+          ];
+        };
+        mergeGroup = { };
       };
-      mergeGroup = { };
+      permissions.contents = "read";
+      concurrency = ciConcurrency;
+      jobs = {
+        tests = {
+          name = "Tests";
+          runsOn = config.runner;
+          steps = jobSetupSteps ++ [
+            {
+              name = "Tests";
+              run = "cargo nextest run ${config.features}";
+            }
+          ];
+        }
+        // containerAttr;
+      }
+      // lib.optionalAttrs config.coverage {
+        coverage = {
+          name = "Coverage";
+          runsOn = config.runner;
+          steps = jobSetupSteps ++ [
+            {
+              name = "Coverage";
+              run = "cargo llvm-cov nextest ${config.features} --lcov --output-path lcov.info";
+            }
+            {
+              uses = "codecov/codecov-action@${av.codecov}";
+              with_ = {
+                files = "lcov.info";
+                token = ghSecret "CODECOV_TOKEN";
+              };
+            }
+            {
+              uses = "codecov/test-results-action@${av.testResults}";
+              if_ = "!cancelled()";
+              with_.token = ghSecret "CODECOV_TOKEN";
+            }
+          ];
+        }
+        // containerAttr;
+      }
+      // lib.optionalAttrs config.typos {
+        typos = {
+          name = "Spell Check";
+          runsOn = "ubuntu-latest";
+          steps = [
+            { uses = "actions/checkout@${av.checkout}"; }
+            (nixSetupStep av.installNix)
+            (mkNixInstallStep nixpkgsRev "typos")
+            {
+              name = "Run typos";
+              run = "typos";
+            }
+          ];
+        };
+      }
+      // lib.optionalAttrs config.cargoDeny {
+        deny = {
+          name = "Cargo Deny";
+          runsOn = "ubuntu-latest";
+          steps = [
+            { uses = "actions/checkout@${av.checkout}"; }
+            (nixSetupStep av.installNix)
+            (mkNixInstallStep nixpkgsRev "cargo-deny")
+            {
+              name = "Run cargo deny";
+              run = "cargo deny check";
+            }
+          ];
+        };
+      };
     };
-    permissions.contents = "read";
-    concurrency = ciConcurrency;
-    jobs = {
-      tests = {
-        name = "Tests";
-        runsOn = config.runner;
-        container = config.container;
-        steps = [
-          { uses = "actions/checkout@${av.checkout}"; }
-          (mkRustPrepareStep {
-            sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
-            additionalPackages = config.additionalPackages;
-          })
-          {
-            name = "Tests";
-            run = "cargo nextest run ${config.features}";
-          }
-        ];
-      };
-    }
-    // lib.optionalAttrs config.coverage {
-      coverage = {
-        name = "Coverage";
-        runsOn = config.runner;
-        container = config.container;
-        steps = [
-          { uses = "actions/checkout@${av.checkout}"; }
-          (mkRustPrepareStep {
-            sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
-            additionalPackages = config.additionalPackages;
-          })
-          {
-            name = "Coverage";
-            run = "cargo llvm-cov nextest ${config.features} --lcov --output-path lcov.info";
-          }
-          {
-            uses = "codecov/codecov-action@${av.codecov}";
-            with_ = {
-              files = "lcov.info";
-              token = ghSecret "CODECOV_TOKEN";
-            };
-          }
-          {
-            uses = "codecov/test-results-action@${av.testResults}";
-            if_ = "!cancelled()";
-            with_.token = ghSecret "CODECOV_TOKEN";
-          }
-        ];
-      };
-    }
-    // lib.optionalAttrs config.typos {
-      typos = {
-        name = "Spell Check";
-        runsOn = "ubuntu-latest";
-        steps = [
-          { uses = "actions/checkout@${av.checkout}"; }
-          (nixSetupStep av.installNix)
-          (mkNixInstallStep nixpkgsRev "typos")
-          {
-            name = "Run typos";
-            run = "typos";
-          }
-        ];
-      };
-    }
-    // lib.optionalAttrs config.cargoDeny {
-      deny = {
-        name = "Cargo Deny";
-        runsOn = "ubuntu-latest";
-        steps = [
-          { uses = "actions/checkout@${av.checkout}"; }
-          (nixSetupStep av.installNix)
-          (mkNixInstallStep nixpkgsRev "cargo-deny")
-          {
-            name = "Run cargo deny";
-            run = "cargo deny check";
-          }
-        ];
-      };
-    };
-  };
 }
