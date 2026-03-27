@@ -184,6 +184,7 @@ _caller-args: {
             entry = "bash -c '${cdCmd}${dartBin} format'";
             language = "system";
             types = [ "dart" ];
+            stages = [ "manual" ];
           }
           // filesAttr;
 
@@ -194,6 +195,7 @@ _caller-args: {
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;
+            stages = [ "manual" ];
           }
           // filesAttr;
         }
@@ -307,11 +309,13 @@ _caller-args: {
               dart-format = {
                 enable = true;
                 entry = lib.mkForce "${dartBin} format";
+                stages = lib.mkForce [ "manual" ];
               };
               dart-analyze = {
                 enable = true;
                 entry = lib.mkForce "${dartBin} analyze --fatal-infos";
                 pass_filenames = false;
+                stages = lib.mkForce [ "manual" ];
               };
             })
 

@@ -68,11 +68,13 @@
           if [[ "''${1:-}" == "--fix" || "''${1:-}" == "-f" ]]; then
             echo "Running pre-commit hooks (with auto-fix)..."
             pre-commit run --all-files || true
+            pre-commit run --all-files --hook-stage manual || true
             echo ""
             echo "Done. Review the changes with: git diff"
           else
             echo "Running pre-commit hooks..."
             pre-commit run --all-files
+            pre-commit run --all-files --hook-stage manual
           fi
         '';
       };
