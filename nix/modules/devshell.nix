@@ -25,6 +25,89 @@
       hooksEnabled = config.famedly.standards.preCommitHooks.enable or false;
       fossEnabled = (config.famedly.standards.preCommitHooks.fossHooks.enable or false) && hooksEnabled;
 
+      famedly-regen = pkgs.writeShellScriptBin "famedly-regen" ''
+        set -euo pipefail
+        if [[ "''${1:-}" == "--dev" || "''${1:-}" == "-d" ]]; then
+          ES_PATH="''${ENGINEERING_STANDARDS_PATH:-../engineering-standards}"
+          if [[ ! -d "$ES_PATH" ]]; then
+            echo "Error: engineering-standards not found at $ES_PATH"
+            echo "Set ENGINEERING_STANDARDS_PATH or clone next to this repo."
+            exit 1
+          fi
+          ES_ABS="$(cd "$ES_PATH" && pwd)"
+          echo "Using local engineering-standards at $ES_ABS"
+          nix run --override-input engineering-standards "path:$ES_ABS" .#regenerateStandards
+        elif [[ "''${1:-}" == "--help" || "''${1:-}" == "-h" ]]; then
+          echo "Usage: famedly-regen [--dev|-d]"
+          echo ""
+          echo "Regenerate engineering-standards managed files."
+          echo ""
+          echo "  (no flag)    Use the pinned flake.lock input"
+          echo "  --dev, -d    Override with local engineering-standards"
+          echo "               (defaults to ../engineering-standards,"
+          echo "                set ENGINEERING_STANDARDS_PATH to override)"
+        else
+          nix run .#regenerateStandards
+        fi
+      '';
+
+      famedly-check = pkgs.writeShellScriptBin "famedly-check" ''
+        set -euo pipefail
+        echo "Running nix flake check..."
+        nix flake check -L "''${@}"
+      '';
+
+      famedly-lint = pkgs.writeShellScriptBin "famedly-lint" ''
+        set -euo pipefail
+        if [[ "''${1:-}" == "--fix" || "''${1:-}" == "-f" ]]; then
+          echo "Running pre-commit hooks (with auto-fix)..."
+          pre-commit run --all-files || true
+          echo ""
+          echo "Done. Review the changes with: git diff"
+        else
+          echo "Running pre-commit hooks..."
+          pre-commit run --all-files
+        fi
+      '';
+
+      famedly-update = pkgs.writeShellScriptBin "famedly-update" ''
+        set -euo pipefail
+        echo "==> Updating engineering-standards flake input..."
+        nix flake update engineering-standards
+
+        echo ""
+        echo "==> Regenerating managed files..."
+        nix run .#regenerateStandards
+
+        echo ""
+        echo "==> Running checks..."
+        if nix flake check -L; then
+          echo ""
+          echo "All checks passed. Review and commit:"
+          echo "  git add -A && git commit -m 'chore: update engineering-standards'"
+        else
+          echo ""
+          echo "Some checks failed. Fix issues before committing."
+        fi
+      '';
+
+      famedly-help = pkgs.writeShellScriptBin "famedly-help" ''
+        echo "Famedly Engineering Standards — Developer Commands"
+        echo ""
+        echo "  famedly-regen [--dev]    Regenerate managed files"
+        echo "  famedly-check            Run all CI checks locally (nix flake check)"
+        echo "  famedly-lint [--fix]     Run pre-commit hooks on all files"
+        echo "  famedly-update           Update standards, regenerate, and check"
+        echo "  famedly-help             Show this help"
+        echo ""
+        echo "Flags:"
+        echo "  famedly-regen --dev      Use local ../engineering-standards"
+        echo "  famedly-lint --fix       Auto-fix and continue on errors"
+        echo ""
+        echo "Environment:"
+        echo "  ENGINEERING_STANDARDS_PATH   Override path for --dev (default: ../engineering-standards)"
+      '';
+
       nixdJson = pkgs.writeText ".nixd.json" (builtins.toJSON {
         nixpkgs = {
           expr = "import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }";
@@ -54,6 +137,11 @@
             config.pre-commit.devShell
           ];
           packages = [
+            famedly-regen
+            famedly-check
+            famedly-lint
+            famedly-update
+            famedly-help
             pkgs.nixd
             pkgs.nixfmt-classic
           ]

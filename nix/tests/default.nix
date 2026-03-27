@@ -483,6 +483,71 @@ let
       famedly.github.workflows.ci.enable = true;
     };
 
+    hookd-deploy = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        docker.enable = true;
+        hookd-deploy = {
+          enable = true;
+          hookdUrl = "https://my-service-webhook.famedly.de";
+        };
+      };
+    };
+
+    docker-simple = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        docker = {
+          enable = true;
+          mode = "simple";
+          imageName = "my-simple-app";
+          registry = "registry.example.com";
+          registryUser = "ci-user";
+          registryPasswordSecret = "REGISTRY_PASSWORD";
+          pushOnlyOnTags = true;
+          buildArgs.VERSION = "\${{ github.ref_name }}";
+        };
+      };
+    };
+
+    docker-workflow-run = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        docker = {
+          enable = true;
+          mode = "simple";
+          triggerMode = "workflowRun";
+          triggerWorkflow = "CI";
+          imageName = "my-app";
+          registryPasswordSecret = "REGISTRY_PASSWORD";
+          pushOnlyOnTags = true;
+        };
+      };
+    };
+
+    review-app-workflow-run = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        review-app = {
+          enable = true;
+          triggerMode = "workflowRun";
+          triggerWorkflow = "CI";
+          projectName = "test-review";
+        };
+      };
+    };
+
+    github-pages-custom = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        github-pages = {
+          enable = true;
+          triggerWorkflows = [ "Integration Tests" ];
+          artifactName = "test-results";
+        };
+      };
+    };
+
     kitchen-sink = {
       famedly.standards = {
         rules = {
@@ -552,6 +617,7 @@ let
           enable = true;
           imageName = "my-app";
           registry = "ghcr.io";
+          registryPasswordSecret = "GITHUB_TOKEN";
         };
         github-pages = {
           enable = true;
@@ -560,6 +626,10 @@ let
         ansible-ci = {
           enable = true;
           collection = "famedly.test";
+        };
+        hookd-deploy = {
+          enable = true;
+          hookdUrl = "https://my-webhook.famedly.de";
         };
       };
     };
@@ -609,6 +679,11 @@ let
   flutterTestCoverageBundle = evalWithBundle "flutter-test-coverage" scenarios.flutter-test-coverage;
   dartMinimalLintBundle = evalWithBundle "dart-minimal-lint" scenarios.dart-minimal-lint;
   dartMultiPackageBundle = evalWithBundle "dart-multi-package" scenarios.dart-multi-package;
+  hookdDeployBundle = evalWithBundle "hookd-deploy" scenarios.hookd-deploy;
+  dockerSimpleBundle = evalWithBundle "docker-simple" scenarios.docker-simple;
+  dockerWorkflowRunBundle = evalWithBundle "docker-workflow-run" scenarios.docker-workflow-run;
+  reviewAppWorkflowRunBundle = evalWithBundle "review-app-workflow-run" scenarios.review-app-workflow-run;
+  githubPagesCustomBundle = evalWithBundle "github-pages-custom" scenarios.github-pages-custom;
   disabledBundle = evalWithBundle "disabled" scenarios.disabled;
 
   disabledScriptEval = evalConsumer "script-test-disabled" scenarios.disabled;
@@ -733,6 +808,8 @@ let
       test -f ${kitchenSinkBundle}/.github/workflows/docker.yml
       test -f ${kitchenSinkBundle}/.github/workflows/github-pages.yml
       test -f ${kitchenSinkBundle}/.github/workflows/ansible-ci.yml
+      test -f ${kitchenSinkBundle}/.github/workflows/hookd-deploy.yml
+      test -f ${kitchenSinkBundle}/.github/workflows/hookd.py
 
       test -f ${kitchenSinkBundle}/.editorconfig
       test -f ${kitchenSinkBundle}/.github/dependabot.yml
@@ -1069,6 +1146,85 @@ let
       touch $out
     '';
 
+    test-content-hookd-deploy = pkgs.runCommand "test-content-hookd-deploy" { } ''
+      echo "=== Checking Hookd deploy workflow ==="
+
+      test -f ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+      test -f ${hookdDeployBundle}/.github/workflows/hookd.py
+
+      grep -q "Hookd Deploy" ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+      grep -q "workflow_run" ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+      grep -q "HOOKD_URL" ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+      grep -q "BASIC_AUTH_PASS" ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+      grep -q "pip install" ${hookdDeployBundle}/.github/workflows/hookd-deploy.yml
+
+      grep -q "requests" ${hookdDeployBundle}/.github/workflows/hookd.py
+      grep -q "HOOKD_URL" ${hookdDeployBundle}/.github/workflows/hookd.py
+      ! grep -q "itervalues" ${hookdDeployBundle}/.github/workflows/hookd.py
+
+      echo "PASS: Hookd deploy workflow and script correctly generated"
+      touch $out
+    '';
+
+    test-content-docker-simple = pkgs.runCommand "test-content-docker-simple" { } ''
+      echo "=== Checking Docker simple mode ==="
+
+      test -f ${dockerSimpleBundle}/.github/workflows/docker.yml
+
+      grep -q "Build & Push" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      ! grep -q "Multi-Arch" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      ! grep -q "QEMU" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      ! grep -q "merge" ${dockerSimpleBundle}/.github/workflows/docker.yml
+
+      grep -q "my-simple-app" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      grep -q "registry.example.com" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      grep -q "ci-user" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      grep -q "VERSION" ${dockerSimpleBundle}/.github/workflows/docker.yml
+      grep -q "refs/tags" ${dockerSimpleBundle}/.github/workflows/docker.yml
+
+      echo "PASS: Docker simple mode workflow correctly generated"
+      touch $out
+    '';
+
+    test-content-docker-workflow-run = pkgs.runCommand "test-content-docker-workflow-run" { } ''
+      echo "=== Checking Docker workflow_run trigger ==="
+
+      test -f ${dockerWorkflowRunBundle}/.github/workflows/docker.yml
+
+      grep -q "workflow_run" ${dockerWorkflowRunBundle}/.github/workflows/docker.yml
+      grep -q "completed" ${dockerWorkflowRunBundle}/.github/workflows/docker.yml
+
+      echo "PASS: Docker workflow_run trigger correctly generated"
+      touch $out
+    '';
+
+    test-content-review-app-workflow-run = pkgs.runCommand "test-content-review-app-workflow-run" { } ''
+      echo "=== Checking review-app workflow_run mode ==="
+
+      test -f ${reviewAppWorkflowRunBundle}/.github/workflows/review-app.yml
+
+      grep -q "workflow_run" ${reviewAppWorkflowRunBundle}/.github/workflows/review-app.yml
+      grep -q "pull_request" ${reviewAppWorkflowRunBundle}/.github/workflows/review-app.yml
+      grep -q "run-id" ${reviewAppWorkflowRunBundle}/.github/workflows/review-app.yml
+      grep -q "test-review" ${reviewAppWorkflowRunBundle}/.github/workflows/review-app.yml
+
+      echo "PASS: Review app workflow_run mode correctly generated"
+      touch $out
+    '';
+
+    test-content-github-pages-custom = pkgs.runCommand "test-content-github-pages-custom" { } ''
+      echo "=== Checking GitHub Pages custom trigger ==="
+
+      test -f ${githubPagesCustomBundle}/.github/workflows/github-pages.yml
+
+      grep -q "Integration Tests" ${githubPagesCustomBundle}/.github/workflows/github-pages.yml
+      grep -q "test-results" ${githubPagesCustomBundle}/.github/workflows/github-pages.yml
+      grep -q "run-id" ${githubPagesCustomBundle}/.github/workflows/github-pages.yml
+
+      echo "PASS: GitHub Pages custom trigger correctly generated"
+      touch $out
+    '';
+
     test-content-monorepo-selective = pkgs.runCommand "test-content-monorepo-selective" { } ''
       echo "=== Checking selective monorepo ==="
 
@@ -1196,6 +1352,11 @@ let
     test-actionlint-flutter-test-coverage = mkActionlintTest "flutter-test-coverage" flutterTestCoverageBundle;
     test-actionlint-dart-minimal-lint = mkActionlintTest "dart-minimal-lint" dartMinimalLintBundle;
     test-actionlint-dart-multi-package = mkActionlintTest "dart-multi-package" dartMultiPackageBundle;
+    test-actionlint-hookd-deploy = mkActionlintTest "hookd-deploy" hookdDeployBundle;
+    test-actionlint-docker-simple = mkActionlintTest "docker-simple" dockerSimpleBundle;
+    test-actionlint-docker-workflow-run = mkActionlintTest "docker-workflow-run" dockerWorkflowRunBundle;
+    test-actionlint-review-app-workflow-run = mkActionlintTest "review-app-workflow-run" reviewAppWorkflowRunBundle;
+    test-actionlint-github-pages-custom = mkActionlintTest "github-pages-custom" githubPagesCustomBundle;
     test-actionlint-monorepo-selective = mkActionlintTest "monorepo-selective" monorepoSelectiveBundle;
   };
 

@@ -1,238 +1,147 @@
 # Adopting engineering-standards
 
-This guide walks you through adopting the engineering-standards Nix module in a Famedly repository — from first-time Nix setup through day-to-day development.
-
 ## Table of contents
 
 1. [Prerequisites](#prerequisites)
 2. [New repository](#new-repository)
 3. [Existing repository](#existing-repository)
 4. [Day-to-day workflow](#day-to-day-workflow)
-5. [IDE support (nixd)](#ide-support-nixd)
-6. [Configuration reference](#configuration-reference)
-7. [Monorepos](#monorepos)
-8. [FOSS compliance](#foss-compliance)
-9. [Staying up to date](#staying-up-to-date)
-10. [Troubleshooting](#troubleshooting)
+5. [Configuration reference](#configuration-reference)
+6. [Monorepos](#monorepos)
+7. [FOSS compliance](#foss-compliance)
+8. [Staying up to date](#staying-up-to-date)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Prerequisites
 
-### Install Nix
-
-Install Nix using the [Determinate Systems installer](https://determinate.systems/nix/) (recommended — enables flakes by default):
+Install Nix via the [Determinate Systems installer](https://determinate.systems/nix/) (enables flakes by default):
 
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 ```
 
-Alternatively, use the [official installer](https://nixos.org/download/) and then enable flakes manually by adding this to `~/.config/nix/nix.conf` or `/etc/nix/nix.conf`:
+Or use the [official installer](https://nixos.org/download/) and add to `~/.config/nix/nix.conf`:
 
 ```ini
 experimental-features = nix-command flakes
 ```
 
-### What is a Nix flake?
-
-A **flake** is a `flake.nix` file at the root of your repository. It declares:
-
-- **inputs** — other flakes your project depends on (e.g. nixpkgs, engineering-standards)
-- **outputs** — everything your project provides: packages, dev shells, CI checks, GitHub workflow files
-
-All inputs are pinned in `flake.lock`, making builds fully reproducible. The engineering-standards module is one such input; importing it adds the `famedly.standards.*` and `famedly.github.workflows.*` option namespaces to your flake.
+A **flake** is a `flake.nix` declaring inputs (dependencies) and outputs (packages, dev shells, checks, workflow files). All inputs are pinned in `flake.lock`. The engineering-standards module adds the `famedly.standards.*` and `famedly.github.workflows.*` option namespaces.
 
 ---
 
 ## New repository
 
-For an empty directory (or after `git init`), use one of the provided templates:
-
 ```sh
-# Pick the template matching your stack:
-nix flake init -t github:famedly/engineering-standards#rust
-nix flake init -t github:famedly/engineering-standards#dart
-nix flake init -t github:famedly/engineering-standards#flutter
-nix flake init -t github:famedly/engineering-standards#flutter-rust   # monorepo
-
-nix flake update                   # create flake.lock with pinned inputs
-nix run .#regenerateStandards      # write managed files (.editorconfig, workflows, lint configs, …)
-nix flake check                    # verify everything evaluates and checks pass
+nix flake init -t github:famedly/engineering-standards#dart   # or #rust, #flutter, #flutter-rust
+nix flake update
+nix run .#regenerateStandards
+nix flake check
 ```
 
-What each command does:
-
-| Command | What happens |
-|---------|-------------|
-| `nix flake init -t …` | Copies a `flake.nix` template into your directory |
-| `nix flake update` | Resolves all inputs and writes `flake.lock` |
-| `nix run .#regenerateStandards` | Generates all files declared as managed (workflows, `.editorconfig`, lint configs, …) and writes `.engineering-standards-manifest` |
-| `nix flake check` | Evaluates all checks in the flake — including the pre-commit hook suite if enabled |
-
-After these steps, commit everything including `flake.lock` and `.engineering-standards-manifest`.
+Commit everything including `flake.lock` and `.engineering-standards-manifest`.
 
 ---
 
 ## Existing repository
 
-### 1. Add the input and import the module
+### 1. Add input
 
 ```nix
-# flake.nix
 inputs = {
   nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
   flake-parts.url = "github:hercules-ci/flake-parts";
   engineering-standards.url = "github:famedly/engineering-standards";
 };
 
-outputs =
-  { flake-parts, ... }@inputs:
+outputs = { flake-parts, ... }@inputs:
   flake-parts.lib.mkFlake { inherit inputs; } {
     imports = [ inputs.engineering-standards.flakeModules.default ];
-    # …
   };
 ```
 
-### 2. Configure standards and workflows
-
-Under `perSystem`, set the options for your stack. Example for a Dart project:
+### 2. Configure
 
 ```nix
-perSystem =
-  { config, pkgs, lib, ... }:
-  {
-    famedly.standards = {
-      linting = {
-        enable = true;
-        dart = true;
-      };
-      preCommitHooks = {
-        enable = true;
-        dartHooks.enable = true;
-      };
-      infrastructure = {
-        editorconfig = true;
-        dependabot = true;
-        dependabotDart = true;
-      };
-      devShell.enable = true;
-      dart.enable = true;
-    };
-
-    famedly.github.workflows = {
-      ci.enable = true;
-      "general-checks".enable = true;
-      # dart-ci is auto-enabled by dart.enable = true
-    };
-
-    devShells.default = pkgs.mkShell {
-      inputsFrom = lib.optionals (
-        config.famedly.standards.devShell.enable && config.devShells ? famedly-standards
-      ) [ config.devShells.famedly-standards ];
-      packages = [ pkgs.dart ];
-    };
+perSystem = { config, pkgs, lib, ... }: {
+  famedly.standards = {
+    linting = { enable = true; dart = true; };
+    preCommitHooks = { enable = true; dartHooks.enable = true; };
+    infrastructure = { editorconfig = true; dependabot = true; dependabotDart = true; };
+    devShell.enable = true;
+    dart.enable = true;
   };
+
+  famedly.github.workflows = {
+    ci.enable = true;
+    "general-checks".enable = true;
+  };
+
+  devShells.default = pkgs.mkShell {
+    inputsFrom = lib.optionals
+      (config.famedly.standards.devShell.enable && config.devShells ? famedly-standards)
+      [ config.devShells.famedly-standards ];
+    packages = [ pkgs.dart ];
+  };
+};
 ```
 
 ### 3. Finalize
 
 ```sh
-nix flake lock                   # pin the new input
-nix run .#regenerateStandards    # generate managed files
-nix flake check                  # verify
+nix flake lock && nix run .#regenerateStandards && nix flake check
 git add -A && git commit -m "feat: adopt engineering-standards"
 ```
 
-Remove any old duplicated CI workflows (legacy `famedly/*-workflows` references, `general.yml`, sync workflows) so you are not running two systems in parallel.
+Remove legacy CI workflows (`famedly/*-workflows`, `general.yml`, sync workflows).
 
 ---
 
 ## Day-to-day workflow
 
-### Entering the dev shell
+### Dev shell
 
 ```sh
 nix develop
 ```
 
-When you enter the dev shell for the first time (or after `nix flake update`), the shell hook from `git-hooks.nix` automatically installs pre-commit hooks into `.git/hooks/pre-commit`. You get all hook tools (typos, reuse, clippy, dart, ruff, …) on your `PATH` without any separate installation step.
-
-To wire the `famedly-standards` shell into your own `devShells.default`, use `inputsFrom`:
+Pre-commit hooks are installed automatically on first entry. Wire into your own shell with `inputsFrom`:
 
 ```nix
 devShells.default = pkgs.mkShell {
-  inputsFrom = lib.optionals (
-    config.famedly.standards.devShell.enable && config.devShells ? famedly-standards
-  ) [ config.devShells.famedly-standards ];
-  packages = [ /* your additional packages */ ];
+  inputsFrom = lib.optionals
+    (config.famedly.standards.devShell.enable && config.devShells ? famedly-standards)
+    [ config.devShells.famedly-standards ];
 };
 ```
 
+### CLI commands
+
+| Command | What it does |
+|---------|-------------|
+| `famedly-regen` | Regenerate managed files (pinned input) |
+| `famedly-regen --dev` | Regenerate with local `../engineering-standards` (override via `ENGINEERING_STANDARDS_PATH`) |
+| `famedly-check` | `nix flake check -L` |
+| `famedly-lint` | `pre-commit run --all-files` |
+| `famedly-lint --fix` | Same, continue on errors |
+| `famedly-update` | Update input + regenerate + check |
+| `famedly-help` | List commands |
+
 ### Pre-commit hooks
-
-Hooks run automatically on `git commit`. You can also run them manually inside the dev shell:
-
-```sh
-pre-commit run --all-files
-```
-
-The following hook groups are available:
 
 | Group | Enabled when | Hooks |
 |-------|-------------|-------|
-| Base | always (when `preCommitHooks.enable = true`) | `fix-byte-order-marker`, `check-case-conflicts`, `check-merge-conflicts`, `check-symlinks`, `check-yaml`, `check-toml`, `check-json`, `end-of-file-fixer`, `mixed-line-endings`, `trim-trailing-whitespace`, `typos` |
-| FOSS | `fossHooks.enable = true` (default) | `reuse` (SPDX license compliance) |
-| Rust | `rustHooks.enable = true` | `clippy` (deny warnings, all targets), `rustfmt` (nightly, check mode) |
-| Dart | `dartHooks.enable = true` | `dart format`, `dart analyze --fatal-infos` |
-| Python | `pythonHooks.enable = true` | `ruff check --fix`, `ruff format` |
+| Base | `preCommitHooks.enable` | byte-order-marker, case-conflicts, merge-conflicts, symlinks, yaml, toml, json, eof-fixer, mixed-line-endings, trailing-whitespace, typos |
+| FOSS | `fossHooks.enable` (default) | reuse |
+| Rust | `rustHooks.enable` | clippy, rustfmt |
+| Dart | `dartHooks.enable` | dart format, dart analyze `--fatal-infos` |
+| Python | `pythonHooks.enable` | ruff check, ruff format |
 
-> **Note on `--fatal-infos`:** The Dart analyzer hook runs with `--fatal-infos`, meaning info-level diagnostics (not just warnings/errors) will cause the hook to fail. Fix all reported hints before committing.
+### Managed files
 
-### Regenerating managed files
-
-```sh
-nix run .#regenerateStandards
-```
-
-This command writes all files that the module manages (`.editorconfig`, `.github/workflows/*.yml`, lint config files, Cursor rules, …) and removes any previously generated files that belong to features you have since disabled. It maintains `.engineering-standards-manifest` to track which files it owns — commit this file together with the generated output.
-
-**Do not hand-edit managed files.** Change the Nix options and re-run `regenerateStandards` instead.
-
-### Running checks locally
-
-```sh
-nix flake check
-```
-
-This runs all checks defined in your flake, including the pre-commit hook suite (exposed as a check derivation by `git-hooks.nix`). This is identical to what CI runs with `nix flake check -L`. If it passes locally, it will pass in CI.
-
----
-
-## IDE support (nixd)
-
-When `devShell.enable = true`, the module ships [nixd](https://github.com/nix-community/nixd) — a Nix language server that understands flake-parts module options. It provides auto-completion, hover documentation, goto-definition, and type checking for all `famedly.standards.*` and `famedly.github.workflows.*` options directly in your editor.
-
-### Setup
-
-1. Install the **nixd** extension in VS Code / Cursor (search for `nix-community.nixd` in the extension marketplace)
-2. Run `nix run .#regenerateStandards` — this creates `.nixd.json` in your repo root
-3. Enter the dev shell with `nix develop` — nixd is now on your `PATH`
-4. Open `flake.nix` — completion, hover docs, and goto-definition work for all engineering-standards options
-
-> **Note:** Templates created with `nix flake init -t …` already include `.nixd.json`. Existing repos get the file after regenerating.
-
-### What you get
-
-- **Auto-completion** — type `famedly.standards.` and see all available options with their types and defaults
-- **Hover documentation** — hover over any option to see its description, type, and default value
-- **Goto definition** — jump directly to the `mkOption` declaration in engineering-standards
-- **Type checking** — warnings for invalid option paths or wrong value types
-
-### Editor configuration
-
-If you use a different editor (Neovim, Emacs, Helix, …), configure it to use `nixd` as the Nix language server. The `.nixd.json` file in the repo root is read automatically by nixd regardless of editor.
-
-For VS Code / Cursor, make sure to disable the older `nil` language server if you have it installed — running both simultaneously causes conflicts.
+`famedly-regen` writes all managed files and updates `.engineering-standards-manifest`. Do not hand-edit managed files — change Nix options instead.
 
 ---
 
@@ -240,251 +149,178 @@ For VS Code / Cursor, make sure to disable the older `nil` language server if yo
 
 ### `famedly.standards.*`
 
-#### `rules`
-
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `rules.enable` | `bool` | `false` | Generate AI assistant rule files (`.cursor/rules/standards/`, `CLAUDE.md`) |
-| `rules.extraScopes` | `listOf enum` | `[]` | Additional language scopes: `"dart"`, `"flutter"`, `"rust"`, `"python"`, `"typescript"` |
-
-#### `linting`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `linting.enable` | `bool` | `false` | Master switch; must be `true` for any language config to be generated |
-| `linting.dart` | `bool` | `false` | Generate `analysis_options.yaml` for Dart |
-| `linting.flutter` | `bool` | `false` | Generate `analysis_options.yaml` for Flutter |
-| `linting.rust` | `bool` | `false` | Generate `deny.toml` and `rustfmt.toml` |
-| `linting.python` | `bool` | `false` | Generate `pyproject.toml` (ruff config) |
-| `linting.typescript` | `bool` | `false` | Generate TypeScript lint config |
-
-> `analysis_options.yaml` (Dart/Flutter) is written with `initialOnly = true` — it is only created if it does not already exist, so you can extend it freely.
-
-#### `preCommitHooks`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `preCommitHooks.enable` | `bool` | `false` | Enable git-hooks.nix pre-commit suite |
-| `preCommitHooks.fossHooks.enable` | `bool` | `true` | Enable REUSE license compliance hook |
-| `preCommitHooks.fossHooks.copyright` | `str` | `"Famedly GmbH"` | Copyright holder for SPDX headers |
-| `preCommitHooks.fossHooks.license` | `str` | `"AGPL-3.0-only"` | SPDX license identifier for headers |
-| `preCommitHooks.rustHooks.enable` | `bool` | `false` | Enable clippy and rustfmt hooks |
-| `preCommitHooks.dartHooks.enable` | `bool` | `false` | Enable dart format and dart analyze hooks |
-| `preCommitHooks.pythonHooks.enable` | `bool` | `false` | Enable ruff check and ruff format hooks |
-
-#### `infrastructure`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `infrastructure.editorconfig` | `bool` | `true` | Generate `.editorconfig` |
-| `infrastructure.dependabot` | `bool` | `true` | Generate `.github/dependabot.yml` (Nix ecosystem) |
-| `infrastructure.dependabotDart` | `bool` | `false` | Add pub ecosystem entry to Dependabot |
-| `infrastructure.dependabotRust` | `bool` | `false` | Add cargo ecosystem entry |
-| `infrastructure.dependabotPython` | `bool` | `false` | Add pip ecosystem entry |
-| `infrastructure.dependabotDocker` | `bool` | `false` | Add Docker ecosystem entry |
-| `infrastructure.dependabotNpm` | `bool` | `false` | Add npm ecosystem entry |
-| `infrastructure.dependabotTerraform` | `bool` | `false` | Add terraform ecosystem entry |
-
-#### `devShell`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `devShell.enable` | `bool` | `false` | Create `devShells.famedly-standards` with hook tools and shell hook |
-| `devShell.extraPackages` | `listOf package` | `[]` | Additional packages to include in the dev shell |
-
-#### `dart`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `dart.enable` | `bool` | `false` | Enable Dart/Flutter dev shell and auto-enable `dart-ci` workflow |
-| `dart.flutter` | `bool` | `false` | Use Flutter SDK instead of plain Dart SDK |
-| `dart.dartSdk` | `nullOr package` | `null` | Override the Dart/Flutter package (defaults to nixpkgs `dart` or `flutter`) |
-
-#### `projects` (monorepo)
-
-See the [Monorepos](#monorepos) section.
-
----
+| `rules.enable` | bool | `false` | Generate `.cursor/rules/standards/`, `CLAUDE.md` |
+| `rules.extraScopes` | listOf enum | `[]` | `"dart"`, `"flutter"`, `"rust"`, `"python"`, `"typescript"` |
+| `linting.enable` | bool | `false` | Master switch for lint configs |
+| `linting.dart` | bool | `false` | `analysis_options.yaml` (Dart) |
+| `linting.flutter` | bool | `false` | `analysis_options.yaml` (Flutter) |
+| `linting.rust` | bool | `false` | `deny.toml`, `rustfmt.toml` |
+| `linting.python` | bool | `false` | `pyproject.toml` (ruff) |
+| `linting.typescript` | bool | `false` | TypeScript lint config |
+| `preCommitHooks.enable` | bool | `false` | git-hooks.nix suite |
+| `preCommitHooks.fossHooks.enable` | bool | `true` | REUSE compliance hook |
+| `preCommitHooks.fossHooks.copyright` | str | `"Famedly GmbH"` | SPDX copyright holder |
+| `preCommitHooks.fossHooks.license` | str | `"AGPL-3.0-only"` | SPDX license identifier |
+| `preCommitHooks.rustHooks.enable` | bool | `false` | clippy + rustfmt |
+| `preCommitHooks.dartHooks.enable` | bool | `false` | dart format + dart analyze |
+| `preCommitHooks.pythonHooks.enable` | bool | `false` | ruff check + ruff format |
+| `infrastructure.editorconfig` | bool | `true` | `.editorconfig` |
+| `infrastructure.dependabot` | bool | `true` | `.github/dependabot.yml` |
+| `infrastructure.dependabotDart` | bool | `false` | pub ecosystem |
+| `infrastructure.dependabotRust` | bool | `false` | cargo ecosystem |
+| `infrastructure.dependabotPython` | bool | `false` | pip ecosystem |
+| `infrastructure.dependabotDocker` | bool | `false` | Docker ecosystem |
+| `infrastructure.dependabotNpm` | bool | `false` | npm ecosystem |
+| `infrastructure.dependabotTerraform` | bool | `false` | terraform ecosystem |
+| `devShell.enable` | bool | `false` | `devShells.famedly-standards` + CLI commands |
+| `devShell.extraPackages` | listOf package | `[]` | Additional packages |
+| `dart.enable` | bool | `false` | Dart/Flutter dev shell, auto-enables `dart-ci` |
+| `dart.flutter` | bool | `false` | Flutter SDK statt Dart SDK |
+| `dart.dartSdk` | nullOr package | `null` | Override SDK package |
 
 ### `famedly.github.workflows.*`
 
-Enable each workflow individually. All share an `enable` option (default `false`).
+All workflows have `enable` (bool, default `false`).
 
-| Workflow | Extra options | Notes |
-|----------|--------------|-------|
-| `ci` | `armRunners` (bool, default `false`) | Runs `nix flake check -L` in CI |
-| `general-checks` | — | Branch naming, PR title, commit hygiene |
-| `authenticate-commits` | — | OpenPGP/SSH commit signature verification |
-| `fast-forward` | — | `/fast-forward` comment triggers PR merge |
-| `add-to-project` | `projectUrl` (str) | Add issues/PRs to a GitHub Project |
-| `update-openpgp-policy` | `teams` (str) | Update OpenPGP key policy for teams |
-| `ai-review` | `model` (str, default `"claude-sonnet-4-5"`) | AI-assisted PR review |
-| `release` | `draft` (bool, default `false`) | GitHub release via gh CLI |
-| `rust-ci` | `runner`, `container`, `features`, `packages`, `additionalPackages`, `coverage` (bool, default `true`), `typos` (bool, default `true`), `cargoDeny` (bool, default `false`) | Full Rust CI: tests, coverage, typos, cargo-deny |
-| `dart-ci` | `directory` (str, default `""`), `sdk` (enum `"flutter"`/`"dart"`, default `"flutter"`) | Dart/Flutter CI; auto-enabled by `dart.enable = true` |
-| `publish-crate` | `packages`, `features`, `extraTagPatterns` (listOf str) | Publish crates to crates.io |
-| `publish-pub` | — | Publish packages to pub.dev |
-| `docker` | `imageName`, `registry` (default `"ghcr.io"`), `armRunner`, `amd64Runner` | Build and push Docker image |
-| `docker-backend` | `targets` (str), `oss` (bool, default `false`) | Multi-target Docker backend builds |
-| `docker-bake` | `files` (default `"docker-bake.hcl"`), `targets` (default `"default"`) | Docker Bake builds |
-| `github-pages` | `artifactName` (str, default `"github-pages"`) | Deploy to GitHub Pages |
-| `review-app` | `projectName` (str), `environment` (str, default `"review"`) | Deploy review apps |
-| `ansible-ci` | `collection` (str) | Ansible collection CI |
-| `update-engineering-standards` | `schedule` (str, cron) | Scheduled PR to bump this input and regenerate |
+| Workflow | Key options |
+|----------|-----------|
+| `ci` | `armRunners` |
+| `general-checks` | — |
+| `authenticate-commits` | — |
+| `fast-forward` | — |
+| `add-to-project` | `projectUrl` |
+| `update-openpgp-policy` | `teams` |
+| `ai-review` | `model` |
+| `release` | `draft` |
+| `rust-ci` | `runner`, `container`, `features`, `packages`, `additionalPackages`, `coverage`, `typos`, `cargoDeny` |
+| `dart-ci` | `packages` (attrsOf: `directory`, `sdk`, `test`, `coverage`, `coverageFlags`) |
+| `publish-crate` | `packages`, `features`, `extraTagPatterns` |
+| `publish-pub` | — |
+| `docker` | `mode` (`multi-arch`/`simple`), `imageName`, `registry`, `triggerMode` (`direct`/`workflowRun`), `triggerWorkflow`, `buildArgs`, `pushOnlyOnTags`, `registryUser`, `registryPasswordSecret`, `context`, `dockerfile` |
+| `docker-backend` | `targets`, `oss` |
+| `docker-bake` | `files`, `targets` |
+| `github-pages` | `artifactName`, `triggerWorkflows`, `triggerBranches` |
+| `review-app` | `projectName`, `environment`, `triggerMode` (`direct`/`workflowRun`), `triggerWorkflow`, `artifactName` |
+| `hookd-deploy` | `hookdUrl`, `hookdEndpoint`, `triggerWorkflow`, `secretName`, `environment`, `tagPrefix` |
+| `ansible-ci` | `collection` |
+| `update-engineering-standards` | `schedule` |
 
-All workflow YAML is generated directly from Nix — there are no `workflow_call` indirections. Tools like typos, cargo-deny, dart, and flutter are installed at CI time via `nix profile install`, pinned to the flake's `nixpkgs` revision.
+### Multi-package Dart CI
+
+`dart-ci.packages` is an `attrsOf submodule`. Each entry produces independent lint/test/coverage jobs:
+
+```nix
+dart-ci = {
+  enable = true;
+  packages = {
+    sdk = { sdk = "dart"; coverage = true; coverageFlags = "sdk-tests"; };
+    testdriver = { directory = "ti_testdriver"; sdk = "dart"; coverage = false; };
+    app = { directory = "example/app"; sdk = "flutter"; };
+  };
+};
+```
+
+Per-package options: `directory` (str, `""`), `sdk` (enum, `"flutter"`), `test` (bool, `true`), `coverage` (bool, `true`), `coverageFlags` (str, `""`).
+
+### `workflow_run` triggers
+
+`docker`, `review-app`, `github-pages`, and `hookd-deploy` support triggering after another workflow completes via `workflow_run`. Set `triggerMode = "workflowRun"` and `triggerWorkflow = "Upstream Workflow Name"`. This replaces `workflow_call` reusable workflows — each generated workflow is fully self-contained.
+
+```nix
+docker = {
+  enable = true;
+  mode = "simple";
+  triggerMode = "workflowRun";
+  triggerWorkflow = "My CI";
+  imageName = "my-image";
+  pushOnlyOnTags = true;
+};
+
+review-app = {
+  enable = true;
+  triggerMode = "workflowRun";
+  triggerWorkflow = "My CI";
+  projectName = "my-project";
+};
+
+hookd-deploy = {
+  enable = true;
+  triggerWorkflow = "Docker — Build & Push";
+  hookdUrl = "https://my-webhook.famedly.de";
+};
+```
 
 ---
 
 ## Monorepos
 
-Use `famedly.standards.projects` when a single repository contains multiple language roots (e.g. a Flutter frontend and a Rust backend). Each project entry generates scoped lint configs, Dependabot entries, and directory-scoped pre-commit hooks.
+`famedly.standards.projects` — per-directory lint configs, Dependabot entries, scoped pre-commit hooks:
 
 ```nix
-famedly.standards = {
-  preCommitHooks.enable = true;
-  infrastructure = {
-    editorconfig = true;
-    dependabot = true;
-  };
-  devShell.enable = true;
-
-  projects = {
-    backend = {
-      language = "rust";
-      directory = "backend";
-    };
-    frontend = {
-      language = "flutter";
-      directory = "frontend";
-    };
-  };
-
-  dart = {
-    enable = true;
-    flutter = true;
-  };
+famedly.standards.projects = {
+  backend = { language = "rust"; directory = "backend"; };
+  frontend = { language = "flutter"; directory = "frontend"; };
 };
 
-famedly.github.workflows = {
-  ci.enable = true;
-  "general-checks".enable = true;
-  "dart-ci".directory = "frontend";   # point dart-ci at the Flutter subdirectory
+famedly.github.workflows.dart-ci.packages.frontend = {
+  directory = "frontend";
+  sdk = "flutter";
 };
 ```
 
-Per-project options:
+Per-project options: `language` (required: `"rust"`, `"dart"`, `"flutter"`, `"python"`, `"typescript"`), `directory` (str), `linting` (bool, `true`), `dependabot` (bool, `true`), `hooks` (bool, `true`).
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `language` | enum | (required) | `"rust"`, `"dart"`, `"flutter"`, `"python"`, `"typescript"` |
-| `directory` | str | `""` | Path relative to repo root (e.g. `"backend"`) |
-| `linting` | bool | `true` | Generate lint config for this project |
-| `dependabot` | bool | `true` | Add Dependabot entry for this project |
-| `hooks` | bool | `true` | Include scoped pre-commit hooks for this project |
-
-> Do not also enable the same language at the root level (e.g. `linting.rust = true`) when you have a `projects` entry for it — that would duplicate configs.
-
-Expected directory layout for the `flutter-rust` template:
-
-```
-├── flake.nix
-├── frontend/          # Flutter app
-│   ├── pubspec.yaml
-│   └── lib/
-└── backend/           # Rust service
-    ├── Cargo.toml
-    └── src/
-```
+Do not enable the same language at root level and in `projects` — that duplicates configs.
 
 ---
 
 ## FOSS compliance
 
-When `preCommitHooks.fossHooks.enable = true` (the default when `preCommitHooks.enable = true`), the module:
-
-- Enables the `reuse` pre-commit hook, which checks that all files have SPDX license headers and that license texts are present in `LICENSES/`
-- Generates an initial `REUSE.toml` covering standard managed files (`.editorconfig`, `.github/`, `.cursor/rules/standards/`, etc.)
-- Provides the `addLicenseHeaders` app
-
-### Adding license headers
-
-If the `reuse` hook fails because files are missing SPDX headers, run:
+When `fossHooks.enable = true` (default): `reuse` hook checks SPDX headers, `REUSE.toml` is generated for managed files, `addLicenseHeaders` app is available.
 
 ```sh
-nix run .#addLicenseHeaders
+nix run .#addLicenseHeaders    # annotate files
+reuse lint                     # verify
 ```
 
-This annotates all git-tracked files with the configured copyright and license identifier and downloads any missing license texts. Configure the defaults in your flake:
+Configure copyright/license:
 
 ```nix
-preCommitHooks = {
-  enable = true;
-  fossHooks = {
-    enable = true;
-    copyright = "Your Company Name";
-    license = "Apache-2.0";
-  };
-};
-```
-
-After running `addLicenseHeaders`, verify with:
-
-```sh
-reuse lint
+preCommitHooks.fossHooks = { copyright = "Your Company"; license = "Apache-2.0"; };
 ```
 
 ---
 
 ## Staying up to date
 
-### Automated updates
-
-Enable the update workflow in your flake:
+### Automated
 
 ```nix
 famedly.github.workflows."update-engineering-standards".enable = true;
 ```
 
-After regenerating (`nix run .#regenerateStandards`), a workflow appears at `.github/workflows/update-engineering-standards.yml`. It runs on a schedule (default: Mondays at 06:00 UTC), bumps the `engineering-standards` input in `flake.lock`, re-runs `regenerateStandards`, and opens a PR with the diff.
+Runs on schedule (default: Mondays 06:00 UTC), bumps input, regenerates, opens PR.
 
-You can also trigger it manually from the GitHub Actions UI or via `repository_dispatch`.
-
-### Manual update
+### Manual
 
 ```sh
-nix flake update engineering-standards    # or: nix flake update (updates all inputs)
-nix run .#regenerateStandards
-nix flake check
-git add flake.lock .engineering-standards-manifest
-git add -u                                # stage any changed managed files
-git commit -m "chore: update engineering-standards"
+famedly-update    # or step by step:
+# nix flake update engineering-standards && nix run .#regenerateStandards && nix flake check
 ```
 
 ---
 
 ## Troubleshooting
 
-**`error: experimental Nix feature 'flakes' is disabled`**
-Enable flakes in your `nix.conf` (see [Prerequisites](#prerequisites)).
-
-**`nix flake check` fails locally but CI is green (or vice versa)**
-CI runs `nix flake check -L` on the exact same flake inputs pinned in `flake.lock`. If they differ, run `nix flake update` and re-check locally. Make sure you have committed `flake.lock`.
-
-**Pre-commit hooks not installed after `nix develop`**
-The shell hook installs hooks automatically on first entry. If hooks are missing, exit and re-enter the shell: `exit && nix develop`. Alternatively run `pre-commit install` manually inside the dev shell.
-
-**`dart analyze` fails with info-level hints**
-The hook runs with `--fatal-infos`. Fix all reported hints (even info-level ones) or suppress them with `// ignore: <rule>` annotations in the source.
-
-**`reuse lint` fails after adding new files**
-Run `nix run .#addLicenseHeaders` to annotate new files, then commit the changes.
-
-**Managed file was hand-edited and `regenerateStandards` overwrites it**
-Only edit managed files through Nix options. Check `.engineering-standards-manifest` to see which files are managed. If you need to diverge from the generated content, disable the relevant option and maintain the file manually.
-
-**`nix flake lock` fails with input resolution errors**
-Ensure the `engineering-standards` URL is correct (`github:famedly/engineering-standards`) and that your network can reach GitHub. For private registries or offline setups, contact the maintainers.
-
-**CI workflow generated with wrong content after option change**
-Run `nix run .#regenerateStandards` and commit the updated workflow file. The `ci` check in `nix flake check` enforces that generated files match the current Nix configuration.
+| Problem | Fix |
+|---------|-----|
+| `experimental Nix feature 'flakes' is disabled` | Enable flakes in `nix.conf` |
+| `nix flake check` differs locally vs CI | Run `nix flake update`, commit `flake.lock` |
+| Pre-commit hooks missing after `nix develop` | `exit && nix develop` or `pre-commit install` |
+| `dart analyze` fails on info-level hints | Hook uses `--fatal-infos`; fix all hints |
+| `reuse lint` fails | `nix run .#addLicenseHeaders` |
+| Managed file overwritten | Don't hand-edit; change Nix options, re-run `famedly-regen` |
+| `nix flake lock` input resolution error | Check URL `github:famedly/engineering-standards`, check network |
+| Wrong workflow content after option change | `famedly-regen` + commit |
