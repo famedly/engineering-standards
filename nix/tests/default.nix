@@ -438,6 +438,31 @@ let
       };
     };
 
+    dart-multi-package = {
+      famedly.github.workflows = {
+        ci.enable = true;
+        dart-ci = {
+          enable = true;
+          packages = {
+            sdk = {
+              directory = "sdk";
+              sdk = "dart";
+              test = true;
+              coverage = true;
+              coverageFlags = "sdk-tests";
+            };
+            app = {
+              directory = "example/app";
+              sdk = "flutter";
+              test = true;
+              coverage = false;
+              importSorter = false;
+            };
+          };
+        };
+      };
+    };
+
     monorepo-selective = {
       famedly.standards = {
         infrastructure.dependabot = true;
@@ -583,6 +608,7 @@ let
   dartTestCoverageBundle = evalWithBundle "dart-test-coverage" scenarios.dart-test-coverage;
   flutterTestCoverageBundle = evalWithBundle "flutter-test-coverage" scenarios.flutter-test-coverage;
   dartMinimalLintBundle = evalWithBundle "dart-minimal-lint" scenarios.dart-minimal-lint;
+  dartMultiPackageBundle = evalWithBundle "dart-multi-package" scenarios.dart-multi-package;
   disabledBundle = evalWithBundle "disabled" scenarios.disabled;
 
   disabledScriptEval = evalConsumer "script-test-disabled" scenarios.disabled;
@@ -1014,6 +1040,35 @@ let
       touch $out
     '';
 
+    test-content-dart-multi-package = pkgs.runCommand "test-content-dart-multi-package" { } ''
+      echo "=== Checking Dart multi-package workflow ==="
+
+      test -f ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      # Per-package lint jobs: both packages generate separate dart_ci jobs
+      grep -q "Dart CI" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      # SDK package uses dart commands, app package uses flutter
+      grep -q "dart pub get" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+      grep -q "flutter pub get" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      # Test jobs for both packages
+      grep -q "dart test" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+      grep -q "flutter test" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      # Coverage only for sdk package (dart, not flutter)
+      grep -q "test_with_coverage" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+      grep -q "sdk-tests" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+      grep -q "codecov" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      # Directory references for both packages
+      grep -q "sdk" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+      grep -q "example/app" ${dartMultiPackageBundle}/.github/workflows/dart-ci.yml
+
+      echo "PASS: Dart multi-package workflow correctly generated"
+      touch $out
+    '';
+
     test-content-monorepo-selective = pkgs.runCommand "test-content-monorepo-selective" { } ''
       echo "=== Checking selective monorepo ==="
 
@@ -1140,6 +1195,7 @@ let
     test-actionlint-dart-test-coverage = mkActionlintTest "dart-test-coverage" dartTestCoverageBundle;
     test-actionlint-flutter-test-coverage = mkActionlintTest "flutter-test-coverage" flutterTestCoverageBundle;
     test-actionlint-dart-minimal-lint = mkActionlintTest "dart-minimal-lint" dartMinimalLintBundle;
+    test-actionlint-dart-multi-package = mkActionlintTest "dart-multi-package" dartMultiPackageBundle;
     test-actionlint-monorepo-selective = mkActionlintTest "monorepo-selective" monorepoSelectiveBundle;
   };
 
