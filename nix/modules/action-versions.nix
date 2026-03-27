@@ -16,6 +16,16 @@
         description = "Canonical commit-SHA pins for all GitHub Actions used across workflows.";
       };
 
+      options.famedly.standards.workflowRef = lib.mkOption {
+        type = lib.types.str;
+        default = "main";
+        description = ''
+          Deprecated — no longer used. Workflows are now generated inline
+          instead of calling reusable workflows. This option is kept for
+          backwards compatibility so existing consumer configs don't break.
+        '';
+      };
+
       config.famedly.standards.actionVersions = builtins.mapAttrs (_: entry: entry.sha) (
         import ../action-versions-data.nix
       );

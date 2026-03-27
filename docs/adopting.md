@@ -68,7 +68,7 @@ famedly.standards.updateWorkflow.enable = true;
 
 Regenerate once so `.github/workflows/update-engineering-standards.yml` appears. That workflow can run on a schedule, on **`repository_dispatch`**, or manually.
 
-Consumers pin the **engineering-standards** input in `flake.lock`. Reusable workflow **callers** use `famedly.standards.workflowRef` (often a floating major tag like `v1`); breaking workflow changes ship as a new major tag.
+Consumers pin the **engineering-standards** input in `flake.lock`. Workflows are generated inline — the `famedly.standards.workflowRef` option is deprecated and ignored.
 
 ## Monorepos
 
