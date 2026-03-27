@@ -72,6 +72,11 @@ let
       default = "";
       description = "Flags to pass to Codecov (e.g. 'sdk-tests').";
     };
+    aptPackages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "System packages to install via apt before tests (e.g. ['libsqlite3-dev']).";
+    };
   };
 
   multiPackage = config.packages != { };
@@ -125,6 +130,14 @@ let
       (nixSetupStep av.installNix)
       (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
       (mkSdkInstallStep pkg.sdk)
+    ]
+    ++ lib.optionals (pkg.aptPackages != [ ]) [
+      {
+        name = "Install system dependencies";
+        run = "sudo apt-get update -qq && sudo apt-get install -yqq --no-install-recommends ${lib.concatStringsSep " " pkg.aptPackages}";
+      }
+    ]
+    ++ [
       {
         uses = "actions/cache@${av.cache}";
         with_ = {
