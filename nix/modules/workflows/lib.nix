@@ -90,7 +90,8 @@ rec {
       '';
     };
 
-  # Configure git auth for the Nix daemon (root) so it can fetch private flake inputs.
+  # Configure git auth for the Nix daemon so it can fetch private flake inputs.
+  # The daemon may run as root or nixbld users, so we configure SSH system-wide.
   mkNixGitAuthStep =
     { sshKey }:
     {
@@ -100,10 +101,16 @@ rec {
       run = ''
         set -euo pipefail
         if [[ -n "''${SSH_KEY:-}" ]]; then
-          sudo mkdir -p /root/.ssh
-          echo "''${SSH_KEY}" | sudo tee /root/.ssh/id_rsa > /dev/null
-          sudo chmod 600 /root/.ssh/id_rsa
-          sudo ssh-keyscan github.com 2>/dev/null | sudo tee -a /root/.ssh/known_hosts > /dev/null
+          sudo mkdir -p /etc/nix
+          printf '%s\n' "''${SSH_KEY}" | sudo tee /etc/nix/git_ssh_key > /dev/null
+          sudo chmod 600 /etc/nix/git_ssh_key
+
+          sudo mkdir -p /etc/ssh/ssh_config.d
+          printf '%s\n' "Host github.com" \
+                        "  IdentityFile /etc/nix/git_ssh_key" \
+                        "  StrictHostKeyChecking accept-new" \
+            | sudo tee /etc/ssh/ssh_config.d/github.conf > /dev/null
+
           sudo git config --system url."git@github.com:".insteadOf "https://github.com/"
         fi
       '';
