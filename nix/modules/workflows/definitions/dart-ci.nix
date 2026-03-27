@@ -217,7 +217,7 @@ let
               workingDirectory = dir;
               run = ''
                 if grep -q 'dart_code_linter:' pubspec.yaml; then
-                  dart run dart_code_linter:metrics analyze lib --reporter=github
+                  dart run dart_code_linter:metrics analyze lib --reporter=github --set-exit-on-violation-level=noted
                 else
                   echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
                 fi
