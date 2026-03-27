@@ -22,6 +22,12 @@
 #
 # Then run `nix run .#regenerateStandards` to write managed files,
 # and `nix flake check` to run the standard quality checks.
+#
+# File lifecycle: regenerateStandards maintains a manifest at
+# .engineering-standards-manifest that tracks all generated files.
+# When a feature is disabled, the next regenerate run automatically
+# removes the files that belong to it. Commit the manifest alongside
+# other generated files.
 
 { flake-parts-lib, lib, ... }:
 let
@@ -71,13 +77,42 @@ in
         ''
       ) cfg._internal.managedFiles;
 
+      # Manifest tracks all currently-managed destination paths so that
+      # regenerateStandards can remove files that are no longer managed
+      # (e.g. after disabling a feature). The manifest is written into the
+      # consumer repo and should be committed alongside other generated files.
+      manifestRelPath = ".engineering-standards-manifest";
+      newManifestFile = pkgs.writeText "engineering-standards-manifest" (
+        lib.concatMapStrings (entry: "${entry.dest}\n") cfg._internal.managedFiles
+      );
+
       regenerateScript = pkgs.writeShellApplication {
         name = "regenerateStandards";
         text = ''
           set -euo pipefail
           REPO_ROOT=$(git rev-parse --show-toplevel)
+          MANIFEST="$REPO_ROOT/${manifestRelPath}"
           echo "Regenerating engineering-standards managed files in $REPO_ROOT"
+
+          # Remove files from the previous generation that are no longer managed.
+          if [[ -f "$MANIFEST" ]]; then
+            echo "Cleaning up files no longer managed..."
+            while IFS= read -r old_file; do
+              [[ -z "$old_file" ]] && continue
+              # Never delete the manifest itself.
+              [[ "$old_file" == "${manifestRelPath}" ]] && continue
+              if [[ -f "$REPO_ROOT/$old_file" ]]; then
+                echo "  Removing $old_file"
+                rm "$REPO_ROOT/$old_file"
+                rmdir "$(dirname "$REPO_ROOT/$old_file")" 2>/dev/null || true
+              fi
+            done < "$MANIFEST"
+          fi
+
           ${lib.concatStrings fileSnippets}
+
+          cp ${newManifestFile} "$MANIFEST"
+          chmod u+w "$MANIFEST"
           echo "Done. Commit the changes and open a PR."
         '';
       };

@@ -11,10 +11,12 @@ experimental-features = nix-command flakes
 ## Day-to-day model
 
 1. Edit **`flake.nix`** — `famedly.standards` options.
-2. Run **`nix run .#regenerateStandards`** — writes tracked files (workflows, rules, lint configs, …).
-3. Run **`nix flake check`** locally; commit outputs + lockfile.
+2. Run **`nix run .#regenerateStandards`** — writes tracked files (workflows, rules, lint configs, …) and removes any files that belonged to features you just disabled.
+3. Run **`nix flake check`** locally; commit outputs + lockfile (including `.engineering-standards-manifest`).
 
 Do not hand-edit files marked as managed by the module; change Nix and regenerate.
+
+> **File cleanup:** `regenerateStandards` maintains `.engineering-standards-manifest` in the repo root. On each run it removes files from the previous generation that are no longer managed (e.g. after setting `rules.enable = false`). Commit the manifest alongside generated files so cleanup works correctly on the next run.
 
 ## New repository
 

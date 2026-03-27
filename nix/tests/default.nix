@@ -545,6 +545,15 @@ let
   ansibleBundle = evalWithBundle "ansible" scenarios.ansible;
   disabledBundle = evalWithBundle "disabled" scenarios.disabled;
 
+  # Evals used by regenerateStandards script tests.
+  # evalConsumer (not evalWithBundle) is used because we need the apps output,
+  # not the managed-files bundle.
+  disabledScriptEval = evalConsumer "script-test-disabled" scenarios.disabled;
+  disabledScript = disabledScriptEval.config.flake.apps.${system}.regenerateStandards.program;
+
+  minimalScriptEval = evalConsumer "script-test-minimal" scenarios.minimal;
+  minimalScript = minimalScriptEval.config.flake.apps.${system}.regenerateStandards.program;
+
   allowedWorkflowPinNamesFile = pkgs.writeText "allowed-workflow-pins" (
     lib.concatStringsSep "\n" (lib.sort lib.lessThan (builtins.attrNames workflowPins))
   );
@@ -787,6 +796,118 @@ let
       fi
 
       echo "PASS: disabled scenario produces only default infrastructure files"
+      touch $out
+    '';
+
+    # Verify that regenerateStandards writes a manifest listing all managed files.
+    # Uses the minimal scenario (rules + checks enabled) as a realistic case.
+    test-manifest-content = pkgs.runCommand "test-manifest-content" {
+      nativeBuildInputs = [ pkgs.git ];
+    } ''
+      set -euo pipefail
+      echo "=== Checking regenerateStandards manifest content ==="
+
+      REPO=$(mktemp -d)
+      export HOME="$TMPDIR"
+      export GIT_CONFIG_NOSYSTEM=1
+      git -C "$REPO" init -q
+      git -C "$REPO" config user.email "ci@test"
+      git -C "$REPO" config user.name "CI"
+      git -C "$REPO" commit --allow-empty -m "init" -q
+
+      # All file operations use relative paths after cd (see test-manifest-cleanup
+      # for the rationale: avoids symlink mismatches with git rev-parse).
+      cd "$REPO"
+      ${minimalScript}
+
+      MANIFEST=".engineering-standards-manifest"
+      test -f "$MANIFEST" || { echo "FAIL: manifest not written"; exit 1; }
+
+      # Minimal scenario enables rules → CLAUDE.md and cursor rules must appear
+      grep -q "CLAUDE.md" "$MANIFEST" \
+        || { echo "FAIL: CLAUDE.md missing from manifest"; exit 1; }
+      grep -q ".cursor/rules/standards" "$MANIFEST" \
+        || { echo "FAIL: .cursor/rules/standards missing from manifest"; exit 1; }
+
+      # Every line in the manifest must correspond to an actual file on disk
+      failed=0
+      while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        if ! test -f "$f"; then
+          echo "FAIL: manifest lists '$f' but file does not exist"
+          failed=1
+        fi
+      done < "$MANIFEST"
+      [ "$failed" -eq 0 ] || exit 1
+
+      echo "PASS: manifest written with correct content"
+      touch $out
+    '';
+
+    # Verify that regenerateStandards removes files from a previous generation
+    # when they are no longer in managedFiles (e.g. after disabling a feature).
+    test-manifest-cleanup = pkgs.runCommand "test-manifest-cleanup" {
+      nativeBuildInputs = [ pkgs.git ];
+    } ''
+      set -euo pipefail
+      echo "=== Checking regenerateStandards manifest cleanup ==="
+
+      REPO=$(mktemp -d)
+      export HOME="$TMPDIR"
+      export GIT_CONFIG_NOSYSTEM=1
+      git -C "$REPO" init -q
+      git -C "$REPO" config user.email "ci@test"
+      git -C "$REPO" config user.name "CI"
+      git -C "$REPO" commit --allow-empty -m "init" -q
+
+      # All file operations use relative paths after cd to avoid symlink
+      # mismatches between mktemp output and git rev-parse --show-toplevel
+      # output (the script resolves symlinks internally via git).
+      cd "$REPO"
+
+      # Simulate a previous generation where rules were enabled.
+      mkdir -p .cursor/rules/standards
+      echo "stale rule content" > .cursor/rules/standards/stale.md
+      echo "stale CLAUDE" > CLAUDE.md
+      # Old manifest includes both the stale files and the still-current defaults.
+      printf '.cursor/rules/standards/stale.md\nCLAUDE.md\n.editorconfig\n.github/dependabot.yml\n' \
+        > .engineering-standards-manifest
+
+      # Run the disabled scenario (rules.enable = false → no rules in managedFiles).
+      ${disabledScript}
+
+      # Stale files must be gone.
+      if test -f .cursor/rules/standards/stale.md; then
+        echo "FAIL: stale .cursor/rules/standards/stale.md was not removed"
+        exit 1
+      fi
+      if test -f CLAUDE.md; then
+        echo "FAIL: stale CLAUDE.md was not removed"
+        exit 1
+      fi
+      echo "  PASS: stale rule files removed"
+
+      # Default infrastructure files must still be present (re-written by script).
+      test -f .editorconfig \
+        || { echo "FAIL: .editorconfig missing after cleanup"; exit 1; }
+      test -f .github/dependabot.yml \
+        || { echo "FAIL: .github/dependabot.yml missing after cleanup"; exit 1; }
+      echo "  PASS: default infrastructure files still present"
+
+      # Manifest must now contain only the currently managed files.
+      if grep -q "CLAUDE.md" .engineering-standards-manifest; then
+        echo "FAIL: manifest still references removed CLAUDE.md"
+        exit 1
+      fi
+      if grep -q "stale" .engineering-standards-manifest; then
+        echo "FAIL: manifest still references stale files"
+        exit 1
+      fi
+      grep -q ".editorconfig" .engineering-standards-manifest \
+        || { echo "FAIL: .editorconfig missing from updated manifest"; exit 1; }
+      echo "  PASS: manifest updated to reflect current managed files"
+
+      echo "PASS: manifest cleanup works correctly"
       touch $out
     '';
 
