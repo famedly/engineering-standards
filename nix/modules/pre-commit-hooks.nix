@@ -98,7 +98,9 @@ _caller-args: {
         ];
         text = ''
           echo "Adding SPDX headers: --copyright=${lib.escapeShellArg cfg.fossHooks.copyright} --license=${lib.escapeShellArg cfg.fossHooks.license}"
-          git ls-files -z | xargs -0 reuse annotate \
+          git ls-files -z | while IFS= read -r -d "" f; do
+            [ -f "$f" ] && printf '%s\0' "$f"
+          done | xargs -0 reuse annotate \
             --copyright=${lib.escapeShellArg cfg.fossHooks.copyright} \
             --license=${lib.escapeShellArg cfg.fossHooks.license} \
             --skip-unrecognised
