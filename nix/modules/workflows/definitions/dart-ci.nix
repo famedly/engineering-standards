@@ -102,6 +102,7 @@ let
             test
             coverage
             coverageFlags
+            testInDevShell
             ;
         };
       };
@@ -157,6 +158,10 @@ let
       dir = if pkg.directory != "" then pkg.directory else null;
       sdkCmd = if pkg.sdk == "flutter" then "flutter" else "dart";
       setupSteps = mkSetupSteps pkg;
+      otherPkgDirs = lib.filter (d: d != "") (
+        lib.mapAttrsToList (_: p: p.directory) (lib.filterAttrs (n: _: n != pkgName) effectivePackages)
+      );
+      depValidatorExcludes = lib.concatMapStringsSep " " (d: "--exclude-dir=${d}") otherPkgDirs;
     in
     {
       ${jobName "dart_ci" pkgName} = {
@@ -205,7 +210,7 @@ let
               workingDirectory = dir;
               run = ''
                 dart pub global activate dependency_validator
-                dart pub global run dependency_validator
+                dart pub global run dependency_validator${lib.optionalString (depValidatorExcludes != "") " ${depValidatorExcludes}"}
               '';
             }
           ]
