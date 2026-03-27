@@ -960,6 +960,23 @@ let
         echo "PASS: addLicenseHeaders app present when enabled, absent when disabled"
         touch $out
       '';
+
+    test-reuse-dep5 = pkgs.runCommand "test-reuse-dep5" { } ''
+      echo "=== Checking .reuse/dep5 generation ==="
+
+      test -f ${rustBundle}/.reuse/dep5
+      grep -q "Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/" ${rustBundle}/.reuse/dep5
+      grep -q "Famedly GmbH" ${rustBundle}/.reuse/dep5
+      grep -q "AGPL-3.0-only" ${rustBundle}/.reuse/dep5
+      grep -q ".github/\*" ${rustBundle}/.reuse/dep5
+      echo "  PASS: .reuse/dep5 present with correct content"
+
+      ! test -f ${disabledBundle}/.reuse/dep5
+      echo "  PASS: .reuse/dep5 absent when disabled"
+
+      echo "PASS: .reuse/dep5 generation works correctly"
+      touch $out
+    '';
   };
 
   # ---------------------------------------------------------------------------

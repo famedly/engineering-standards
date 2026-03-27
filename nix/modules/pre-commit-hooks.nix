@@ -90,6 +90,14 @@ _caller-args: {
       ) projectsWithHooks;
       pythonProjects = lib.filterAttrs (_: p: p.language == "python") projectsWithHooks;
 
+      dep5File = pkgs.writeText "dep5" ''
+        Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+        Files: .editorconfig .engineering-standards-manifest .github/* .cursor/rules/standards/* CLAUDE.md *.standards.yaml
+        Copyright: ${cfg.fossHooks.copyright}
+        License: ${cfg.fossHooks.license}
+      '';
+
       addLicenseHeadersScript = pkgs.writeShellApplication {
         name = "addLicenseHeaders";
         runtimeInputs = [
@@ -97,6 +105,8 @@ _caller-args: {
           pkgs.git
         ];
         text = ''
+          echo "Downloading missing license texts..."
+          reuse download --all 2>/dev/null || true
           echo "Adding SPDX headers: --copyright=${lib.escapeShellArg cfg.fossHooks.copyright} --license=${lib.escapeShellArg cfg.fossHooks.license}"
           git ls-files -z | while IFS= read -r -d "" f; do
             [ -f "$f" ] && printf '%s\0' "$f"
@@ -217,6 +227,14 @@ _caller-args: {
           program = lib.getExe addLicenseHeadersScript;
         };
       };
+
+      famedly.standards._internal.managedFiles = lib.optionals cfg.fossHooks.enable [
+        {
+          src = dep5File;
+          dest = ".reuse/dep5";
+          initialOnly = true;
+        }
+      ];
 
       pre-commit = {
         check.enable = true;
