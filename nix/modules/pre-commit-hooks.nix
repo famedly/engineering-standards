@@ -19,7 +19,6 @@
 
 {
   inputs,
-  lib,
   flake-parts-lib,
   ...
 }:
@@ -27,27 +26,29 @@ _caller-args: {
   imports = [ inputs.git-hooks-nix.flakeModule ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { config, lib, ... }:
+    { lib, ... }:
     {
       options.famedly.standards.preCommitHooks = {
         enable = lib.mkEnableOption "Nix-native pre-commit hooks via git-hooks.nix";
 
-        fossHooks.enable = lib.mkOption {
-          type = lib.types.bool;
-          default = true;
-          description = "Enable FOSS licensing hooks (REUSE compliance).";
-        };
+        fossHooks = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Enable FOSS licensing hooks (REUSE compliance).";
+          };
 
-        fossHooks.copyright = lib.mkOption {
-          type = lib.types.str;
-          default = "Famedly GmbH";
-          description = "Default copyright holder for SPDX headers (used by addLicenseHeaders app).";
-        };
+          copyright = lib.mkOption {
+            type = lib.types.str;
+            default = "Famedly GmbH";
+            description = "Default copyright holder for SPDX headers (used by addLicenseHeaders app).";
+          };
 
-        fossHooks.license = lib.mkOption {
-          type = lib.types.str;
-          default = "AGPL-3.0-only";
-          description = "Default SPDX license identifier for headers (used by addLicenseHeaders app).";
+          license = lib.mkOption {
+            type = lib.types.str;
+            default = "AGPL-3.0-only";
+            description = "Default SPDX license identifier for headers (used by addLicenseHeaders app).";
+          };
         };
 
         rustHooks.enable = lib.mkOption {
@@ -89,6 +90,9 @@ _caller-args: {
         _: p: p.language == "dart" || p.language == "flutter"
       ) projectsWithHooks;
       pythonProjects = lib.filterAttrs (_: p: p.language == "python") projectsWithHooks;
+
+      dartSdk = config.packages.famedly-dart-sdk or pkgs.dart;
+      dartBin = "${dartSdk}/bin/dart";
 
       reuseToml = pkgs.writeText "REUSE.toml" ''
         version = 1
@@ -173,7 +177,7 @@ _caller-args: {
           "dart-format-${slug}" = {
             enable = true;
             name = "dart format (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}dart format'";
+            entry = "bash -c '${cdCmd}${dartBin} format'";
             language = "system";
             types = [ "dart" ];
           }
@@ -182,7 +186,7 @@ _caller-args: {
           "dart-analyze-${slug}" = {
             enable = true;
             name = "dart analyze (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}dart analyze --fatal-infos'";
+            entry = "bash -c '${cdCmd}${dartBin} analyze --fatal-infos'";
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;
@@ -255,6 +259,13 @@ _caller-args: {
               mixed-line-endings.enable = true;
               trim-trailing-whitespace.enable = true;
               typos.enable = true;
+              nixfmt-rfc-style = {
+                enable = true;
+                name = "nixfmt";
+                entry = "${lib.getExe pkgs.nixfmt}";
+                language = "system";
+                types = [ "nix" ];
+              };
             }
 
             (lib.mkIf cfg.fossHooks.enable { reuse.enable = true; })
@@ -278,10 +289,13 @@ _caller-args: {
             })
 
             (lib.mkIf cfg.dartHooks.enable {
-              dart-format.enable = true;
+              dart-format = {
+                enable = true;
+                entry = lib.mkForce "${dartBin} format";
+              };
               dart-analyze = {
                 enable = true;
-                entry = lib.mkForce "${pkgs.dart}/bin/dart analyze --fatal-infos";
+                entry = lib.mkForce "${dartBin} analyze --fatal-infos";
                 pass_filenames = false;
               };
             })
