@@ -11,7 +11,7 @@
 #   Base    — BOM, case-conflicts, merge-conflicts, YAML/TOML/JSON, etc.
 #   FOSS    — REUSE license compliance
 #   Rust    — clippy, rustfmt, cargo lockfile
-#   Dart    — dart format, dart analyze, import_sorter, commented-out code
+#   Dart    — dart format, dart analyze, import_sorter, commented-out code, dart_code_linter
 #   Python  — ruff check, ruff format
 #
 # Monorepo projects (via famedly.standards.projects) automatically
@@ -110,6 +110,7 @@ _caller-args: {
           "dart-format"
           "dart-analyze"
           "dart-import-sorter"
+          "dart-code-linter"
         ]
         ++ lib.concatMap (
           project:
@@ -120,6 +121,7 @@ _caller-args: {
             "dart-format-${slug}"
             "dart-analyze-${slug}"
             "dart-import-sorter-${slug}"
+            "dart-code-linter-${slug}"
           ]
         ) (lib.attrValues dartProjects);
 
@@ -238,6 +240,16 @@ _caller-args: {
             enable = true;
             name = "commented-out code (${if dir == "" then "root" else dir})";
             entry = if dir == "" then "${commentedCodeChecker}" else "${commentedCodeChecker} ${dir}";
+            language = "system";
+            types = [ "dart" ];
+            pass_filenames = false;
+          }
+          // filesAttr;
+
+          "dart-code-linter-${slug}" = {
+            enable = true;
+            name = "dart_code_linter analyze (${if dir == "" then "root" else dir})";
+            entry = "bash -c '${cdCmd}if grep -q dart_code_linter: pubspec.yaml 2>/dev/null && [ -d lib ]; then ${dartBin} run dart_code_linter:metrics analyze lib; fi'";
             language = "system";
             types = [ "dart" ];
             pass_filenames = false;
@@ -380,6 +392,14 @@ _caller-args: {
                 enable = true;
                 name = "commented-out Dart code";
                 entry = "${commentedCodeChecker}";
+                language = "system";
+                types = [ "dart" ];
+                pass_filenames = false;
+              };
+              dart-code-linter = {
+                enable = true;
+                name = "dart_code_linter analyze";
+                entry = "bash -c 'if grep -q dart_code_linter: pubspec.yaml 2>/dev/null && [ -d lib ]; then ${dartBin} run dart_code_linter:metrics analyze lib; fi'";
                 language = "system";
                 types = [ "dart" ];
                 pass_filenames = false;
