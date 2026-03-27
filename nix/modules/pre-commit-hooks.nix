@@ -244,6 +244,10 @@ _caller-args: {
       pre-commit = {
         check.enable = true;
 
+        settings.tools = lib.mkIf (cfg.dartHooks.enable || dartProjects != { }) {
+          dart = dartSdk;
+        };
+
         settings.hooks = lib.mkMerge (
           [
             # Base hooks — always enabled when preCommitHooks.enable = true
