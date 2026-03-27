@@ -7,6 +7,9 @@
 #
 # Language-specific toolchains (Dart SDK, Rust/fenix, etc.) are the
 # responsibility of the consumer repo's own devShell configuration.
+#
+# Generated files in consumer repo:
+#   .nixd.json  — nixd language server config for option completion
 
 { flake-parts-lib, lib, ... }:
 {
@@ -21,6 +24,17 @@
       cfg = config.famedly.standards.devShell;
       hooksEnabled = config.famedly.standards.preCommitHooks.enable or false;
       fossEnabled = (config.famedly.standards.preCommitHooks.fossHooks.enable or false) && hooksEnabled;
+
+      nixdJson = pkgs.writeText ".nixd.json" (builtins.toJSON {
+        nixpkgs = {
+          expr = "import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }";
+        };
+        options = {
+          target = {
+            installable = ".#debug.options";
+          };
+        };
+      });
     in
     {
       options.famedly.standards.devShell = {
@@ -40,11 +54,19 @@
             config.pre-commit.devShell
           ];
           packages = [
+            pkgs.nixd
             pkgs.nixfmt-classic
           ]
           ++ lib.optionals fossEnabled [ pkgs.reuse ]
           ++ cfg.extraPackages;
         };
+
+        famedly.standards._internal.managedFiles = [
+          {
+            src = nixdJson;
+            dest = ".nixd.json";
+          }
+        ];
       };
     }
   );

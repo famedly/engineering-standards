@@ -8,11 +8,12 @@ This guide walks you through adopting the engineering-standards Nix module in a 
 2. [New repository](#new-repository)
 3. [Existing repository](#existing-repository)
 4. [Day-to-day workflow](#day-to-day-workflow)
-5. [Configuration reference](#configuration-reference)
-6. [Monorepos](#monorepos)
-7. [FOSS compliance](#foss-compliance)
-8. [Staying up to date](#staying-up-to-date)
-9. [Troubleshooting](#troubleshooting)
+5. [IDE support (nixd)](#ide-support-nixd)
+6. [Configuration reference](#configuration-reference)
+7. [Monorepos](#monorepos)
+8. [FOSS compliance](#foss-compliance)
+9. [Staying up to date](#staying-up-to-date)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -204,6 +205,34 @@ nix flake check
 ```
 
 This runs all checks defined in your flake, including the pre-commit hook suite (exposed as a check derivation by `git-hooks.nix`). This is identical to what CI runs with `nix flake check -L`. If it passes locally, it will pass in CI.
+
+---
+
+## IDE support (nixd)
+
+When `devShell.enable = true`, the module ships [nixd](https://github.com/nix-community/nixd) — a Nix language server that understands flake-parts module options. It provides auto-completion, hover documentation, goto-definition, and type checking for all `famedly.standards.*` and `famedly.github.workflows.*` options directly in your editor.
+
+### Setup
+
+1. Install the **nixd** extension in VS Code / Cursor (search for `nix-community.nixd` in the extension marketplace)
+2. Run `nix run .#regenerateStandards` — this creates `.nixd.json` in your repo root
+3. Enter the dev shell with `nix develop` — nixd is now on your `PATH`
+4. Open `flake.nix` — completion, hover docs, and goto-definition work for all engineering-standards options
+
+> **Note:** Templates created with `nix flake init -t …` already include `.nixd.json`. Existing repos get the file after regenerating.
+
+### What you get
+
+- **Auto-completion** — type `famedly.standards.` and see all available options with their types and defaults
+- **Hover documentation** — hover over any option to see its description, type, and default value
+- **Goto definition** — jump directly to the `mkOption` declaration in engineering-standards
+- **Type checking** — warnings for invalid option paths or wrong value types
+
+### Editor configuration
+
+If you use a different editor (Neovim, Emacs, Helix, …), configure it to use `nixd` as the Nix language server. The `.nixd.json` file in the repo root is read automatically by nixd regardless of editor.
+
+For VS Code / Cursor, make sure to disable the older `nil` language server if you have it installed — running both simultaneously causes conflicts.
 
 ---
 
