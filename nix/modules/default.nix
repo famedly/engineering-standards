@@ -39,6 +39,7 @@ in
     ./infrastructure.nix
     ./devshell.nix
     ./dart.nix
+    ./rust.nix
     ./projects.nix
   ];
 

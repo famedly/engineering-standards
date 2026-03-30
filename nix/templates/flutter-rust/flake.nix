@@ -13,6 +13,7 @@
 #
 # The flake uses the projects abstraction to scope linting configs,
 # Dependabot entries, and pre-commit hooks to their directories.
+# The rust module generates all Rust checks, packages, and dev shell.
 {
   description = "REPLACE_WITH_REPO_DESCRIPTION";
 
@@ -40,7 +41,6 @@
 
       perSystem =
         {
-          config,
           pkgs,
           lib,
           system,
@@ -58,22 +58,6 @@
             fenixPkgs.latest.rustfmt
           ];
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
-
-          # Filtered source for compilation/clippy/fmt: only Cargo files.
-          rustSrc = craneLib.cleanCargoSource ./backend;
-
-          # Full source for tests: preserves all runtime resources (fixtures,
-          # config files, scripts, …) that tests may need.
-          rustSrcForTests = lib.cleanSource ./backend;
-
-          commonArgs = {
-            src = rustSrc;
-            strictDeps = true;
-            nativeBuildInputs = [ pkgs.pkg-config ];
-            buildInputs = [ pkgs.openssl ];
-            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
-          };
-          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
         {
           famedly.standards = {
@@ -100,6 +84,15 @@
               enable = true;
               flutter = true;
             };
+
+            rust = {
+              enable = true;
+              inherit craneLib;
+              src = ./backend;
+              devShell.extraPackages = [ pkgs.flutter ];
+              # checks.clippy.useTestSrc = true;  # uncomment if tests use include_str!/include_bytes!
+              # docker.enable = true;              # uncomment for Docker image
+            };
           };
 
           famedly.github.workflows = {
@@ -119,48 +112,6 @@
             #   targets = "backend-service";
             # };
             # "fast-forward".enable = true;      # uncomment for /fast-forward PR merges
-          };
-
-          # Rust-specific checks via crane.
-          checks = {
-            # --all-targets compiles test code; if tests use include_str!/include_bytes!
-            # on non-Rust files, override src with rustSrcForTests here.
-            clippy = craneLib.cargoClippy (
-              commonArgs
-              // {
-                inherit cargoArtifacts;
-                # src = rustSrcForTests;  # uncomment if tests use include_str!/include_bytes!
-                cargoClippyExtraArgs = "--all-features --all-targets -- --deny warnings";
-              }
-            );
-
-            fmt = craneLib.cargoFmt { src = rustSrc; };
-
-            tests = craneLib.cargoNextest (
-              commonArgs
-              // {
-                inherit cargoArtifacts;
-                src = rustSrcForTests;
-              }
-            );
-
-            deny = craneLib.cargoDeny { src = rustSrc; };
-          };
-
-          packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
-
-          devShells.default = pkgs.mkShell {
-            inputsFrom =
-              lib.optionals (config.famedly.standards.devShell.enable && config.devShells ? famedly-standards) [
-                config.devShells.famedly-standards
-              ]
-              ++ [ (craneLib.devShell { }) ];
-            packages = [
-              pkgs.flutter
-              pkgs.cargo-watch
-              pkgs.cargo-edit
-              pkgs.cargo-deny
-            ];
           };
         };
     };

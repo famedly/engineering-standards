@@ -1,8 +1,8 @@
 # flake.nix template for Rust repositories.
 # Copy this file to your repo root and adjust as needed.
 #
-# Uses crane + fenix for Rust builds: the recommended approach for
-# Nix-first Rust development.
+# Uses crane + fenix for Rust builds. The engineering-standards rust module
+# generates all checks (clippy, fmt, nextest, deny), packages, and dev shell.
 {
   description = "REPLACE_WITH_REPO_DESCRIPTION";
 
@@ -30,7 +30,6 @@
 
       perSystem =
         {
-          config,
           pkgs,
           lib,
           system,
@@ -50,27 +49,6 @@
             fenixPkgs.latest.rustfmt
           ];
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
-
-          # Filtered source for compilation/clippy/fmt: only Cargo files.
-          # Smaller hash → more stable cache keys → faster CI.
-          src = craneLib.cleanCargoSource ./.;
-
-          # Full source for tests: preserves all runtime resources (fixtures,
-          # config files, scripts, …) that tests may need. Using lib.cleanSource
-          # keeps everything except .git and Nix build artefacts, so no per-project
-          # file-pattern maintenance is required.
-          srcForTests = lib.cleanSource ./.;
-
-          commonArgs = {
-            inherit src;
-            strictDeps = true;
-            nativeBuildInputs = [ pkgs.pkg-config ];
-            buildInputs = [ pkgs.openssl ];
-            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
-          };
-
-          # Build dependencies separately for caching.
-          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
         {
           famedly.standards = {
@@ -89,6 +67,14 @@
               dependabotRust = true;
             };
             devShell.enable = true;
+
+            rust = {
+              enable = true;
+              inherit craneLib;
+              src = ./.;
+              # checks.clippy.useTestSrc = true;  # uncomment if tests use include_str!/include_bytes!
+              # docker.enable = true;              # uncomment for Docker image
+            };
           };
 
           famedly.github.workflows = {
@@ -102,62 +88,6 @@
             # "publish-crate".enable = true;     # uncomment for crate publishing
             # "docker-backend".enable = true;    # uncomment for Docker builds
             # "fast-forward".enable = true;      # uncomment for /fast-forward PR merges
-          };
-
-          # Rust-specific checks via crane.
-          checks = {
-            # cargo clippy — all features, all targets, deny warnings.
-            # --all-targets compiles test code; if tests use include_str!/include_bytes!
-            # on non-Rust files, override src with srcForTests here.
-            clippy = craneLib.cargoClippy (
-              commonArgs
-              // {
-                inherit cargoArtifacts;
-                # src = srcForTests;  # uncomment if tests use include_str!/include_bytes!
-                cargoClippyExtraArgs = "--all-features --all-targets -- --deny warnings";
-              }
-            );
-
-            # cargo fmt check (toolchain includes nightly rustfmt)
-            fmt = craneLib.cargoFmt { inherit src; };
-
-            # cargo nextest (fast parallel test runner).
-            # srcForTests includes all runtime resources (fixtures, configs, …).
-            tests = craneLib.cargoNextest (
-              commonArgs
-              // {
-                inherit cargoArtifacts;
-                src = srcForTests;
-                # Uncomment if tests use shell setup scripts (e.g. via nextest [[scripts]]):
-                # Nix sandbox only provides /bin/sh; patchShebangs rewrites #!/usr/bin/env bash.
-                # cleanSource also strips execute bits, so chmod +x is required.
-                # preBuild = ''
-                #   find . -name '*.sh' -exec chmod +x {} \;
-                #   patchShebangs .
-                # '';
-              }
-            );
-
-            # cargo deny — license/advisory/duplicate dependency audit.
-            # deny.toml is synced from engineering-standards via linting.rust = true.
-            deny = craneLib.cargoDeny { inherit src; };
-          };
-
-          # Default package
-          packages.default = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
-
-          # Dev shell: famedly-standards tools (git-hooks.nix, typos, …) + crane toolchain
-          devShells.default = pkgs.mkShell {
-            inputsFrom =
-              lib.optionals (config.famedly.standards.devShell.enable && config.devShells ? famedly-standards) [
-                config.devShells.famedly-standards
-              ]
-              ++ [ (craneLib.devShell { }) ];
-            packages = [
-              pkgs.cargo-watch
-              pkgs.cargo-edit
-              pkgs.cargo-deny
-            ];
           };
         };
     };
