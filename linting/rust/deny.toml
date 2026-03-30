@@ -50,3 +50,11 @@ allow = ["AGPL-3.0-only"]
 [[licenses.exceptions]]
 name = "tim-registration-service"
 allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "zitadel-rust-client"
+allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "zitadel-actions-manager"
+allow = ["AGPL-3.0-only"]
