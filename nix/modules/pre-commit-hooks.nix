@@ -129,6 +129,13 @@ _caller-args: {
       hasRustToolchain = rustToolchain != null;
       rustHooksActive = cfg.rustHooks.enable || rustProjects != { };
 
+      # Absolute binary paths from the pinned Nix toolchain — used instead of
+      # bare `cargo fmt`/`cargo clippy` to avoid +toolchain rustup syntax and
+      # PATH ambiguity (mirrors how dartBin is handled for Dart hooks).
+      cargoClippyBin = if hasRustToolchain then "${rustToolchain}/bin/cargo-clippy" else "cargo-clippy";
+      rustfmtBin = if hasRustToolchain then "${rustToolchain}/bin/rustfmt" else "rustfmt";
+      cargoBin = if hasRustToolchain then "${rustToolchain}/bin/cargo" else "cargo";
+
       reuseToml = pkgs.writeText "REUSE.toml" ''
         version = 1
 
@@ -170,7 +177,7 @@ _caller-args: {
           "clippy-${slug}" = {
             enable = true;
             name = "clippy (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}cargo clippy --workspace --all-targets -- -D warnings'";
+            entry = "bash -c '${cdCmd}${cargoClippyBin} --workspace --all-targets -- -D warnings'";
             language = "system";
             types = [ "rust" ];
             pass_filenames = false;
@@ -180,7 +187,7 @@ _caller-args: {
           "rustfmt-${slug}" = {
             enable = true;
             name = "rustfmt (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}cargo fmt -- --check'";
+            entry = "bash -c '${cdCmd}${rustfmtBin} --check'";
             language = "system";
             types = [ "rust" ];
           }
@@ -189,7 +196,7 @@ _caller-args: {
           "cargo-lock-${slug}" = {
             enable = true;
             name = "cargo lockfile (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}cargo check'";
+            entry = "bash -c '${cdCmd}${cargoBin} check'";
             language = "system";
             types = [ "rust" ];
             pass_filenames = false;
@@ -368,6 +375,13 @@ _caller-args: {
                 enable = true;
                 settings.check = true;
               };
+            })
+
+            # Pin hook entries to absolute Nix store paths when toolchain is available,
+            # preventing +toolchain rustup syntax and PATH ambiguity (mirrors dartBin approach).
+            (lib.mkIf (cfg.rustHooks.enable && hasRustToolchain) {
+              clippy.entry = lib.mkForce "${cargoClippyBin} --workspace --all-targets -- -D warnings";
+              rustfmt.entry = lib.mkForce "${rustfmtBin} --check";
             })
 
             (lib.mkIf cfg.dartHooks.enable {
