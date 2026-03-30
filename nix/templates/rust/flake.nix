@@ -51,7 +51,16 @@
           ];
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
+          # Filtered source for compilation/clippy/fmt: only Cargo files.
+          # Smaller hash → more stable cache keys → faster CI.
           src = craneLib.cleanCargoSource ./.;
+
+          # Full source for tests: preserves all runtime resources (fixtures,
+          # config files, scripts, …) that tests may need. Using lib.cleanSource
+          # keeps everything except .git and Nix build artefacts, so no per-project
+          # file-pattern maintenance is required.
+          srcForTests = lib.cleanSource ./.;
+
           commonArgs = {
             inherit src;
             strictDeps = true;
@@ -109,8 +118,22 @@
             # cargo fmt check (toolchain includes nightly rustfmt)
             fmt = craneLib.cargoFmt { inherit src; };
 
-            # cargo nextest (fast parallel test runner)
-            tests = craneLib.cargoNextest (commonArgs // { inherit cargoArtifacts; });
+            # cargo nextest (fast parallel test runner).
+            # srcForTests includes all runtime resources (fixtures, configs, …).
+            tests = craneLib.cargoNextest (
+              commonArgs
+              // {
+                inherit cargoArtifacts;
+                src = srcForTests;
+                # Uncomment if tests use shell setup scripts (e.g. via nextest [[scripts]]):
+                # Nix sandbox only provides /bin/sh; patchShebangs rewrites #!/usr/bin/env bash.
+                # cleanSource also strips execute bits, so chmod +x is required.
+                # preBuild = ''
+                #   find . -name '*.sh' -exec chmod +x {} \;
+                #   patchShebangs .
+                # '';
+              }
+            );
 
             # cargo deny — license/advisory/duplicate dependency audit.
             # deny.toml is synced from engineering-standards via linting.rust = true.

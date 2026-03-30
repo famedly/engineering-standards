@@ -59,7 +59,13 @@
           ];
           craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
+          # Filtered source for compilation/clippy/fmt: only Cargo files.
           rustSrc = craneLib.cleanCargoSource ./backend;
+
+          # Full source for tests: preserves all runtime resources (fixtures,
+          # config files, scripts, …) that tests may need.
+          rustSrcForTests = lib.cleanSource ./backend;
+
           commonArgs = {
             src = rustSrc;
             strictDeps = true;
@@ -127,7 +133,13 @@
 
             fmt = craneLib.cargoFmt { src = rustSrc; };
 
-            tests = craneLib.cargoNextest (commonArgs // { inherit cargoArtifacts; });
+            tests = craneLib.cargoNextest (
+              commonArgs
+              // {
+                inherit cargoArtifacts;
+                src = rustSrcForTests;
+              }
+            );
 
             deny = craneLib.cargoDeny { src = rustSrc; };
           };
