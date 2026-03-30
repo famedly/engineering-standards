@@ -28,6 +28,18 @@ ignore = true
 # Famedly crates that use AGPL-3.0-only.
 # Add new entries here when a Famedly crate needs an AGPL exception.
 [[licenses.exceptions]]
+name = "tim-epa-login"
+allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "famedly_rust_utils"
+allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "rust-telemetry"
+allow = ["AGPL-3.0-or-later"]
+
+[[licenses.exceptions]]
 name = "tim-forward-proxy"
 allow = ["AGPL-3.0-only"]
 
