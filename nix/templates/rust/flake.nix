@@ -37,13 +37,19 @@
           ...
         }:
         let
-          # Stable toolchain for builds, clippy, and tests.
-          inherit (inputs.fenix.packages.${system}.stable) toolchain;
-          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
+          fenixPkgs = inputs.fenix.packages.${system};
 
-          # Nightly toolchain for rustfmt and cargo-udeps.
-          nightlyToolchain = inputs.fenix.packages.${system}.latest.toolchain;
-          craneLibNightly = (inputs.crane.mkLib pkgs).overrideToolchain nightlyToolchain;
+          # Combined toolchain: stable Rust + nightly rustfmt.
+          # Nightly rustfmt is required because rustfmt.toml uses unstable
+          # options (imports_granularity, group_imports, wrap_comments, …).
+          toolchain = fenixPkgs.combine [
+            fenixPkgs.stable.cargo
+            fenixPkgs.stable.clippy
+            fenixPkgs.stable.rust-src
+            fenixPkgs.stable.rustc
+            fenixPkgs.latest.rustfmt
+          ];
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
           src = craneLib.cleanCargoSource ./.;
           commonArgs = {
@@ -98,8 +104,8 @@
               }
             );
 
-            # cargo fmt check (nightly for unstable formatting options)
-            fmt = craneLibNightly.cargoFmt { inherit src; };
+            # cargo fmt check (toolchain includes nightly rustfmt)
+            fmt = craneLib.cargoFmt { inherit src; };
 
             # cargo nextest (fast parallel test runner)
             tests = craneLib.cargoNextest (commonArgs // { inherit cargoArtifacts; });

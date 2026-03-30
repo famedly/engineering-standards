@@ -47,11 +47,17 @@
           ...
         }:
         let
-          inherit (inputs.fenix.packages.${system}.stable) toolchain;
-          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
+          fenixPkgs = inputs.fenix.packages.${system};
 
-          nightlyToolchain = inputs.fenix.packages.${system}.latest.toolchain;
-          craneLibNightly = (inputs.crane.mkLib pkgs).overrideToolchain nightlyToolchain;
+          # Combined toolchain: stable Rust + nightly rustfmt.
+          toolchain = fenixPkgs.combine [
+            fenixPkgs.stable.cargo
+            fenixPkgs.stable.clippy
+            fenixPkgs.stable.rust-src
+            fenixPkgs.stable.rustc
+            fenixPkgs.latest.rustfmt
+          ];
+          craneLib = (inputs.crane.mkLib pkgs).overrideToolchain toolchain;
 
           rustSrc = craneLib.cleanCargoSource ./backend;
           commonArgs = {
@@ -117,7 +123,7 @@
               }
             );
 
-            fmt = craneLibNightly.cargoFmt { src = rustSrc; };
+            fmt = craneLib.cargoFmt { src = rustSrc; };
 
             tests = craneLib.cargoNextest (commonArgs // { inherit cargoArtifacts; });
 
