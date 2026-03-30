@@ -30,32 +30,34 @@ echo "Setting up build environment"
 echo "CARGO_HOME = ${HOME}/${CARGO_HOME}"
 mkdir -p "${HOME}/${CARGO_HOME}"
 
-# Decide public/private mode based on presence of private key
-if [[ -z "${CRATE_REGISTRY_SSH_PRIVKEY:-}" ]]; then
-	echo "No private registry SSH key provided. Configuring for public builds."
+# Decide public/private mode based on presence of registry token
+if [[ -z "${SHIPYARD_RS_TOKEN:-}" ]]; then
+	echo "No private registry token provided. Configuring for public builds."
 	export CRATE_REGISTRY_NAME="crates-io"
 else
-	echo "Private registry credentials detected. Configuring SSH and private registry access."
-	USER_NAME="$(whoami)"
-	SSH_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
-	ssh-agent -a "${SSH_AUTH_SOCK}" > /dev/null
-	echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
-	ssh-add -vvv - <<< "${CRATE_REGISTRY_SSH_PRIVKEY}"$'\n'
-	mkdir -p "$SSH_HOME/.ssh"
-	{
-		ssh-keyscan -H ssh.shipyard.rs
-	} >> "$SSH_HOME/.ssh/known_hosts"
+	echo "Private registry token detected. Configuring HTTPS credentials for Shipyard.rs."
+	git config --global credential.helper store
+	echo "https://famedly:${SHIPYARD_RS_TOKEN}@git.shipyard.rs" > ~/.git-credentials
+	chmod 600 ~/.git-credentials
 fi
 
 cat << EOF >> "${HOME}/${CARGO_HOME}/config.toml"
 [net]
 git-fetch-with-cli = true
+
+[registry]
+global-credential-providers = ["cargo:token"]
 EOF
 
 if [ "$CRATE_REGISTRY_NAME" != "crates-io" ]; then
 	cat << EOF >> "${HOME}/${CARGO_HOME}/config.toml"
 [registries.${CRATE_REGISTRY_NAME}]
 index = "${CRATE_REGISTRY_INDEX_URL}"
+EOF
+
+	cat << EOF >> "${HOME}/${CARGO_HOME}/credentials.toml"
+[registries.${CRATE_REGISTRY_NAME}]
+token = "${SHIPYARD_RS_TOKEN}"
 EOF
 fi
 

@@ -51,26 +51,27 @@ in
       steps = [
         { uses = "actions/checkout@${av.checkout}"; }
         {
-          name = "Setup SSH Keys and known_hosts";
-          env.SSH_AUTH_SOCK = "/tmp/ssh_agent.sock";
+          name = "Configure private registry credentials";
+          if_ = "secrets.SHIPYARD_RS_TOKEN != ''";
+          env.SHIPYARD_RS_TOKEN = ghSecret "SHIPYARD_RS_TOKEN";
           run = ''
-            mkdir -p ~/.ssh
-            ssh-keyscan git.shipyard.rs >> ~/.ssh/known_hosts
-            ssh-agent -a $SSH_AUTH_SOCK > /dev/null
-            ssh-add - <<< "${ghSecret "CRATE_REGISTRY_SSH_PRIVKEY"}" || true
+            git config --global credential.helper store
+            echo "https://famedly:''${SHIPYARD_RS_TOKEN}@git.shipyard.rs" > ~/.git-credentials
+            chmod 600 ~/.git-credentials
           '';
         }
         {
           name = "Build";
           shell = "bash";
-          env.SSH_AUTH_SOCK = "/tmp/ssh_agent.sock";
+          env.SHIPYARD_RS_TOKEN = ghExpr "secrets.SHIPYARD_RS_TOKEN || ''";
           run = ''
             for target in $(echo "${config.targets}" | tr ',' '\n'); do
               echo "::group::Building ''${target}"
               docker build --pull -t ''${target} --target ''${target} \
                 --build-arg CARGO_REGISTRIES_FAMEDLY_INDEX="${ghVar "CRATE_REGISTRY_INDEX_URL"}" \
                 --build-arg CARGO_BUILD_RUSTFLAGS="''${CARGO_BUILD_RUSTFLAGS}" \
-                --ssh default .
+                ''${SHIPYARD_RS_TOKEN:+--secret id=shipyard_token,env=SHIPYARD_RS_TOKEN} \
+                .
               echo "::endgroup::"
             done
           '';

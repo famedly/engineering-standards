@@ -80,7 +80,7 @@ in
           [
             { uses = "actions/checkout@${av.checkout}"; }
             (mkRustPrepareStep {
-              sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
+              shipyardToken = ghSecret "SHIPYARD_RS_TOKEN";
               inherit (config) additionalPackages;
             })
           ]
@@ -94,7 +94,7 @@ in
               run = "nix profile install .#famedly-rust-toolchain";
             }
             (mkRustPrepareStep {
-              sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
+              shipyardToken = ghSecret "SHIPYARD_RS_TOKEN";
               inherit (config) additionalPackages;
             })
           ];

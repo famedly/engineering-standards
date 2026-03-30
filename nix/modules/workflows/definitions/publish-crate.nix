@@ -49,7 +49,7 @@ in
       steps = [
         { uses = "actions/checkout@${av.checkout}"; }
         (mkRustPrepareStep {
-          sshPrivkey = ghSecret "CRATE_REGISTRY_SSH_PRIVKEY";
+          shipyardToken = ghSecret "SHIPYARD_RS_TOKEN";
           registryName = ghVar "CRATE_REGISTRY_NAME";
           registryIndexUrl = ghVar "CRATE_REGISTRY_INDEX_URL";
         })

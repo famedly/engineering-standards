@@ -27,10 +27,10 @@ rec {
 
   mkRustPrepareStep =
     {
-      sshPrivkey ? null,
+      shipyardToken ? null,
       additionalPackages ? "",
       registryName ? "famedly",
-      registryIndexUrl ? "ssh://git@ssh.shipyard.rs/famedly/crate-index.git",
+      registryIndexUrl ? "https://git.shipyard.rs/famedly/crate-index.git",
     }:
     {
       name = "Prepare Rust environment";
@@ -40,10 +40,9 @@ rec {
         CRATE_REGISTRY_NAME = registryName;
         CRATE_REGISTRY_INDEX_URL = registryIndexUrl;
         CARGO_HOME = ".cargo";
-        SSH_AUTH_SOCK = "/tmp/ssh_agent.sock";
       }
-      // lib.optionalAttrs (sshPrivkey != null) {
-        CRATE_REGISTRY_SSH_PRIVKEY = sshPrivkey;
+      // lib.optionalAttrs (shipyardToken != null) {
+        SHIPYARD_RS_TOKEN = shipyardToken;
       };
       run = ''
         set -euo pipefail
@@ -58,27 +57,31 @@ rec {
 
         mkdir -p "''${HOME}/''${CARGO_HOME}"
 
-        if [[ -z "''${CRATE_REGISTRY_SSH_PRIVKEY:-}" ]]; then
+        if [[ -z "''${SHIPYARD_RS_TOKEN:-}" ]]; then
           export CRATE_REGISTRY_NAME="crates-io"
         else
-          USER_NAME="$(whoami)"
-          SSH_HOME="$(getent passwd "$USER_NAME" | cut -d: -f6)"
-          ssh-agent -a "''${SSH_AUTH_SOCK}" > /dev/null
-          echo "SSH_AUTH_SOCK=''${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
-          ssh-add -vvv - <<< "''${CRATE_REGISTRY_SSH_PRIVKEY}"$'\n'
-          mkdir -p "$SSH_HOME/.ssh"
-          ssh-keyscan -H ssh.shipyard.rs >> "$SSH_HOME/.ssh/known_hosts"
+          git config --global credential.helper store
+          echo "https://famedly:''${SHIPYARD_RS_TOKEN}@git.shipyard.rs" > ~/.git-credentials
+          chmod 600 ~/.git-credentials
         fi
 
         cat << EOF >> "''${HOME}/''${CARGO_HOME}/config.toml"
         [net]
         git-fetch-with-cli = true
+
+        [registry]
+        global-credential-providers = ["cargo:token"]
         EOF
 
         if [ "$CRATE_REGISTRY_NAME" != "crates-io" ]; then
           cat << EOF >> "''${HOME}/''${CARGO_HOME}/config.toml"
         [registries.''${CRATE_REGISTRY_NAME}]
         index = "''${CRATE_REGISTRY_INDEX_URL}"
+        EOF
+
+          cat << EOF >> "''${HOME}/''${CARGO_HOME}/credentials.toml"
+        [registries.''${CRATE_REGISTRY_NAME}]
+        token = "''${SHIPYARD_RS_TOKEN}"
         EOF
         fi
 
@@ -159,7 +162,7 @@ rec {
           "CACHIX_SIGNING_KEY_FAMEDLY"
           "CODECOV_TOKEN"
           "CRATE_REGISTRY_AUTH_TOKEN"
-          "CRATE_REGISTRY_SSH_PRIVKEY"
+          "SHIPYARD_RS_TOKEN"
           "FRONTEND_REVIEW_APP_SSH_KEY"
           "GITHUB_TOKEN"
           "OCI_REGISTRY_PASSWORD"

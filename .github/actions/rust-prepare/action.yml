@@ -1,9 +1,6 @@
 name: "Prepare rust environment"
-description: "Sets up SSH, Cargo home, and optional private crate registry for Rust builds"
+description: "Sets up Cargo home and optional private crate registry (HTTPS + token) for Rust builds"
 inputs:
-  ssh_auth_sock:
-    description: "SSH socket"
-    default: "/tmp/ssh_agent.sock"
   cargo_home:
     description: "Cargo home"
     default: ".cargo"
@@ -12,9 +9,9 @@ inputs:
     default: "famedly"
   crate_registry_index_url:
     description: "URL of famedly registry index"
-    default: "ssh://git@ssh.shipyard.rs/famedly/crate-index.git"
-  crate_registry_ssh_privkey:
-    description: "SSH private key for authenticating with famedly registry index. This needs to be set for a private registry to be configured."
+    default: "https://git.shipyard.rs/famedly/crate-index.git"
+  shipyard_rs_token:
+    description: "Shipyard.rs API token for authenticating with the private crate registry. When set, configures HTTPS git credentials and cargo registry token."
   additional_packages:
     description: "Additional package to install during preparation"
     default: ""
@@ -24,10 +21,9 @@ runs:
   steps:
     - shell: bash
       env:
-        SSH_AUTH_SOCK: ${{ inputs.ssh_auth_sock }}
         CARGO_HOME: ${{ inputs.cargo_home }}
         ADDITIONAL_PACKAGES: ${{ inputs.additional_packages }}
         CRATE_REGISTRY_NAME: ${{ inputs.crate_registry_name }}
         CRATE_REGISTRY_INDEX_URL: ${{ inputs.crate_registry_index_url }}
-        CRATE_REGISTRY_SSH_PRIVKEY: ${{ inputs.crate_registry_ssh_privkey }}
+        SHIPYARD_RS_TOKEN: ${{ inputs.shipyard_rs_token }}
       run: $GITHUB_ACTION_PATH/prepare.sh
