@@ -52,6 +52,7 @@ in
           dir = entry.directory;
           usesGitRegistry = eco == "cargo" || eco == "pub";
           usesNpmRegistry = eco == "npm";
+          supportsSemver = eco != "docker" && eco != "terraform";
         in
         lib.concatStringsSep "\n" (
           [
@@ -82,6 +83,8 @@ in
             "      include: \"scope\""
             "    cooldown:"
             "      default-days: 14"
+          ]
+          ++ lib.optionals supportsSemver [
             "      semver-major-days: 14"
           ]
         )
