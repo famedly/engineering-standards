@@ -85,7 +85,6 @@
               armRunners = false;
             };
             "general-checks".enable = true;
-            "authenticate-commits".enable = false;
             "ai-review".enable = false;
             "rust-ci".enable = true;
             # "publish-crate".enable = true;     # uncomment for crate publishing

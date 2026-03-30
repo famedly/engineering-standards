@@ -61,7 +61,6 @@
               armRunners = false;
             };
             "general-checks".enable = true;
-            "authenticate-commits".enable = false;
             "ai-review".enable = false;
             # dart-ci is auto-enabled by dart.enable above
             # dart-ci.test = true;               # uncomment for test job

@@ -99,7 +99,6 @@
               armRunners = false;
             };
             "general-checks".enable = true;
-            "authenticate-commits".enable = false;
             "ai-review".enable = false;
             # rust-ci expects Cargo at repo root; this layout uses backend/
             "rust-ci".enable = false;

@@ -148,7 +148,6 @@ let
           armRunners = true;
         };
         general-checks.enable = true;
-        authenticate-commits.enable = true;
         rust-ci.enable = true;
       };
     };
@@ -195,7 +194,6 @@ let
       famedly.github.workflows = {
         ci.enable = true;
         general-checks.enable = true;
-        authenticate-commits.enable = true;
         rust-ci.enable = true;
         publish-crate.enable = true;
         docker-backend = {
@@ -276,7 +274,6 @@ let
       famedly.github.workflows = {
         ci.enable = true;
         general-checks.enable = true;
-        authenticate-commits.enable = true;
         dart-ci.enable = true;
         publish-pub.enable = true;
         review-app = {
@@ -590,15 +587,10 @@ let
           armRunners = true;
         };
         general-checks.enable = true;
-        authenticate-commits.enable = true;
         fast-forward.enable = true;
         add-to-project = {
           enable = true;
           projectUrl = "https://github.com/orgs/famedly/projects/42";
-        };
-        update-openpgp-policy = {
-          enable = true;
-          teams = ''["backend"]'';
         };
         rust-ci.enable = true;
         publish-crate.enable = true;
@@ -708,7 +700,6 @@ let
       ! grep -q "workflow_call" ${rustBundle}/.github/workflows/rust-ci.yml
 
       test -f ${rustBundle}/.github/workflows/general-checks.yml
-      test -f ${rustBundle}/.github/workflows/authenticate-commits.yml
 
       test -f ${rustBundle}/.editorconfig
       test -f ${rustBundle}/.github/dependabot.yml
@@ -732,7 +723,6 @@ let
       test -f ${rustBackendBundle}/.github/workflows/docker-backend.yml
 
       test -f ${rustBackendBundle}/.github/workflows/general-checks.yml
-      test -f ${rustBackendBundle}/.github/workflows/authenticate-commits.yml
       test -f ${rustBackendBundle}/.github/workflows/fast-forward.yml
       test -f ${rustBackendBundle}/.github/workflows/add-to-project.yml
 
@@ -776,7 +766,6 @@ let
       test -f ${flutterBundle}/.github/workflows/dart-ci.yml
       test -f ${flutterBundle}/.github/workflows/publish-pub.yml
       test -f ${flutterBundle}/.github/workflows/general-checks.yml
-      test -f ${flutterBundle}/.github/workflows/authenticate-commits.yml
       test -f ${flutterBundle}/.github/workflows/docker.yml
       test -f ${flutterBundle}/.github/workflows/github-pages.yml
       test -f ${flutterBundle}/.editorconfig
@@ -795,10 +784,8 @@ let
 
       test -f ${kitchenSinkBundle}/.github/workflows/ci.yml
       test -f ${kitchenSinkBundle}/.github/workflows/general-checks.yml
-      test -f ${kitchenSinkBundle}/.github/workflows/authenticate-commits.yml
       test -f ${kitchenSinkBundle}/.github/workflows/fast-forward.yml
       test -f ${kitchenSinkBundle}/.github/workflows/add-to-project.yml
-      test -f ${kitchenSinkBundle}/.github/workflows/update-openpgp-policy.yml
       test -f ${kitchenSinkBundle}/.github/workflows/rust-ci.yml
       test -f ${kitchenSinkBundle}/.github/workflows/publish-crate.yml
       test -f ${kitchenSinkBundle}/.github/workflows/dart-ci.yml

@@ -89,10 +89,6 @@
   };
 
   # ── Sequoia PGP ──────────────────────────────────────────────────
-  authenticateCommits = {
-    sha = "7880c1fe9a32b85ba665e02fb827054a83627a04";
-    v = "v1.0.1";
-  };
   fastForward = {
     sha = "ea7628bedcb0b0b96e94383ada458d812fca4979";
     v = "v1.0.0";

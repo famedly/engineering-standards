@@ -6,10 +6,8 @@
 # Migration map:
 #   famedly.standards.ci.*                          → famedly.github.workflows.ci.*
 #   famedly.standards.workflows.conventionalCommits → famedly.github.workflows.general-checks.enable
-#   famedly.standards.workflows.authenticateCommits → famedly.github.workflows.authenticate-commits.enable
 #   famedly.standards.workflows.fastForward         → famedly.github.workflows.fast-forward.enable
 #   famedly.standards.workflows.addToProject.*      → famedly.github.workflows.add-to-project.*
-#   famedly.standards.workflows.updateOpenpgpPolicy.*→ famedly.github.workflows.update-openpgp-policy.*
 #   famedly.standards.workflows.aiReview.*          → famedly.github.workflows.ai-review.*
 #   famedly.standards.workflows.release.*           → famedly.github.workflows.release.*
 #   famedly.standards.workflows.rustCi.*            → famedly.github.workflows.rust-ci.*
@@ -109,16 +107,6 @@ in
           (rename
             (std [
               "workflows"
-              "authenticateCommits"
-            ])
-            (wf [
-              "authenticate-commits"
-              "enable"
-            ])
-          )
-          (rename
-            (std [
-              "workflows"
               "fastForward"
             ])
             (wf [
@@ -148,28 +136,6 @@ in
             (wf [
               "add-to-project"
               "projectUrl"
-            ])
-          )
-          (rename
-            (std [
-              "workflows"
-              "updateOpenpgpPolicy"
-              "enable"
-            ])
-            (wf [
-              "update-openpgp-policy"
-              "enable"
-            ])
-          )
-          (rename
-            (std [
-              "workflows"
-              "updateOpenpgpPolicy"
-              "teams"
-            ])
-            (wf [
-              "update-openpgp-policy"
-              "teams"
             ])
           )
           (rename
@@ -456,6 +422,14 @@ in
             "workflows"
             "reuse"
           ]) "Use preCommitHooks.fossHooks instead.")
+          (deprecated (std [
+            "workflows"
+            "authenticateCommits"
+          ]) "Removed: authenticate-commits workflow has been retired.")
+          (deprecated (std [
+            "workflows"
+            "updateOpenpgpPolicy"
+          ]) "Removed: update-openpgp-policy workflow has been retired.")
           (deprecated (std [
             "checks"
             "typos"

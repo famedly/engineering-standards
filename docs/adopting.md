@@ -200,10 +200,8 @@ All workflows have `enable` (bool, default `false`).
 |----------|-----------|
 | `ci` | `armRunners` |
 | `general-checks` | — |
-| `authenticate-commits` | — |
 | `fast-forward` | — |
 | `add-to-project` | `projectUrl` |
-| `update-openpgp-policy` | `teams` |
 | `ai-review` | `model` |
 | `release` | `draft` |
 | `rust-ci` | `runner`, `container`, `features`, `packages`, `additionalPackages`, `coverage`, `typos`, `cargoDeny` |

@@ -39,5 +39,5 @@ See **[docs/adopting.md](docs/adopting.md)** for existing repos, configuration r
 | `infrastructure` | `.editorconfig`, `.github/dependabot.yml` |
 | `devShell` | `famedly-*` CLI (see above) |
 | `rules` | `.cursor/rules/…`, `CLAUDE.md` |
-| Workflows | `ci`, `general-checks`, `dart-ci` (multi-package), `rust-ci`, `docker` (multi-arch/simple), `review-app`, `github-pages`, `hookd-deploy`, `release`, `publish-crate`, `publish-pub`, `docker-backend`, `docker-bake`, `ansible-ci`, `ai-review`, `authenticate-commits`, `fast-forward`, `add-to-project`, `update-openpgp-policy`, `update-engineering-standards` |
+| Workflows | `ci`, `general-checks`, `dart-ci` (multi-package), `rust-ci`, `docker` (multi-arch/simple), `review-app`, `github-pages`, `hookd-deploy`, `release`, `publish-crate`, `publish-pub`, `docker-backend`, `docker-bake`, `ansible-ci`, `ai-review`, `fast-forward`, `add-to-project`, `update-engineering-standards` |
 | `projects` | monorepo: per-folder lint/hooks/dependabot |
