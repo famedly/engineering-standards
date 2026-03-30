@@ -12,6 +12,7 @@ let
     ghSecret
     ciConcurrency
     nixSetupStep
+    mkNixGitAuthStep
     mkNixInstallStep
     mkRustPrepareStep
     ;
@@ -87,6 +88,7 @@ in
           [
             { uses = "actions/checkout@${av.checkout}"; }
             (nixSetupStep av.installNix)
+            (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
             {
               name = "Install Rust toolchain (pinned)";
               run = "nix profile install .#famedly-rust-toolchain";

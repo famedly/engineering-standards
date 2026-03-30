@@ -187,7 +187,7 @@ _caller-args: {
           "rustfmt-${slug}" = {
             enable = true;
             name = "rustfmt (${if dir == "" then "root" else dir})";
-            entry = "bash -c '${cdCmd}${rustfmtBin} --check'";
+            entry = "bash -c '${cdCmd}${rustfmtBin}'";
             language = "system";
             types = [ "rust" ];
           }
@@ -371,17 +371,14 @@ _caller-args: {
                   ];
                 };
               };
-              rustfmt = {
-                enable = true;
-                settings.check = true;
-              };
+              rustfmt.enable = true;
             })
 
             # Pin hook entries to absolute Nix store paths when toolchain is available,
             # preventing +toolchain rustup syntax and PATH ambiguity (mirrors dartBin approach).
             (lib.mkIf (cfg.rustHooks.enable && hasRustToolchain) {
               clippy.entry = lib.mkForce "${cargoClippyBin} --workspace --all-targets -- -D warnings";
-              rustfmt.entry = lib.mkForce "${rustfmtBin} --check";
+              rustfmt.entry = lib.mkForce "${rustfmtBin}";
             })
 
             (lib.mkIf cfg.dartHooks.enable {
