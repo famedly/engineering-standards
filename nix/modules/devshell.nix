@@ -36,6 +36,11 @@
       dartProjectDirs =
         lib.optionals dartHooksEnabled [ "" ] ++ lib.mapAttrsToList (_: p: p.directory or "") dartProjects;
 
+      rustHooksEnabled =
+        (config.famedly.standards.preCommitHooks.rustHooks.enable or false) && hooksEnabled;
+      rustProjects = lib.filterAttrs (_: p: (p.language or "") == "rust") projects;
+      hasRustHooks = rustHooksEnabled || rustProjects != { };
+
       famedly-regen = pkgs.writeShellApplication {
         name = "famedly-regen";
         text = ''
@@ -205,11 +210,17 @@
           ]
           ++ lib.optionals fossEnabled [ pkgs.reuse ]
           ++ cfg.extraPackages;
-          shellHook = ''
-            echo ""
-            echo "  Famedly Dev Shell — type 'famedly-help' for available commands"
-            echo ""
-          '';
+          shellHook =
+            ''
+              echo ""
+              echo "  Famedly Dev Shell — type 'famedly-help' for available commands"
+              echo ""
+            ''
+            + lib.optionalString hasRustHooks ''
+              # Isolate Nix dev shell cargo artifacts from system cargo builds
+              # to prevent toolchain version mismatches (different rustc fingerprints).
+              export CARGO_TARGET_DIR="''${CARGO_TARGET_DIR:-$PWD/target/nix-dev}"
+            '';
         };
 
         famedly.standards._internal.managedFiles = [
