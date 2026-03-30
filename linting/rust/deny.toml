@@ -20,3 +20,16 @@ allow = [
 ]
 unused-allowed-license = "allow"
 confidence-threshold = 0.95
+
+[licenses.private]
+ignore = true
+
+# Famedly crates that use AGPL-3.0-only.
+# Add new entries here when a Famedly crate needs an AGPL exception.
+[[licenses.exceptions]]
+name = "tim-forward-proxy"
+allow = ["AGPL-3.0-only"]
+
+[[licenses.exceptions]]
+name = "tim-reverse-proxy"
+allow = ["AGPL-3.0-only"]
