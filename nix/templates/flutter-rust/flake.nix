@@ -123,10 +123,13 @@
 
           # Rust-specific checks via crane.
           checks = {
+            # --all-targets compiles test code; if tests use include_str!/include_bytes!
+            # on non-Rust files, override src with rustSrcForTests here.
             clippy = craneLib.cargoClippy (
               commonArgs
               // {
                 inherit cargoArtifacts;
+                # src = rustSrcForTests;  # uncomment if tests use include_str!/include_bytes!
                 cargoClippyExtraArgs = "--all-features --all-targets -- --deny warnings";
               }
             );
