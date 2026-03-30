@@ -125,6 +125,21 @@ _caller-args: {
           ]
         ) (lib.attrValues dartProjects);
 
+      rustHookIdsToSkip =
+        lib.optionals cfg.rustHooks.enable [
+          "clippy"
+        ]
+        ++ lib.concatMap (
+          project:
+          let
+            slug = mkSlug project.directory;
+          in
+          [
+            "clippy-${slug}"
+            "cargo-lock-${slug}"
+          ]
+        ) (lib.attrValues rustProjects);
+
       rustToolchain = config.packages.famedly-rust-toolchain or null;
       hasRustToolchain = rustToolchain != null;
       rustHooksActive = cfg.rustHooks.enable || rustProjects != { };
@@ -311,10 +326,12 @@ _caller-args: {
         }
       ];
 
-      checks = lib.mkIf (dartHookIdsToSkip != [ ]) {
+      hooksToSkipInCheck = dartHookIdsToSkip ++ rustHookIdsToSkip;
+
+      checks = lib.mkIf (hooksToSkipInCheck != [ ]) {
         pre-commit = lib.mkForce (
           config.pre-commit.settings.run.overrideAttrs (_: {
-            SKIP = lib.concatStringsSep "," dartHookIdsToSkip;
+            SKIP = lib.concatStringsSep "," hooksToSkipInCheck;
           })
         );
       };
