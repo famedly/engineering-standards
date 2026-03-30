@@ -80,12 +80,8 @@
 
   # ── Code Quality / Security ──────────────────────────────────────
   codecov = {
-    sha = "1af58845a975a7985b0beb0cbe6fbbb71a41dbad";
-    v = "v5.5.3";
-  };
-  testResults = {
-    sha = "0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3";
-    v = "v1.2.1";
+    sha = "57e3a136b779b570ffcdbf80b3bdc90e7fab3de2";
+    v = "v6.0.0";
   };
   claudeCodeAction = {
     sha = "3ac52d0da9f8ec9ca7b4dc23bb477e36ef9c77a9";

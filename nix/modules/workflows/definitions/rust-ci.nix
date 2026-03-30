@@ -139,6 +139,7 @@ in
               run = "cargo llvm-cov nextest ${config.features} --lcov --output-path lcov.info";
             }
             {
+              name = "Upload coverage";
               uses = "codecov/codecov-action@${av.codecov}";
               with_ = {
                 files = "lcov.info";
@@ -146,9 +147,13 @@ in
               };
             }
             {
-              uses = "codecov/test-results-action@${av.testResults}";
+              name = "Upload test results";
+              uses = "codecov/codecov-action@${av.codecov}";
               if_ = "!cancelled()";
-              with_.token = ghSecret "CODECOV_TOKEN";
+              with_ = {
+                token = ghSecret "CODECOV_TOKEN";
+                report_type = "test_results";
+              };
             }
           ];
         }
