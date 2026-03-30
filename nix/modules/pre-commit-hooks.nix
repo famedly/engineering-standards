@@ -308,6 +308,8 @@ _caller-args: {
           // filesAttr;
         }
       ) pythonProjects;
+
+      hooksToSkipInCheck = dartHookIdsToSkip ++ rustHookIdsToSkip;
     in
     lib.mkIf cfg.enable {
       apps = lib.mkIf cfg.fossHooks.enable {
@@ -325,8 +327,6 @@ _caller-args: {
           initialOnly = true;
         }
       ];
-
-      hooksToSkipInCheck = dartHookIdsToSkip ++ rustHookIdsToSkip;
 
       checks = lib.mkIf (hooksToSkipInCheck != [ ]) {
         pre-commit = lib.mkForce (
