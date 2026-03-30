@@ -55,6 +55,9 @@
           commonArgs = {
             inherit src;
             strictDeps = true;
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            buildInputs = [ pkgs.openssl ];
+            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
           };
 
           # Build dependencies separately for caching.

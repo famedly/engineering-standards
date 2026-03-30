@@ -63,6 +63,9 @@
           commonArgs = {
             src = rustSrc;
             strictDeps = true;
+            nativeBuildInputs = [ pkgs.pkg-config ];
+            buildInputs = [ pkgs.openssl ];
+            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
           };
           cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         in
