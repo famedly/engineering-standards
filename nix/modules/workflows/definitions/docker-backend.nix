@@ -52,12 +52,13 @@ in
         { uses = "actions/checkout@${av.checkout}"; }
         {
           name = "Configure private registry credentials";
-          if_ = "secrets.SHIPYARD_RS_TOKEN != ''";
           env.SHIPYARD_RS_TOKEN = ghSecret "SHIPYARD_RS_TOKEN";
           run = ''
-            git config --global credential.helper store
-            echo "https://famedly:''${SHIPYARD_RS_TOKEN}@git.shipyard.rs" > ~/.git-credentials
-            chmod 600 ~/.git-credentials
+            if [[ -n "''${SHIPYARD_RS_TOKEN:-}" ]]; then
+              git config --global credential.helper store
+              echo "https://famedly:''${SHIPYARD_RS_TOKEN}@git.shipyard.rs" > ~/.git-credentials
+              chmod 600 ~/.git-credentials
+            fi
           '';
         }
         {
