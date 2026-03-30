@@ -209,9 +209,11 @@ in
                   fenixPkgs.stable.clippy
                   fenixPkgs.stable.rust-src
                   fenixPkgs.stable.rustc
+                  fenixPkgs.stable.llvm-tools-preview
                   fenixPkgs.latest.rustfmt
                 ])
                 pkgs.cargo-nextest
+                pkgs.cargo-llvm-cov
               ];
             };
         };
