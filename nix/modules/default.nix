@@ -213,7 +213,6 @@ in
                   fenixPkgs.latest.rustfmt
                 ])
                 pkgs.cargo-nextest
-                pkgs.cargo-llvm-cov
               ];
             };
         };

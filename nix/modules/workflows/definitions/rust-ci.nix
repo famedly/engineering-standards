@@ -134,6 +134,7 @@ in
           name = "Coverage";
           runsOn = config.runner;
           steps = jobSetupSteps ++ [
+            (mkNixInstallStep nixpkgsRev "cargo-llvm-cov")
             {
               name = "Coverage";
               run = "cargo llvm-cov nextest ${config.features} --lcov --output-path lcov.info";
