@@ -104,6 +104,14 @@
             enable = lib.mkEnableOption "cargo nextest" // {
               default = true;
             };
+            extraArgs = lib.mkOption {
+              type = lib.types.str;
+              default = "";
+              description = ''
+                Additional arguments for cargo nextest (e.g. filter expressions).
+                Example: "-E 'not test(e2e)'" to exclude e2e tests from nix flake check.
+              '';
+            };
           };
           deny = {
             enable = lib.mkEnableOption "cargo deny audit" // {
@@ -199,6 +207,9 @@
                     find . -name '*.sh' -exec chmod +x {} \;
                     patchShebangs .
                   '';
+                }
+                // lib.optionalAttrs (cfg.checks.nextest.extraArgs != "") {
+                  cargoNextestExtraArgs = cfg.checks.nextest.extraArgs;
                 }
               );
             }
