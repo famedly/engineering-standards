@@ -633,9 +633,7 @@ let
 
   # Force-evaluate all derivation paths to catch attribute errors (e.g.
   # pkgs.cacerts vs pkgs.cacert) that attrNames alone would miss.
-  forceDrvPaths =
-    attrs:
-    lib.mapAttrsToList (_: v: v.drvPath or (builtins.seq v null)) attrs;
+  forceDrvPaths = attrs: lib.mapAttrsToList (_: v: v.drvPath or (builtins.seq v null)) attrs;
 
   evalTests = lib.mapAttrs' (
     name: config:

@@ -211,17 +211,16 @@
           ]
           ++ lib.optionals fossEnabled [ pkgs.reuse ]
           ++ cfg.extraPackages;
-          shellHook =
-            ''
-              echo ""
-              echo "  Famedly Dev Shell — type 'famedly-help' for available commands"
-              echo ""
-            ''
-            + lib.optionalString hasRustHooks ''
-              # Isolate Nix dev shell cargo artifacts from system cargo builds
-              # to prevent toolchain version mismatches (different rustc fingerprints).
-              export CARGO_TARGET_DIR="''${CARGO_TARGET_DIR:-$PWD/target/nix-dev}"
-            '';
+          shellHook = ''
+            echo ""
+            echo "  Famedly Dev Shell — type 'famedly-help' for available commands"
+            echo ""
+          ''
+          + lib.optionalString hasRustHooks ''
+            # Isolate Nix dev shell cargo artifacts from system cargo builds
+            # to prevent toolchain version mismatches (different rustc fingerprints).
+            export CARGO_TARGET_DIR="''${CARGO_TARGET_DIR:-$PWD/target/nix-dev}"
+          '';
         };
 
         famedly.standards._internal.managedFiles = [

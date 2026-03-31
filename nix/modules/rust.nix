@@ -69,6 +69,16 @@
           description = "Additional nativeBuildInputs for crane derivations.";
         };
 
+        cargoExtraArgs = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          description = ''
+            Additional cargo arguments passed to all crane derivations
+            (buildDepsOnly, cargoClippy, cargoNextest, buildPackage).
+            Useful for enabling specific features, e.g. "--features simple-client".
+          '';
+        };
+
         checks = {
           clippy = {
             enable = lib.mkEnableOption "cargo clippy check" // {
@@ -139,21 +149,24 @@
           cleanSrc = cfg.craneLib.cleanCargoSource cfg.src;
           fullSrc = lib.cleanSource cfg.src;
 
-          commonArgs =
-            {
-              src = cleanSrc;
-              strictDeps = true;
-              nativeBuildInputs =
-                lib.optionals cfg.openssl [ pkgs.pkg-config ]
-                ++ cfg.extraNativeBuildInputs;
-              buildInputs =
-                lib.optionals cfg.openssl [ pkgs.openssl ]
-                ++ cfg.extraBuildInputs;
-            }
-            // lib.optionalAttrs cfg.openssl {
-              OPENSSL_NO_VENDOR = "1";
-              LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
-            };
+          extraArgs = lib.concatStringsSep " " (
+            lib.filter (s: s != "") [
+              "--locked"
+              cfg.cargoExtraArgs
+            ]
+          );
+
+          commonArgs = {
+            src = cleanSrc;
+            strictDeps = true;
+            cargoExtraArgs = extraArgs;
+            nativeBuildInputs = lib.optionals cfg.openssl [ pkgs.pkg-config ] ++ cfg.extraNativeBuildInputs;
+            buildInputs = lib.optionals cfg.openssl [ pkgs.openssl ] ++ cfg.extraBuildInputs;
+          }
+          // lib.optionalAttrs cfg.openssl {
+            OPENSSL_NO_VENDOR = "1";
+            LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.openssl ];
+          };
 
           cargoArtifacts = cfg.craneLib.buildDepsOnly commonArgs;
 
@@ -212,20 +225,16 @@
           devShells = lib.optionalAttrs cfg.devShell.enable {
             default = pkgs.mkShell {
               inputsFrom =
-                lib.optionals
-                  (
-                    (config.famedly.standards.devShell.enable or false)
-                    && config.devShells ? famedly-standards
-                  )
-                  [ config.devShells.famedly-standards ]
+                lib.optionals (
+                  (config.famedly.standards.devShell.enable or false) && config.devShells ? famedly-standards
+                ) [ config.devShells.famedly-standards ]
                 ++ [ (cfg.craneLib.devShell { }) ];
-              packages =
-                [
-                  pkgs.cargo-watch
-                  pkgs.cargo-edit
-                  pkgs.cargo-deny
-                ]
-                ++ cfg.devShell.extraPackages;
+              packages = [
+                pkgs.cargo-watch
+                pkgs.cargo-edit
+                pkgs.cargo-deny
+              ]
+              ++ cfg.devShell.extraPackages;
             };
           };
         }

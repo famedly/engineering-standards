@@ -151,14 +151,10 @@ _caller-args: {
       rustfmtBin = if hasRustToolchain then "${rustToolchain}/bin/rustfmt" else "rustfmt";
       cargoBin = if hasRustToolchain then "${rustToolchain}/bin/cargo" else "cargo";
 
-      reuseToml = pkgs.writeText "REUSE.toml" ''
-        version = 1
-
-        [[annotations]]
-        path = [".editorconfig", ".engineering-standards-manifest", ".github/**", ".cursor/rules/standards/**", "CLAUDE.md", "**.standards.yaml"]
-        SPDX-FileCopyrightText = "${cfg.fossHooks.copyright}"
-        SPDX-License-Identifier = "${cfg.fossHooks.license}"
-      '';
+      reuseToml = pkgs.replaceVars ../../linting/reuse/REUSE.toml {
+        copyright = cfg.fossHooks.copyright;
+        license = cfg.fossHooks.license;
+      };
 
       addLicenseHeadersScript = pkgs.writeShellApplication {
         name = "addLicenseHeaders";
