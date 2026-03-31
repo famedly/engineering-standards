@@ -133,14 +133,17 @@
           commonEnv
           + ''
             declare -a CHART_PACKAGES=(${lib.escapeShellArg (toString chartPkg)})
+            export CHART_NAMESPACE=${lib.escapeShellArg cfg.namespace}
             ARGO_INSTALL=${lib.escapeShellArg (toString argoLib.installManifest)}
-            ARGO_APPS_DIR=${lib.escapeShellArg (toString argoAppsDir)}
             OPENOBSERVE_MANIFEST=${
               if cfg.observability.enable then
                 lib.escapeShellArg (toString ./manifests/openobserve.yaml)
               else
                 "\"\""
             }
+            # PostgreSQL manifest: pre-deployed before the main chart so that
+            # Zitadel's pre-install hook can connect to the DB.
+            POSTGRESQL_MANIFEST=${lib.escapeShellArg (toString ./manifests/postgresql.yaml)}
             declare -a EXTRA_MANIFESTS=(${lib.concatMapStringsSep " " lib.escapeShellArg cfg.extraManifests})
             SEED_SCRIPT=${
               lib.escapeShellArg (if seedScriptWrapped != null then lib.getExe seedScriptWrapped else "")

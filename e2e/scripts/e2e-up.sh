@@ -66,18 +66,9 @@ fi
 export KUBECONFIG
 KUBECONFIG="$(k3d kubeconfig write "${CLUSTER_NAME}")"
 
-# === Push Charts ===
-echo "Pushing charts to registry..."
-for pkg in "${CHART_PACKAGES[@]+"${CHART_PACKAGES[@]}"}"; do
-  for tgz in "${pkg}"/*.tgz; do
-    chart_name=$(basename "${tgz}" | sed 's/-[0-9].*//')
-    helm push "${tgz}" "oci://${REGISTRY}/helm" 2>&1 | grep -v "Pushed\|Digest\|already exists" || true
-    echo "  ${chart_name} pushed"
-  done
-done
-
 # === Argo CD Core (idempotent, check via CRD not namespace) ===
-# We check for the CRD because we may have created the argocd namespace above.
+# Argo CD is installed for cluster management and monitoring.
+# Chart deployment uses helm install directly (avoids OCI+TLS complexity).
 if ! kubectl get crd applications.argoproj.io > /dev/null 2>&1; then
   echo "Installing Argo CD Core..."
   kubectl create namespace argocd 2>/dev/null || true
@@ -93,72 +84,12 @@ else
   echo "Argo CD already installed."
 fi
 
-# Core install does not create the default AppProject — create it explicitly.
-# Must run after Argo CRDs are installed.
-if ! kubectl get appproject -n argocd default > /dev/null 2>&1; then
-  echo "Creating default AppProject..."
-  kubectl apply -n argocd -f - <<'EOF'
-apiVersion: argoproj.io/v1alpha1
-kind: AppProject
-metadata:
-  name: default
-  namespace: argocd
-spec:
-  clusterResourceWhitelist:
-    - group: '*'
-      kind: '*'
-  destinations:
-    - namespace: '*'
-      server: '*'
-  sourceRepos:
-    - '*'
-EOF
-fi
-
-# === In-cluster registry Service ===
-# The .localhost TLD resolves to 127.0.0.1 inside pods (bypasses CoreDNS),
-# so Argo CD cannot reach the registry via its external hostname.
-# We create a headless Service + Endpoints in the argocd namespace pointing
-# to the registry container's docker-network IP (internal port 5000).
-REGISTRY_IP=$(docker inspect "k3d-${REGISTRY_NAME#k3d-}" \
-  --format "{{(index .NetworkSettings.Networks \"k3d-${CLUSTER_NAME}\").IPAddress}}" 2>/dev/null)
-if [ -n "${REGISTRY_IP}" ]; then
-  echo "Creating in-cluster registry service (${REGISTRY_IP}:5000)..."
-  kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: e2e-registry
-  namespace: argocd
-spec:
-  clusterIP: None
-  ports:
-    - port: 5000
-      targetPort: 5000
-      protocol: TCP
----
-apiVersion: v1
-kind: Endpoints
-metadata:
-  name: e2e-registry
-  namespace: argocd
-subsets:
-  - addresses:
-      - ip: ${REGISTRY_IP}
-    ports:
-      - port: 5000
-        protocol: TCP
-EOF
-else
-  echo "  WARNING: Could not determine registry IP; in-cluster Helm pulls may fail."
-fi
-
 # === Extra Manifests (Secrets, ConfigMaps, etc.) ===
 for manifest in "${EXTRA_MANIFESTS[@]+"${EXTRA_MANIFESTS[@]}"}"; do
   [ -n "${manifest}" ] && kubectl apply -f "${manifest}"
 done
 
-# === OpenObserve (direct apply, sync-wave handled by Argo) ===
+# === OpenObserve ===
 if [ -n "${OPENOBSERVE_MANIFEST:-}" ]; then
   echo "Applying OpenObserve..."
   kubectl apply -f "${OPENOBSERVE_MANIFEST}"
@@ -168,25 +99,55 @@ if [ -n "${OPENOBSERVE_MANIFEST:-}" ]; then
     --timeout=120s || echo "  WARNING: OpenObserve not ready yet (continuing)"
 fi
 
-# === Argo Applications ===
-echo "Deploying Argo applications..."
-kubectl apply -f "${ARGO_APPS_DIR}"
-
-# === Wait for Applications ===
-echo "Waiting for applications to become Healthy..."
-for app_file in "${ARGO_APPS_DIR}"/*.yaml; do
-  app_name=$(basename "${app_file}" .yaml)
-  echo -n "  ${app_name}: "
-  timeout 300 bash -c \
-    "until kubectl get application -n argocd '${app_name}' \
-       -o jsonpath='{.status.health.status}' 2>/dev/null \
-       | grep -qE 'Healthy|Degraded'; do sleep 5; done" \
-    && { kubectl get application -n argocd "${app_name}" \
-         -o jsonpath='{.status.health.status}' 2>/dev/null; echo; } \
-    || echo "TIMEOUT (check: kubectl get app -n argocd ${app_name})"
+# === Deploy e2e-platform chart via helm (direct, no OCI push needed) ===
+# Using helm upgrade --install from the Nix-packaged chart tgz.
+# This avoids OCI registry TLS issues with the in-cluster Helm OCI client.
+echo "Deploying e2e-platform chart..."
+CHART_TGZ=""
+for pkg in "${CHART_PACKAGES[@]+"${CHART_PACKAGES[@]}"}"; do
+  for tgz in "${pkg}"/*.tgz; do
+    CHART_TGZ="${tgz}"
+  done
 done
 
-# === Wait for Pods ===
+if [ -z "${CHART_TGZ}" ]; then
+  echo "  ERROR: No chart .tgz found in CHART_PACKAGES"
+  exit 1
+fi
+
+# === Pre-install: PostgreSQL ===
+# Zitadel's initJob runs as a Helm pre-install hook — before PostgreSQL
+# StatefulSet is created. We deploy PostgreSQL first (as a plain K8s manifest)
+# so that the Zitadel hook can connect to it during pre-install.
+# The main chart sets zitadel-postgresql.enabled=false to skip the subchart.
+echo "Pre-installing PostgreSQL (required before Zitadel init hook)..."
+POSTGRESQL_MANIFEST="${POSTGRESQL_MANIFEST:-}"
+if [ -n "${POSTGRESQL_MANIFEST}" ] && [ -f "${POSTGRESQL_MANIFEST}" ]; then
+  kubectl create namespace "${CHART_NAMESPACE:-default}" 2>/dev/null || true
+  kubectl apply -n "${CHART_NAMESPACE:-default}" -f "${POSTGRESQL_MANIFEST}"
+  echo "  Waiting for PostgreSQL to be ready..."
+  kubectl rollout status -n "${CHART_NAMESPACE:-default}" \
+    statefulset/zitadel-postgresql --timeout=120s
+  kubectl wait -n "${CHART_NAMESPACE:-default}" \
+    --for=condition=ready pod \
+    -l "app.kubernetes.io/name=zitadel-postgresql" \
+    --timeout=120s
+  echo "  PostgreSQL ready"
+else
+  echo "  WARNING: No POSTGRESQL_MANIFEST set; Zitadel init may fail."
+fi
+
+helm upgrade --install e2e-platform "${CHART_TGZ}" \
+  --namespace "${CHART_NAMESPACE:-default}" \
+  --create-namespace \
+  --set zitadel-postgresql.enabled=false \
+  --wait \
+  --timeout "${READY_TIMEOUT:-600s}" \
+  ${CHART_VALUES_FILE:+--values "${CHART_VALUES_FILE}"}
+echo "  e2e-platform deployed"
+
+# helm upgrade --install --wait already waits for all resources to be ready.
+# Only run additional wait if a specific READY_SELECTOR is configured.
 if [ -n "${READY_SELECTOR:-}" ]; then
   echo "Waiting for pods (${READY_SELECTOR})..."
   kubectl wait pod \

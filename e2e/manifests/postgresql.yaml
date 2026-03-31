@@ -1,0 +1,82 @@
+# Minimal PostgreSQL for e2e testing using the official postgres image.
+# Deployed as a separate helm-independent resource before the platform chart
+# to avoid Helm pre-install hook ordering issues with Zitadel.
+#
+# Connects: zitadel-postgresql:5432
+# Superuser: postgres / e2e-pg-admin
+# App user:  zitadel  / e2e-zitadel-pg
+# Database:  zitadel
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zitadel-postgresql-init
+  labels:
+    app.kubernetes.io/name: zitadel-postgresql
+    app.kubernetes.io/component: database
+data:
+  init.sql: |
+    CREATE USER zitadel WITH PASSWORD 'e2e-zitadel-pg';
+    CREATE DATABASE zitadel OWNER zitadel;
+    GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel;
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zitadel-postgresql
+  labels:
+    app.kubernetes.io/name: zitadel-postgresql
+    app.kubernetes.io/component: database
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zitadel-postgresql
+  serviceName: zitadel-postgresql
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zitadel-postgresql
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: postgresql
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: e2e-pg-admin
+            - name: POSTGRES_DB
+              value: postgres
+          volumeMounts:
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+      volumes:
+        - name: init-scripts
+          configMap:
+            name: zitadel-postgresql-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zitadel-postgresql
+  labels:
+    app.kubernetes.io/name: zitadel-postgresql
+    app.kubernetes.io/component: database
+spec:
+  selector:
+    app.kubernetes.io/name: zitadel-postgresql
+  ports:
+    - port: 5432
+      targetPort: 5432
