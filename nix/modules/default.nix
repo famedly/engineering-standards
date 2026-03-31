@@ -41,6 +41,7 @@ in
     ./dart.nix
     ./rust.nix
     ./projects.nix
+    ../../e2e/default.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (

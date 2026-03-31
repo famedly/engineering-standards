@@ -146,24 +146,41 @@
         '';
       };
 
+      e2eEnabled = config.famedly.standards.e2e.enable or false;
+
       famedly-help = pkgs.writeShellApplication {
         name = "famedly-help";
-        text = ''
-          echo "Famedly Engineering Standards — Developer Commands"
-          echo ""
-          echo "  famedly-regen [--dev]    Regenerate managed files"
-          echo "  famedly-check            Run all CI checks locally (nix flake check)"
-          echo "  famedly-lint [--fix]     Run pre-commit hooks on all files"
-          echo "  famedly-update           Update standards, regenerate, and check"
-          echo "  famedly-help             Show this help"
-          echo ""
-          echo "Flags:"
-          echo "  famedly-regen --dev      Use local ../engineering-standards"
-          echo "  famedly-lint --fix       Auto-fix and continue on errors"
-          echo ""
-          echo "Environment:"
-          echo "  ENGINEERING_STANDARDS_PATH   Override path for --dev (default: ../engineering-standards)"
-        '';
+        text =
+          ''
+            echo "Famedly Engineering Standards — Developer Commands"
+            echo ""
+            echo "  famedly-regen [--dev]    Regenerate managed files"
+            echo "  famedly-check            Run all CI checks locally (nix flake check)"
+            echo "  famedly-lint [--fix]     Run pre-commit hooks on all files"
+            echo "  famedly-update           Update standards, regenerate, and check"
+            echo "  famedly-help             Show this help"
+            echo ""
+            echo "Flags:"
+            echo "  famedly-regen --dev      Use local ../engineering-standards"
+            echo "  famedly-lint --fix       Auto-fix and continue on errors"
+            echo ""
+            echo "Environment:"
+            echo "  ENGINEERING_STANDARDS_PATH   Override path for --dev (default: ../engineering-standards)"
+          ''
+          + lib.optionalString e2eEnabled ''
+
+            echo ""
+            echo "e2e Testing (k3d + Argo CD):"
+            echo ""
+            echo "  famedly-e2e-up           Start e2e environment (registry + cluster + deploy + seed)"
+            echo "  famedly-e2e-down         Delete cluster and registry"
+            echo "  famedly-e2e              CI: up → test → down (atomic)"
+            echo "  famedly-e2e-seed         Re-run seed script without redeploying"
+            echo "  famedly-e2e-status       Show cluster, Argo, and pod status"
+            echo "  famedly-e2e-logs <svc>   Tail logs for a service"
+            echo ""
+            echo "  Tip: famedly-e2e-down && famedly-e2e-up   — full reset"
+          '';
       };
 
       envrc = pkgs.writeText ".envrc" "use flake\n";

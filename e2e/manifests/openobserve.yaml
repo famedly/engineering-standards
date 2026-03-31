@@ -1,0 +1,107 @@
+# OpenObserve — lightweight all-in-one observability (logs, metrics, traces).
+# Deployed as a standalone StatefulSet (no Helm chart needed).
+# Deployed via Argo CD with sync-wave: -1 so it starts before all other services.
+#
+# Access:
+#   UI:   http://localhost:5080  (credentials: admin@example.com / admin)
+#   OTel: http://localhost:5081  (gRPC endpoint for traces/metrics/logs)
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openobserve-credentials
+  namespace: observability
+type: Opaque
+stringData:
+  ZO_ROOT_USER_EMAIL: "admin@example.com"
+  ZO_ROOT_USER_PASSWORD: "admin"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openobserve
+  namespace: observability
+spec:
+  serviceName: openobserve
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openobserve
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openobserve
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: openobserve
+          image: public.ecr.aws/zinclabs/openobserve:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: openobserve-credentials
+          env:
+            - name: ZO_DATA_DIR
+              value: /data
+            - name: ZO_HTTP_PORT
+              value: "5080"
+            - name: ZO_GRPC_PORT
+              value: "5081"
+          ports:
+            - containerPort: 5080
+              name: http
+            - containerPort: 5081
+              name: grpc
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openobserve
+  namespace: observability
+spec:
+  selector:
+    app.kubernetes.io/name: openobserve
+  ports:
+    - name: http
+      port: 5080
+      targetPort: http
+    - name: grpc
+      port: 5081
+      targetPort: grpc
