@@ -203,7 +203,7 @@
                 tag = cfg.docker.tag;
                 contents = [
                   defaultPkg
-                  pkgs.cacerts
+                  pkgs.cacert
                 ];
                 config.Cmd = [ (lib.getExe defaultPkg) ];
               };

@@ -631,15 +631,21 @@ let
   # 1. Evaluation Tests
   # ---------------------------------------------------------------------------
 
+  # Force-evaluate all derivation paths to catch attribute errors (e.g.
+  # pkgs.cacerts vs pkgs.cacert) that attrNames alone would miss.
+  forceDrvPaths =
+    attrs:
+    lib.mapAttrsToList (_: v: v.drvPath or (builtins.seq v null)) attrs;
+
   evalTests = lib.mapAttrs' (
     name: config:
     let
       eval = evalConsumer name config;
       forced = builtins.deepSeq {
-        apps = builtins.attrNames (eval.config.flake.apps.${system} or { });
-        checks = builtins.attrNames (eval.config.flake.checks.${system} or { });
-        packages = builtins.attrNames (eval.config.flake.packages.${system} or { });
-        devShells = builtins.attrNames (eval.config.flake.devShells.${system} or { });
+        apps = forceDrvPaths (eval.config.flake.apps.${system} or { });
+        checks = forceDrvPaths (eval.config.flake.checks.${system} or { });
+        packages = forceDrvPaths (eval.config.flake.packages.${system} or { });
+        devShells = forceDrvPaths (eval.config.flake.devShells.${system} or { });
       } true;
     in
     lib.nameValuePair "test-eval-${name}" (
