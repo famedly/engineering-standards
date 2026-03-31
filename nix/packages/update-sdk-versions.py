@@ -8,7 +8,6 @@
 # platform binaries, and rewrites sdk-versions.nix.
 
 import json
-import re
 import subprocess
 import urllib.request
 from pathlib import Path
