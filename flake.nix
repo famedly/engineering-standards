@@ -21,6 +21,10 @@
       url = "github:cachix/git-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    helm-charts = {
+      url = "github:famedly/helm-charts";
+      flake = false;
+    };
   };
 
   outputs =
@@ -136,6 +140,17 @@
               preCommitHooks = {
                 enable = true;
                 fossHooks.enable = false;
+              };
+              e2e = {
+                enable = true;
+                chart = "${inputs.helm-charts}/e2e-platform";
+                portForwards = [
+                  "9310:9310@loadbalancer"
+                  "8080:8080@loadbalancer"
+                  "8282:8282@loadbalancer"
+                  "8008:8008@loadbalancer"
+                  "8088:8088@loadbalancer"
+                ];
               };
             };
             famedly.github.workflows.ci.enable = true;
