@@ -62,3 +62,14 @@ allow = ["AGPL-3.0-only", "AGPL-3.0-or-later"]
 [[licenses.exceptions]]
 name = "zitadel-token"
 allow = ["AGPL-3.0-only", "AGPL-3.0-or-later"]
+
+# Ban openssl, because only rustls should be used in general. Most of the
+# ecosystem supports to choose between openssl and rustls with feature flags
+# such as `rustls-tls`, and we prefer rustls because it forbids unsafe code.
+# Usually, openssl gets included acidentally, so let's ban it here. If you
+# actually must use openssl, override this ban and add an explanation. Add a
+# ban of rustls in this case, except when you actually need two different TLS
+# implementations, which also would need to be explained.
+[[bans.deny]]
+name = "openssl-sys"
+wrappers = []
