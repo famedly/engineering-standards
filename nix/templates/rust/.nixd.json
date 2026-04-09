@@ -1,0 +1,10 @@
+{
+  "nixpkgs": {
+    "expr": "import (builtins.getFlake (toString ./.)).inputs.nixpkgs { }"
+  },
+  "options": {
+    "target": {
+      "installable": ".#debug.options"
+    }
+  }
+}

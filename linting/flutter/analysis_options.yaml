@@ -1,0 +1,13 @@
+# Include shared lint rules from engineering-standards.
+# The standards file is managed — this file is yours to customise.
+include: analysis_options.standards.yaml
+
+# Repo-specific overrides below this line.
+# See https://dart.dev/tools/analysis for available options.
+# Example:
+#   analyzer:
+#     exclude:
+#       - example/**
+#   linter:
+#     rules:
+#       avoid_print: false  # https://github.com/famedly/REPO/issues/XXX

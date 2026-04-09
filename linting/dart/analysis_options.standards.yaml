@@ -1,0 +1,3 @@
+# managed-by: engineering-standards — do not edit manually
+# Regenerate with: nix run .#regenerateStandards
+include: package:engineering_standards_lints/analysis_options.yaml

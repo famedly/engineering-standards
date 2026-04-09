@@ -1,0 +1,40 @@
+name: "Prepare Dart environment"
+description: "Sets up SSH for pulling private Dart/Flutter dependencies from GitHub"
+
+inputs:
+  ssh_key:
+    description: "SSH key to pull private dependencies."
+    required: false
+  container_mode:
+    description: "Whether this job runs inside a container or directly on the VM."
+    default: "true"
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Configure SSH and Git for private deps
+      if: ${{ inputs.ssh_key }}
+      run: |
+        if [[ "${{ inputs.container_mode }}" == "true" ]]; then
+          mkdir -p -m 0700 ~/.ssh/ && touch ~/.ssh/known_hosts
+          curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          mkdir -p -m 0700 /root/.ssh/ && touch /root/.ssh/known_hosts
+          curl --silent https://api.github.com/meta | jq --raw-output '"github.com "+.ssh_keys[]' > /root/.ssh/known_hosts
+          chmod 600 /root/.ssh/known_hosts
+          eval $(ssh-agent -s)
+          echo "SSH_AUTH_SOCK=${SSH_AUTH_SOCK}" >> "$GITHUB_ENV"
+          (ssh-add -vvv - <<< "${{ inputs.ssh_key }}") || true
+        else
+          mkdir -p ~/.ssh
+          echo "${{ inputs.ssh_key }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval $(ssh-agent)
+          ssh-add ~/.ssh/id_rsa
+        fi
+        chown -R $(whoami) .
+        if which flutter > /dev/null; then flutter --disable-analytics; fi
+        if which dart > /dev/null; then dart --disable-analytics; fi
+        git config --global url."git@github.com:".insteadOf "https://github.com/"
+      shell: bash

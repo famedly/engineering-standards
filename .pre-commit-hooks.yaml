@@ -1,0 +1,24 @@
+- id: fmt
+  name: cargo fmt
+  description: Format Rust sources with cargo fmt.
+  entry: cargo +nightly fmt
+  language: system
+  types: [rust]
+  args: ["--", "--check"]
+
+- id: clippy
+  name: cargo clippy
+  description: Lint Rust sources with clippy.
+  entry: cargo clippy
+  language: system
+  args: ["--workspace", "--all-targets", "--", "-D", "warnings"]
+  types: [rust]
+  pass_filenames: false
+
+- id: cargo-lock
+  name: cargo lockfile
+  description: Ensures the Cargo.lock is up to date.
+  entry: cargo check
+  language: system
+  pass_filenames: false
+  types: [rust]
