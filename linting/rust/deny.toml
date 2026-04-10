@@ -20,6 +20,7 @@ allow = [
   "Zlib",
 ]
 unused-allowed-license = "allow"
+unused-license-exception = "allow"
 confidence-threshold = 0.95
 
 [licenses.private]
@@ -61,4 +62,8 @@ allow = ["AGPL-3.0-only", "AGPL-3.0-or-later"]
 
 [[licenses.exceptions]]
 name = "zitadel-token"
+allow = ["AGPL-3.0-only", "AGPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+name = "famedly-operator"
 allow = ["AGPL-3.0-only", "AGPL-3.0-or-later"]
