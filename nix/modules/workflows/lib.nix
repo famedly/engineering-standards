@@ -95,6 +95,8 @@ rec {
 
   # Configure git HTTPS credentials so the Nix daemon can fetch private flake inputs.
   # Uses a PAT via git credential helper — works for any user (root, nixbld, runner).
+  # Also configures Nix access-tokens so the daemon can fetch private GitHub
+  # flake inputs (which are downloaded as tarballs via the API, not via git).
   mkNixGitAuthStep =
     { token }:
     {
@@ -105,6 +107,8 @@ rec {
         set -euo pipefail
         if [[ -n "''${GH_TOKEN:-}" ]]; then
           sudo git config --system url."https://x-access-token:''${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+          echo "access-tokens = github.com=''${GH_TOKEN}" | sudo tee -a /etc/nix/nix.conf > /dev/null
+          sudo systemctl restart nix-daemon.service 2>/dev/null || true
         fi
       '';
     };
