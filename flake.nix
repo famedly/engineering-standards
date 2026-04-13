@@ -25,6 +25,10 @@
       url = "github:famedly/helm-charts";
       flake = false;
     };
+    famedly-platform = {
+      url = "github:famedly/famedly-platform";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs =
@@ -42,6 +46,7 @@
           standards = ./nix/modules;
           workflows = importApply ./nix/modules/workflows args;
           preCommitHooks = importApply ./nix/modules/pre-commit-hooks.nix args;
+          platform = importApply ./nix/modules/platform.nix args;
         };
       in
       {
@@ -141,10 +146,9 @@
                 enable = true;
                 fossHooks.enable = false;
               };
-              e2e = {
+              platform = {
                 enable = true;
-                chart = "${inputs.helm-charts}/e2e-platform";
-                portForwards = [
+                ports = [
                   "9310:9310@loadbalancer"
                   "8080:8080@loadbalancer"
                   "8282:8282@loadbalancer"
