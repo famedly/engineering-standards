@@ -33,6 +33,7 @@
       {
         lib,
         flake-parts-lib,
+        moduleWithSystem,
         ...
       }@args:
       let
@@ -41,7 +42,7 @@
         flakeModules = {
           standards = ./nix/modules;
           workflows = importApply ./nix/modules/workflows args;
-          preCommitHooks = importApply ./nix/modules/pre-commit-hooks.nix args;
+          preCommitHooks = importApply ./nix/modules/pre-commit-hooks args;
         };
       in
       {

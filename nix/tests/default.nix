@@ -30,7 +30,7 @@ let
     flake-parts-lib = inputs.flake-parts.lib;
   };
 
-  preCommitHooksModule = (import ../modules/pre-commit-hooks.nix) {
+  preCommitHooksModule = (import ../modules/pre-commit-hooks) {
     inherit inputs lib;
     flake-parts-lib = inputs.flake-parts.lib;
   };
