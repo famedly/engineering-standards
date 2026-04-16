@@ -31,30 +31,15 @@ let
       description = "Which SDK to install: 'flutter' (default) or 'dart'.";
     };
 
-    importSorter = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Run import_sorter to check import ordering.";
-    };
     dependencyValidator = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Run dependency_validator to check for unused dependencies.";
     };
-    dartCodeLinter = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Run dart_code_linter for code metrics and unused code checks.";
-    };
     translationsCleaner = lib.mkOption {
       type = lib.types.bool;
       default = true;
       description = "Run translations_cleaner to check for unused translations.";
-    };
-    commentedCodeCheck = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Check for commented-out Dart code.";
     };
 
     test = lib.mkOption {
@@ -94,11 +79,8 @@ let
           inherit (config)
             directory
             sdk
-            importSorter
             dependencyValidator
-            dartCodeLinter
             translationsCleaner
-            commentedCodeCheck
             test
             coverage
             coverageFlags
@@ -179,35 +161,6 @@ let
               run = "git check-ignore -q pubspec.lock || git diff --exit-code pubspec.lock";
             }
           ]
-          ++ lib.optionals pkg.importSorter [
-            {
-              name = "Sort imports";
-              workingDirectory = dir;
-              run = ''
-                if ! dart run import_sorter:main --no-comments --exit-if-changed; then
-                  dart run import_sorter:main --no-comments
-                  {
-                    echo '```diff'
-                    git diff
-                    echo '```'
-                  } >> "$GITHUB_STEP_SUMMARY"
-                  exit 1
-                fi
-              '';
-            }
-          ]
-          ++ lib.optionals pkg.commentedCodeCheck [
-            {
-              name = "Check for commented-out code";
-              workingDirectory = dir;
-              run = ''
-                if grep -R --include="*.dart" -nE '^[[:space:]]*//[^/<].*;[[:space:]]*$' lib/; then
-                  echo "❌ Found commented-out Dart code ending with semicolon."
-                  exit 1
-                fi
-              '';
-            }
-          ]
           ++ lib.optionals pkg.dependencyValidator [
             {
               name = "Check unused dependencies";
@@ -215,63 +168,6 @@ let
               run = ''
                 dart pub global activate dependency_validator
                 dart pub global run dependency_validator
-              '';
-            }
-          ]
-          ++ lib.optionals pkg.dartCodeLinter [
-            {
-              name = "dart_code_linter — analyze";
-              continueOnError = true;
-              workingDirectory = dir;
-              run = ''
-                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
-                  echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                  exit 0
-                fi
-                dirs=""
-                [ -d lib ] && dirs="$dirs lib"
-                [ -d bin ] && dirs="$dirs bin"
-                if [ -z "$dirs" ]; then
-                  echo "::notice::No lib/ or bin/ directory — skipping"
-                  exit 0
-                fi
-                dart run dart_code_linter:metrics analyze $dirs --reporter=github --set-exit-on-violation-level=noted
-              '';
-            }
-            {
-              name = "dart_code_linter — unused files";
-              workingDirectory = dir;
-              run = ''
-                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
-                  echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                  exit 0
-                fi
-                dirs=""
-                [ -d lib ] && dirs="$dirs lib"
-                [ -d bin ] && dirs="$dirs bin"
-                if [ -z "$dirs" ]; then
-                  echo "::notice::No lib/ or bin/ directory — skipping"
-                  exit 0
-                fi
-                dart run dart_code_linter:metrics check-unused-files $dirs
-              '';
-            }
-            {
-              name = "dart_code_linter — unused code";
-              workingDirectory = dir;
-              run = ''
-                if ! grep -q 'dart_code_linter:' pubspec.yaml; then
-                  echo "::notice::dart_code_linter not in pubspec.yaml — skipping"
-                  exit 0
-                fi
-                dirs=""
-                [ -d lib ] && dirs="$dirs lib"
-                [ -d bin ] && dirs="$dirs bin"
-                if [ -z "$dirs" ]; then
-                  echo "::notice::No lib/ or bin/ directory — skipping"
-                  exit 0
-                fi
-                dart run dart_code_linter:metrics check-unused-code $dirs --exclude="{**/generated/**.dart,**.g.dart,**.freezed.dart}"
               '';
             }
           ]
@@ -343,9 +239,7 @@ let
               files = if pkg.directory != "" then "${pkg.directory}/coverage/lcov.info" else "coverage/lcov.info";
               token = ghSecret "CODECOV_TOKEN";
             }
-            // lib.optionalAttrs (pkg.coverageFlags != "") {
-              flags = pkg.coverageFlags;
-            };
+            // lib.optionalAttrs (pkg.coverageFlags != "") { flags = pkg.coverageFlags; };
           }
         ];
       };

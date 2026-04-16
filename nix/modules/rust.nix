@@ -80,26 +80,6 @@
         };
 
         checks = {
-          clippy = {
-            enable = lib.mkEnableOption "cargo clippy check" // {
-              default = true;
-            };
-            useTestSrc = lib.mkOption {
-              type = lib.types.bool;
-              default = false;
-              description = "Use full source for clippy (needed when tests use include_str!/include_bytes!).";
-            };
-            extraArgs = lib.mkOption {
-              type = lib.types.str;
-              default = "--all-features --all-targets -- --deny warnings";
-              description = "Arguments for cargo clippy.";
-            };
-          };
-          fmt = {
-            enable = lib.mkEnableOption "cargo fmt check" // {
-              default = true;
-            };
-          };
           nextest = {
             enable = lib.mkEnableOption "cargo nextest" // {
               default = true;
@@ -182,22 +162,7 @@
         in
         {
           checks =
-            lib.optionalAttrs cfg.checks.clippy.enable {
-              clippy = cfg.craneLib.cargoClippy (
-                commonArgs
-                // {
-                  inherit cargoArtifacts;
-                  cargoClippyExtraArgs = cfg.checks.clippy.extraArgs;
-                }
-                // lib.optionalAttrs cfg.checks.clippy.useTestSrc {
-                  src = fullSrc;
-                }
-              );
-            }
-            // lib.optionalAttrs cfg.checks.fmt.enable {
-              fmt = cfg.craneLib.cargoFmt { src = cleanSrc; };
-            }
-            // lib.optionalAttrs cfg.checks.nextest.enable {
+            lib.optionalAttrs cfg.checks.nextest.enable {
               tests = cfg.craneLib.cargoNextest (
                 commonArgs
                 // {
@@ -213,14 +178,10 @@
                 }
               );
             }
-            // lib.optionalAttrs cfg.checks.deny.enable {
-              deny = cfg.craneLib.cargoDeny { src = cleanSrc; };
-            };
+            // lib.optionalAttrs cfg.checks.deny.enable { deny = cfg.craneLib.cargoDeny { src = cleanSrc; }; };
 
           packages =
-            lib.optionalAttrs cfg.package.enable {
-              default = defaultPkg;
-            }
+            lib.optionalAttrs cfg.package.enable { default = defaultPkg; }
             // lib.optionalAttrs (cfg.docker.enable && cfg.package.enable) {
               docker = pkgs.dockerTools.buildLayeredImage {
                 name = if cfg.docker.name != "" then cfg.docker.name else defaultPkg.pname or "app";

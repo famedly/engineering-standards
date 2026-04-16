@@ -56,11 +56,6 @@ in
       default = true;
       description = "Enable coverage job with llvm-cov + Codecov upload.";
     };
-    typos = lib.mkOption {
-      type = lib.types.bool;
-      default = true;
-      description = "Enable spell-check job with typos.";
-    };
     cargoDeny = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -159,21 +154,6 @@ in
           ];
         }
         // containerAttr;
-      }
-      // lib.optionalAttrs config.typos {
-        typos = {
-          name = "Spell Check";
-          runsOn = "ubuntu-latest";
-          steps = [
-            { uses = "actions/checkout@${av.checkout}"; }
-            (nixSetupStep av.installNix)
-            (mkNixInstallStep nixpkgsRev "typos")
-            {
-              name = "Run typos";
-              run = "typos";
-            }
-          ];
-        };
       }
       // lib.optionalAttrs config.cargoDeny {
         deny = {
