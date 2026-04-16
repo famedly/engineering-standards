@@ -33,26 +33,6 @@ importingFlake: {
       options.famedly.standards.preCommitHooks = {
         enable = lib.mkEnableOption "Nix-native pre-commit hooks via git-hooks.nix";
 
-        fossHooks = {
-          enable = lib.mkOption {
-            type = lib.types.bool;
-            default = true;
-            description = "Enable FOSS licensing hooks (REUSE compliance).";
-          };
-
-          copyright = lib.mkOption {
-            type = lib.types.str;
-            default = "Famedly GmbH";
-            description = "Default copyright holder for SPDX headers (used by addLicenseHeaders app).";
-          };
-
-          license = lib.mkOption {
-            type = lib.types.str;
-            default = "AGPL-3.0-only";
-            description = "Default SPDX license identifier for headers (used by addLicenseHeaders app).";
-          };
-        };
-
         pythonHooks.enable = lib.mkOption {
           type = lib.types.bool;
           default = false;

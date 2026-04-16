@@ -5,8 +5,19 @@
   ...
 }:
 importingFlake: {
+  options.perSystem = flake-parts-lib.mkPerSystemOption (
+    { lib, ... }:
+    {
+      options.famedly.standards.preCommitHooks.reuseHook.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable REUSE compliance hook.";
+      };
+    }
+  );
+
   config.perSystem = moduleWithSystem (
-    { pkgs, ... }@_localFlake:
+    { pkgs, flake-parts-lib, ... }@_localFlake:
     { config, system, ... }@_importingFlake:
 
     let
@@ -18,16 +29,26 @@ importingFlake: {
         meta.description = "Add SPDX license headers to all git-tracked files";
         program =
           (pkgs.writers.writeNu "add-license-headers" /* nu */ ''
-            print 'Downloading missing license texts...'
-            ${lib.getExe pkgs.reuse} download --all
+            # This script basically patches over a missing feature in
+            # `reuse` that is being fixed upstream, see:
+            #
+            # https://codeberg.org/fsfe/reuse-tool/issues/1190
+            #
+            # As such, it should eventually be deprecated.
+            let reuse = open REUSE.toml
+            let copyright = $reuse.annotations.SPDX-FileCopyrightText.0
+            let license = $reuse.annotations.SPDX-License-Identifier.0
 
-            print 'Adding SPDX headers: --copyright=${cfg.fossHooks.copyright} --license=${cfg.fossHooks.license}'
+            print 'Downloading missing license texts...'
+            ${lib.getExe pkgs.reuse} download $license
+
+            print $'Adding SPDX headers: --copyright=($copyright) --license=($license)'
 
             let tracked_files = ${lib.getExe pkgs.git} ls-files -z | split row (char --integer 0) | drop 1
 
             (${lib.getExe pkgs.reuse} annotate
-              --copyright=${cfg.fossHooks.copyright}
-              --license=${cfg.fossHooks.license}
+              --copyright $copyright
+              --license $license
               --skip-unrecognized
               ...$tracked_files)
 
@@ -37,13 +58,7 @@ importingFlake: {
 
       famedly.standards._internal.managedFiles = [
         {
-          src = pkgs.writers.writeTOML "REUSE.toml" (
-            (lib.fromTOML ../../../linting/reuse/REUSE.toml)
-            // {
-              SPDX-FileCopyrightText = cfg.fossHooks.copyright;
-              SPDX-License-Identifier = cfg.fossHooks.license;
-            }
-          );
+          src = ../../../linting/reuse/REUSE.toml;
           dest = "REUSE.toml";
           initialOnly = true;
         }
