@@ -40,7 +40,7 @@ importingFlake: {
             let license = $reuse.annotations.SPDX-License-Identifier.0
 
             print 'Downloading missing license texts...'
-            ${lib.getExe pkgs.reuse} download $license
+            ${lib.getExe pkgs.reuse} download --source '${pkgs.spdx-license-list-data.text}' $license
 
             print $'Adding SPDX headers: --copyright=($copyright) --license=($license)'
 
