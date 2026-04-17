@@ -18,8 +18,8 @@ in
       environment = "pub.dev";
       permissions.id-token = "write";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
-        (nixSetupStep av.installNix)
+        { uses = av."actions/checkout"; }
+        (nixSetupStep av."cachix/install-nix-action")
         (mkNixInstallStep nixpkgsRev "dart")
         { run = "dart pub get"; }
         { run = "dart pub publish --dry-run"; }

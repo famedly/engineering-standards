@@ -24,7 +24,7 @@ in
       runsOn = "ubuntu-latest";
       if_ = "startsWith(github.ref, 'refs/tags/')";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
           name = "Create GitHub Release";
           env.GH_TOKEN = ghExpr "github.token";

@@ -121,14 +121,14 @@ let
       sdkCmd = if pkg.sdk == "flutter" then "flutter" else "dart";
     in
     [
-      { uses = "actions/checkout@${av.checkout}"; }
-      (nixSetupStep av.installNix)
+      { uses = av."actions/checkout"; }
+      (nixSetupStep av."cachix/install-nix-action")
       (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
       (mkSdkInstallStep pkg.sdk)
     ]
     ++ [
       {
-        uses = "actions/cache@${av.cache}";
+        uses = av."actions/cache";
         with_ = {
           path = "~/.pub-cache";
           key = "${ghExpr "runner.os"}-pub-${ghExpr "hashFiles('**/pubspec.lock')"}";
@@ -234,7 +234,7 @@ let
                 '';
           }
           {
-            uses = "codecov/codecov-action@${av.codecov}";
+            uses = av."codecov/codecov-action";
             with_ = {
               files = if pkg.directory != "" then "${pkg.directory}/coverage/lcov.info" else "coverage/lcov.info";
               token = ghSecret "CODECOV_TOKEN";

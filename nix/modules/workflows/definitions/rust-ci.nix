@@ -73,7 +73,7 @@ in
       jobSetupSteps =
         if config.container != null then
           [
-            { uses = "actions/checkout@${av.checkout}"; }
+            { uses = av."actions/checkout"; }
             (mkRustPrepareStep {
               shipyardToken = ghSecret "SHIPYARD_RS_TOKEN";
               inherit (config) additionalPackages;
@@ -81,8 +81,8 @@ in
           ]
         else
           [
-            { uses = "actions/checkout@${av.checkout}"; }
-            (nixSetupStep av.installNix)
+            { uses = av."actions/checkout"; }
+            (nixSetupStep av."cachix/install-nix-action")
             (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
             {
               name = "Install Rust toolchain (pinned)";
@@ -136,7 +136,7 @@ in
             }
             {
               name = "Upload coverage";
-              uses = "codecov/codecov-action@${av.codecov}";
+              uses = av."codecov/codecov-action";
               with_ = {
                 files = "lcov.info";
                 token = ghSecret "CODECOV_TOKEN";
@@ -144,7 +144,7 @@ in
             }
             {
               name = "Upload test results";
-              uses = "codecov/codecov-action@${av.codecov}";
+              uses = av."codecov/codecov-action";
               if_ = "!cancelled()";
               with_ = {
                 token = ghSecret "CODECOV_TOKEN";
@@ -160,8 +160,8 @@ in
           name = "Cargo Deny";
           runsOn = "ubuntu-latest";
           steps = [
-            { uses = "actions/checkout@${av.checkout}"; }
-            (nixSetupStep av.installNix)
+            { uses = av."actions/checkout"; }
+            (nixSetupStep av."cachix/install-nix-action")
             (mkNixInstallStep nixpkgsRev "cargo-deny")
             {
               name = "Run cargo deny";

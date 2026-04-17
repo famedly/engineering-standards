@@ -47,7 +47,7 @@ in
       if_ = "startsWith(github.ref, 'refs/tags/')";
       container = defaultContainer;
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         (mkRustPrepareStep {
           shipyardToken = ghSecret "SHIPYARD_RS_TOKEN";
           registryName = ghVar "CRATE_REGISTRY_NAME";

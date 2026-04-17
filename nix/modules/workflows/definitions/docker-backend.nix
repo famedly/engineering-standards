@@ -49,7 +49,7 @@ in
     jobs.docker-publish = {
       runsOn = "ubuntu-latest-16core";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
           name = "Configure private registry credentials";
           env.SHIPYARD_RS_TOKEN = ghSecret "SHIPYARD_RS_TOKEN";
@@ -126,7 +126,7 @@ in
         }
         {
           name = "Log into registry";
-          uses = "famedly/login-action@${av.famedlyLogin}";
+          uses = av."famedly/login-action";
           if_ = "env.OCI_REGISTRY != null";
           with_ = {
             registry = ghEnv "OCI_REGISTRY";

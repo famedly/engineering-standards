@@ -36,9 +36,9 @@ in
       runsOn = "ubuntu-latest";
       if_ = "github.event_name == 'pull_request'";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
-          uses = "anthropics/claude-code-action@${av.claudeCodeAction}";
+          uses = av."anthropics/claude-code-action";
           with_ = {
             anthropic_api_key = ghSecret "ANTHROPIC_API_KEY";
             inherit (config) model;

@@ -18,7 +18,7 @@ in
       if_ = "github.ref != 'refs/heads/main' && github.event.pull_request";
       steps = [
         {
-          uses = "actions/checkout@${av.checkout}";
+          uses = av."actions/checkout";
           with_.fetch-depth = 0;
         }
         {

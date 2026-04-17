@@ -50,7 +50,7 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
@@ -93,7 +93,7 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
@@ -137,7 +137,7 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
@@ -159,7 +159,7 @@ in
           }
           {
             name = "Upload test artifacts";
-            uses = "actions/upload-artifact@${av.uploadArtifact}";
+            uses = av."actions/upload-artifact";
             with_ = {
               name = "ansible-test-unit";
               path = "ansible_collections/${config.collection}/tests/output/";
@@ -181,7 +181,7 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
@@ -203,7 +203,7 @@ in
           }
           {
             name = "Upload test artifacts";
-            uses = "actions/upload-artifact@${av.uploadArtifact}";
+            uses = av."actions/upload-artifact";
             with_ = {
               name = "ansible-test-sanity";
               path = "ansible_collections/${config.collection}/tests/output/";
@@ -225,7 +225,7 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
@@ -255,7 +255,7 @@ in
           }
           {
             name = "Upload test artifacts";
-            uses = "actions/upload-artifact@${av.uploadArtifact}";
+            uses = av."actions/upload-artifact";
             with_ = {
               name = "ansible-test-integration";
               path = "ansible_collections/${config.collection}/tests/output/";
@@ -271,13 +271,13 @@ in
         steps = [
           {
             name = "Checkout";
-            uses = "actions/checkout@${av.checkout}";
+            uses = av."actions/checkout";
             with_ = {
               submodules = "recursive";
               path = "ansible_collections/${config.collection}";
             };
           }
-          (nixSetupStep av.installNix)
+          (nixSetupStep av."cachix/install-nix-action")
           (mkNixInstallStep nixpkgsRev "black")
           {
             name = "Run Black";

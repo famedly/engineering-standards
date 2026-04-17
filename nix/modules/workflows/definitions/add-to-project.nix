@@ -25,7 +25,7 @@ in
       runsOn = "ubuntu-latest";
       steps = [
         {
-          uses = "actions/add-to-project@${av.addToProject}";
+          uses = av."actions/add-to-project";
           with_ = {
             project-url = config.projectUrl;
             github-token = ghSecret "ADD_ISSUE_TO_PROJECT_PAT";

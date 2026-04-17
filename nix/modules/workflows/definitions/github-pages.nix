@@ -51,7 +51,7 @@ in
       };
       steps = [
         {
-          uses = "actions/download-artifact@${av.downloadArtifact}";
+          uses = av."actions/download-artifact";
           with_ = {
             name = config.artifactName;
             path = "dist";
@@ -59,14 +59,14 @@ in
             github-token = ghSecret "GITHUB_TOKEN";
           };
         }
-        { uses = "actions/configure-pages@${av.configurePages}"; }
+        { uses = av."actions/configure-pages"; }
         {
-          uses = "actions/upload-pages-artifact@${av.uploadPagesArtifact}";
+          uses = av."actions/upload-pages-artifact";
           with_.path = "dist";
         }
         {
           id = "deploy";
-          uses = "actions/deploy-pages@${av.deployPages}";
+          uses = av."actions/deploy-pages";
         }
       ];
     };

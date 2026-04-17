@@ -40,15 +40,15 @@ in
     jobs.bake = {
       runsOn = "ubuntu-latest";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
           name = "Set up Docker Buildx";
-          uses = "docker/setup-buildx-action@${av.dockerSetupBuildx}";
+          uses = av."docker/setup-buildx-action";
         }
         {
           name = "Log into registry";
           if_ = "github.event_name != 'pull_request'";
-          uses = "docker/login-action@${av.dockerLogin}";
+          uses = av."docker/login-action";
           with_ = {
             registry = "ghcr.io";
             username = ghExpr "github.repository_owner";
@@ -58,12 +58,12 @@ in
         {
           id = "meta";
           name = "Extract Docker metadata";
-          uses = "docker/metadata-action@${av.dockerMetadata}";
+          uses = av."docker/metadata-action";
           with_.images = "ghcr.io/${ghExpr "github.repository"}";
         }
         {
           name = "Build and push via Bake";
-          uses = "docker/bake-action@${av.dockerBake}";
+          uses = av."docker/bake-action";
           with_ = {
             files = "${config.files}\n${ghExpr "steps.meta.outputs.bake-file"}";
             inherit (config) targets;

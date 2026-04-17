@@ -40,14 +40,14 @@ in
       name = "Nix checks";
       runsOn = if config.armRunners then "arm-ubuntu-latest-8core" else "ubuntu-latest";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
-          uses = "cachix/install-nix-action@${av.installNix}";
+          uses = av."cachix/install-nix-action";
           with_.extra_nix_config = "experimental-features = nix-command flakes";
         }
         (mkNixGitAuthStep { token = ghSecret "ENGINEERING_STANDARDS_READ"; })
         {
-          uses = "cachix/cachix-action@${av.cachixAction}";
+          uses = av."cachix/cachix-action";
           with_ = {
             name = "famedly";
             signingKey = ghSecret "CACHIX_SIGNING_KEY_FAMEDLY";

@@ -54,15 +54,15 @@ let
         packages = "write";
       };
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
           name = "Set up Docker Buildx";
-          uses = "docker/setup-buildx-action@${av.dockerSetupBuildx}";
+          uses = av."docker/setup-buildx-action";
         }
         {
           name = "Log into registry ${config.registry}";
           if_ = pushCondition;
-          uses = "docker/login-action@${av.dockerLogin}";
+          uses = av."docker/login-action";
           with_ = {
             inherit (config) registry;
             username = config.registryUser;
@@ -72,12 +72,12 @@ let
         {
           id = "meta";
           name = "Extract Docker metadata";
-          uses = "docker/metadata-action@${av.dockerMetadata}";
+          uses = av."docker/metadata-action";
           with_.images = image;
         }
         {
           name = "Build and push Docker image";
-          uses = "docker/build-push-action@${av.dockerBuildPush}";
+          uses = av."docker/build-push-action";
           with_ = {
             inherit (config) context;
             file = config.dockerfile;
@@ -120,19 +120,19 @@ let
       };
       outputs.tags = ghExpr "steps.tag.outputs.tags";
       steps = [
-        { uses = "actions/checkout@${av.checkout}"; }
+        { uses = av."actions/checkout"; }
         {
           name = "Set up QEMU";
-          uses = "docker/setup-qemu-action@${av.dockerSetupQemu}";
+          uses = av."docker/setup-qemu-action";
         }
         {
           name = "Setup Docker buildx";
-          uses = "docker/setup-buildx-action@${av.dockerSetupBuildx}";
+          uses = av."docker/setup-buildx-action";
         }
         {
           name = "Log into registry ${config.registry}";
           if_ = notPR;
-          uses = "docker/login-action@${av.dockerLogin}";
+          uses = av."docker/login-action";
           with_ = {
             inherit (config) registry;
             username = config.registryUser;
@@ -142,13 +142,13 @@ let
         {
           id = "meta";
           name = "Extract Docker metadata";
-          uses = "docker/metadata-action@${av.dockerMetadata}";
+          uses = av."docker/metadata-action";
           with_.images = image;
         }
         {
           id = "build";
           name = "Build and push Docker image";
-          uses = "docker/build-push-action@${av.dockerBuildPush}";
+          uses = av."docker/build-push-action";
           with_ = {
             inherit (config) context;
             file = config.dockerfile;
@@ -190,7 +190,7 @@ let
         }
         {
           name = "Upload digest";
-          uses = "actions/upload-artifact@${av.uploadArtifact}";
+          uses = av."actions/upload-artifact";
           with_ = {
             name =
               let
@@ -221,7 +221,7 @@ let
         }
         {
           name = "Download digests";
-          uses = "actions/download-artifact@${av.downloadArtifact}";
+          uses = av."actions/download-artifact";
           with_ = {
             path = "/tmp/digests";
             pattern =
@@ -235,17 +235,17 @@ let
         }
         {
           name = "Set up Docker Buildx";
-          uses = "docker/setup-buildx-action@${av.dockerSetupBuildx}";
+          uses = av."docker/setup-buildx-action";
         }
         {
           id = "meta";
           name = "Extract Docker metadata";
-          uses = "docker/metadata-action@${av.dockerMetadata}";
+          uses = av."docker/metadata-action";
           with_.images = image;
         }
         {
           name = "Log into registry ${config.registry}";
-          uses = "docker/login-action@${av.dockerLogin}";
+          uses = av."docker/login-action";
           with_ = {
             inherit (config) registry;
             username = config.registryUser;

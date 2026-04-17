@@ -18,7 +18,7 @@ in
       if_ = "github.event.issue.pull_request && contains(github.event.comment.body, '/fast-forward')";
       steps = [
         {
-          uses = "sequoia-pgp/fast-forward@${av.fastForward}";
+          uses = av."sequoia-pgp/fast-forward";
           with_.merge = true;
         }
       ];

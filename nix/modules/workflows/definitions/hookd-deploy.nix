@@ -70,7 +70,7 @@ in
         if_ = "github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, '${config.tagPrefix}')";
         environment.name = config.environment;
         steps = [
-          { uses = "actions/checkout@${av.checkout}"; }
+          { uses = av."actions/checkout"; }
           {
             name = "Deploy";
             env = {

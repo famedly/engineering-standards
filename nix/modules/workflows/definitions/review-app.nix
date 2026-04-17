@@ -91,7 +91,7 @@ in
         };
         steps = [
           {
-            uses = "actions/download-artifact@${av.downloadArtifact}";
+            uses = av."actions/download-artifact";
             with_ = {
               name = config.artifactName;
               path = "public";

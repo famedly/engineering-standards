@@ -26,9 +26,9 @@
         '';
       };
 
-      config.famedly.standards.actionVersions = builtins.mapAttrs (_: entry: entry.sha) (
-        import ../action-versions-data.nix
-      );
+      config.famedly.standards.actionVersions = builtins.mapAttrs (
+        action: entry: "${action.name}@${action.sha}"
+      ) (import ../action-versions-data.nix);
     }
   );
 }
