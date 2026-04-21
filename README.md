@@ -34,10 +34,10 @@ See **[docs/adopting.md](docs/adopting.md)** for existing repos, configuration r
 
 | Feature | Output |
 |---------|--------|
-| `linting` | `analysis_options.yaml`, `deny.toml`, `pyproject.toml`, … |
+| `linting` | `analysis_options.yaml`, `clippy.toml`, `ruff.toml`, `eslint.config.base.mjs`, … |
 | `preCommitHooks` | git hooks (typos, reuse, clippy, dart, ruff, …) |
 | `infrastructure` | `.editorconfig`, `.github/dependabot.yml` |
 | `devShell` | `famedly-*` CLI (see above) |
-| `rules` | `.cursor/rules/…`, `CLAUDE.md` |
+| `rules` | placeholder `CLAUDE.md` (full rules not shipped yet) |
 | Workflows | `ci`, `general-checks`, `dart-ci` (multi-package), `rust-ci`, `docker` (multi-arch/simple), `review-app`, `github-pages`, `hookd-deploy`, `release`, `publish-crate`, `publish-pub`, `docker-backend`, `docker-bake`, `ansible-ci`, `ai-review`, `fast-forward`, `add-to-project`, `update-engineering-standards` |
 | `projects` | monorepo: per-folder lint/hooks/dependabot |

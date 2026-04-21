@@ -11,7 +11,7 @@
 #   Base    — BOM, case-conflicts, merge-conflicts, YAML/TOML/JSON, etc.
 #   FOSS    — REUSE license compliance
 #   Rust    — clippy, rustfmt, cargo lockfile
-#   Dart    — dart format, dart analyze, import_sorter, commented-out code, dart_code_linter
+#   Dart    — dart format, dart analyze, import_sorter, commented-out code, dart_code_linter (root); project-scoped hooks mirror these per directory
 #   Python  — ruff check, ruff format
 #
 # Monorepo projects (via famedly.standards.projects) automatically
