@@ -44,7 +44,7 @@ What ships from here:
 
 ## 4. Change recipes (Agent Skills)
 
-Recurring tasks are captured as project-scoped Agent Skills under [`.agents/skills/`](.agents/skills). For any of these tasks, read and follow the matching skill rather than improvising. Skills are auto-discoverable by their frontmatter `description`; this table is the human-readable index.
+Recurring tasks are captured as project-scoped Agent Skills under [`.agents/skills/`](.agents/skills) (`.cursor/skills` in the checkout is a symlink to the same tree for Cursor). For any of these tasks, read and follow the matching skill rather than improvising. Skills are auto-discoverable by their frontmatter `description`; this table is the human-readable index.
 
 | Task | Skill |
 |------|-------|

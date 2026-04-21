@@ -24,7 +24,7 @@
     in
     {
       options.famedly.standards.rules = {
-        enable = lib.mkEnableOption "AI rules (Cursor rules + CLAUDE.md)";
+        enable = lib.mkEnableOption "placeholder consumer-repo CLAUDE.md (full AI rules not yet shipped)";
 
         extraScopes = lib.mkOption {
           type = lib.types.listOf (

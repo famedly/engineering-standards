@@ -145,10 +145,10 @@ When `devShell.enable = true`, a `.envrc` is generated automatically by `famedly
 
 | Group | Enabled when | Hooks |
 |-------|-------------|-------|
-| Base | `preCommitHooks.enable` | byte-order-marker, case-conflicts, merge-conflicts, symlinks, yaml, toml, json, eof-fixer, mixed-line-endings, trailing-whitespace, typos |
+| Base | `preCommitHooks.enable` | byte-order-marker, case-conflicts, merge-conflicts, symlinks, yaml, toml, json, eof-fixer, mixed-line-endings, trailing-whitespace, typos, nixfmt (RFC style) |
 | FOSS | `fossHooks.enable` (default) | reuse |
-| Rust | `rustHooks.enable` | clippy, rustfmt |
-| Dart | `dartHooks.enable` | dart format, dart analyze `--fatal-infos` |
+| Rust | `rustHooks.enable` | clippy, rustfmt (root); monorepo `projects` add scoped `cargo check` / lockfile validation per Rust project |
+| Dart | `dartHooks.enable` | dart format, `dart analyze --fatal-infos`, import_sorter, commented-out code check, dart_code_linter (when present in `pubspec.yaml`) |
 | Python | `pythonHooks.enable` | ruff check, ruff format |
 
 ### Managed files
@@ -163,14 +163,14 @@ When `devShell.enable = true`, a `.envrc` is generated automatically by `famedly
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `rules.enable` | bool | `false` | Generate `.cursor/rules/standards/`, `CLAUDE.md` |
-| `rules.extraScopes` | listOf enum | `[]` | `"dart"`, `"flutter"`, `"nix"`, `"rust"`, `"python"`, `"typescript"` |
+| `rules.enable` | bool | `false` | Generate placeholder `CLAUDE.md` in the consumer repo (full Cursor rules not shipped yet) |
+| `rules.extraScopes` | listOf enum | `[]` | `"dart"`, `"flutter"`, `"nix"`, `"rust"`, `"python"`, `"typescript"` — reserved; currently a no-op |
 | `linting.enable` | bool | `false` | Master switch for lint configs |
 | `linting.dart` | bool | `false` | `analysis_options.yaml` (Dart) |
 | `linting.flutter` | bool | `false` | `analysis_options.yaml` (Flutter) |
-| `linting.rust` | bool | `false` | `deny.toml`, `rustfmt.toml` |
-| `linting.python` | bool | `false` | `pyproject.toml` (ruff) |
-| `linting.typescript` | bool | `false` | TypeScript lint config |
+| `linting.rust` | bool | `false` | `clippy.toml`, `rustfmt.toml`, `deny.toml`, `cargo-lints.toml` |
+| `linting.python` | bool | `false` | `ruff.toml`, `ruff.base.toml` |
+| `linting.typescript` | bool | `false` | `eslint.config.base.mjs` |
 | `preCommitHooks.enable` | bool | `false` | git-hooks.nix suite |
 | `preCommitHooks.fossHooks.enable` | bool | `true` | REUSE compliance hook |
 | `preCommitHooks.fossHooks.copyright` | str | `"Famedly GmbH"` | SPDX copyright holder |
@@ -191,6 +191,35 @@ When `devShell.enable = true`, a `.envrc` is generated automatically by `famedly
 | `dart.enable` | bool | `false` | Dart/Flutter dev shell, auto-enables `dart-ci` |
 | `dart.flutter` | bool | `false` | Flutter SDK statt Dart SDK |
 | `dart.dartSdk` | nullOr package | `null` | Override SDK package |
+| `actionVersions` | attrsOf str | (from flake) | GitHub Action commit SHAs; populated from `nix/action-versions-data.nix` inside engineering-standards |
+| `workflowRef` | str | `"main"` | Deprecated; unused. Kept so older consumer flakes keep evaluating |
+
+### `famedly.standards.rust.*`
+
+All `rust.checks.*` and `rust.package` / `rust.docker` / `rust.devShell` options below apply only when `rust.enable = true`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `rust.enable` | bool | `false` | Crane-based checks, packages, and optional dev shell integration |
+| `rust.craneLib` | raw | (required) | Crane library, typically `(inputs.crane.mkLib pkgs).overrideToolchain …` |
+| `rust.src` | path | (required) | Cargo workspace root (`cleanCargoSource` / `cleanSource` applied internally) |
+| `rust.openssl` | bool | `true` | Add `openssl` / `pkg-config` and set `OPENSSL_NO_VENDOR` |
+| `rust.extraBuildInputs` | listOf package | `[]` | Extra `buildInputs` for crane derivations |
+| `rust.extraNativeBuildInputs` | listOf package | `[]` | Extra `nativeBuildInputs` |
+| `rust.cargoExtraArgs` | str | `""` | Extra cargo arguments for all crane steps (e.g. `--features …`) |
+| `rust.checks.clippy.enable` | bool | `true` | `cargo clippy` |
+| `rust.checks.clippy.useTestSrc` | bool | `false` | Use full source for clippy when tests use `include_str!` / `include_bytes!` |
+| `rust.checks.clippy.extraArgs` | str | `--all-features --all-targets -- --deny warnings` | Arguments passed to `cargo clippy` |
+| `rust.checks.fmt.enable` | bool | `true` | `cargo fmt` check |
+| `rust.checks.nextest.enable` | bool | `true` | `cargo nextest` |
+| `rust.checks.nextest.extraArgs` | str | `""` | Extra arguments for nextest |
+| `rust.checks.deny.enable` | bool | `true` | `cargo deny` |
+| `rust.package.enable` | bool | `true` | Build `packages.default` (release binary) |
+| `rust.docker.enable` | bool | `false` | Build OCI image from default package |
+| `rust.docker.name` | str | `""` | Image name (defaults to package `pname`) |
+| `rust.docker.tag` | str | `"latest"` | Image tag |
+| `rust.devShell.enable` | bool | `true` | Merge Rust toolchain into `devShells.default` |
+| `rust.devShell.extraPackages` | listOf package | `[]` | Extra packages in the combined dev shell |
 
 ### `famedly.github.workflows.*`
 
@@ -205,7 +234,7 @@ All workflows have `enable` (bool, default `false`).
 | `ai-review` | `model` |
 | `release` | `draft` |
 | `rust-ci` | `runner`, `container`, `features`, `packages`, `additionalPackages`, `coverage`, `typos`, `cargoDeny` |
-| `dart-ci` | `packages` (attrsOf: `directory`, `sdk`, `test`, `coverage`, `coverageFlags`) |
+| `dart-ci` | Top-level or per-`packages.*`: `directory`, `sdk`, `importSorter`, `dependencyValidator`, `dartCodeLinter`, `translationsCleaner`, `commentedCodeCheck`, `test`, `coverage`, `coverageFlags`, `testInDevShell`; multi-package: `packages` (attrsOf submodule) |
 | `publish-crate` | `packages`, `features`, `extraTagPatterns` |
 | `publish-pub` | — |
 | `docker` | `mode` (`multi-arch`/`simple`), `imageName`, `registry`, `triggerMode` (`direct`/`workflowRun`), `triggerWorkflow`, `buildArgs`, `pushOnlyOnTags`, `registryUser`, `registryPasswordSecret`, `context`, `dockerfile` |
@@ -232,7 +261,7 @@ dart-ci = {
 };
 ```
 
-Per-package options: `directory` (str, `""`), `sdk` (enum, `"flutter"`), `test` (bool, `true`), `coverage` (bool, `true`), `coverageFlags` (str, `""`).
+Per-package options: `directory` (str, `""`), `sdk` (`"dart"` or `"flutter"`, default `"flutter"`), `importSorter`, `dependencyValidator`, `dartCodeLinter`, `translationsCleaner`, `commentedCodeCheck` (bool, default `true` each), `test` (bool, default `false`), `coverage` (bool, default `false`), `coverageFlags` (str, `""`), `testInDevShell` (bool, default `false`).
 
 ### `workflow_run` triggers
 
