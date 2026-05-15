@@ -1,6 +1,0 @@
-self-hosted-runner:
-  labels:
-    - arm-ubuntu-latest-8core
-    - arm-ubuntu-latest-32core
-    - ubuntu-latest-16core
-    - ubuntu-latest-32core
