@@ -72,12 +72,14 @@ in
             "    registries:"
             "      - private-github-npm"
           ]
-          ++ [
+          ++ lib.optionals (eco != "pub") [ # For pub we prefer to have single PRs per dependency bump
             "    groups:"
             "      major:"
             "        update-types: [\"major\"]"
             "      minor-and-patch:"
             "        update-types: [\"minor\", \"patch\"]"
+          ]
+          ++ [
             "    commit-message:"
             "      prefix: \"chore(deps): \""
             "      include: \"scope\""
