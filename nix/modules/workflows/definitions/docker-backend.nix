@@ -126,7 +126,7 @@ in
         }
         {
           name = "Log into registry";
-          uses = "famedly/login-action@${av.famedlyLogin}";
+          uses = "docker/login-action@2ff7bc63ffa51414f77e9cbeea0d3297c1672d2e";
           if_ = "env.OCI_REGISTRY != null";
           with_ = {
             registry = ghEnv "OCI_REGISTRY";
