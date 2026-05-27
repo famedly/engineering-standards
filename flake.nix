@@ -6,13 +6,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     devenv = {
-      url = "github:cachix/devenv";
-      inputs.nixpkgs.follows = "nixpkgs";
-      # TODO: Dedup inputs
-    };
-
-    git-hooks-nix = {
-      url = "github:cachix/git-hooks.nix";
+      url = "github:numtide/devshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -34,7 +28,11 @@
       }@args:
       let
         inherit (flake-parts-lib) importApply;
-        flakeModules.default = importApply ./nix (args // { inherit importApply; });
+
+        flakeModules = rec {
+          filegen = ./nix/modules/filegen.nix;
+          prek-pre-commit = importApply ./nix/modules/prek-pre-commit.nix { inherit filegen; };
+        };
       in
       {
         systems = [
@@ -43,9 +41,9 @@
           "aarch64-darwin"
         ];
 
-        imports = [ flakeModules.default ];
-
-        flake = lib.mkMerge [ { inherit flakeModules; } ];
+        flake.flakeModules = flakeModules // {
+          default = importApply ./nix (args // { inherit importApply flakeModules; });
+        };
       }
     );
 }

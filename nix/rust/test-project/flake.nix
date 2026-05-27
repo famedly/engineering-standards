@@ -14,5 +14,9 @@
       imports = [ famedly-engineering-standards.flakeModules.default ];
 
       systems = [ "x86_64-linux" ];
+
+      perSystem.famedly.standards.rust.projects = {
+        "./nix/rust/test-project" = { };
+      };
     };
 }

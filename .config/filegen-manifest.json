@@ -1,0 +1,22 @@
+{
+  "clobber-by-default": null,
+  "files": [
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "source": "/nix/store/5ldkanbxjp5h2pc1z273df5p0zv7y1y9-envrc",
+      "target": "./nix/rust/test-project/.envrc",
+      "type": "copy"
+    },
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "source": "/nix/store/s9gdw1lr7yjzy18bh4vsh96qwry25mhx-pre-commit-config.yaml",
+      "target": "./nix/rust/test-project/.pre-commit-config.yaml",
+      "type": "copy"
+    }
+  ],
+  "version": 3
+}
