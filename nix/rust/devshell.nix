@@ -1,7 +1,5 @@
 { inputs, ... }:
 importingFlake: {
-  imports = [ inputs.devenv.flakeModule ];
-
   perSystem =
     {
       config,
@@ -14,34 +12,29 @@ importingFlake: {
     lib.mkMerge [
       {
         devshells.rust = {
-          packages = lib.attrValues {
-            inherit (pkgs)
-              # We have some projects that use cargo workspaces, this tool makes
-              # matching up dependencies between subcrates easier.
-              cargo-autoinherit
+          packages =
+            (lib.attrValues {
+              inherit (pkgs)
+                # We have some projects that use cargo workspaces, this tool makes
+                # matching up dependencies between subcrates easier.
+                cargo-autoinherit
 
-              # We use nextest for testing, this cargo extension needs to be
-              # installed for testing most of our projects
-              cargo-nextest
+                # We use nextest for testing, this cargo extension needs to be
+                # installed for testing most of our projects
+                cargo-nextest
 
-              # Commonly used system libraries
-              pkg-config
-              openssl
+                # Commonly used system libraries
+                pkg-config
+                openssl
+                ;
 
-              prek
-              ;
+              # We can consider adding mold/lld/wild for faster linking.
+              inherit (self'.packages) famedly-rust-toolchain;
+            })
 
-            # We can consider adding mold/lld/wild for faster linking.
-            inherit (self'.packages) famedly-rust-toolchain;
-          };
-
-          commands = [
-            {
-              help = "Run pre-commit hooks on demand";
-              name = "filegen-activate";
-              command = config.filegen.scripts.activate.outPath;
-            }
-          ];
+            # TODO: Find a nice way to inherit all settings from the
+            # general devshell, not just package.
+            ++ config.devshells.general.packages;
         };
 
         # Install .envrc files that set up the correct devenv into all

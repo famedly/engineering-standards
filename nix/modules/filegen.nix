@@ -108,23 +108,37 @@ in
       );
     in
     {
-      filegen.scripts.activate = pkgs.writers.writeNu "filegen-apply-script" ''
-        cd (git rev-parse --show-toplevel)
+      apps =
+        let
+          activate = pkgs.writers.writeNu "filegen-apply-script" ''
+            cd (git rev-parse --show-toplevel)
 
-        mkdir .config
+            mkdir .config
 
-        if ('.config/filegen-manifest.json' | path exists) {
-          ${lib.getExe cfg.smfhPackage} --impure diff .config/filegen-manifest.json ${new-manifest}
-        } else {
-          ${lib.getExe cfg.smfhPackage} --impure activate ${new-manifest} 
-        }
+            if ('.config/filegen-manifest.json' | path exists) {
+              ${lib.getExe cfg.smfhPackage} --impure diff .config/filegen-manifest.json ${new-manifest}
+            } else {
+              ${lib.getExe cfg.smfhPackage} --impure activate ${new-manifest} 
+            }
 
-        cp --preserve [] ${new-manifest} .config/filegen-manifest.json
-      '';
+            cp --preserve [] ${new-manifest} .config/filegen-manifest.json
+          '';
 
-      filegen.scripts.deactivate = pkgs.writers.writeNu "filegen-deactivate-script" ''
-        cd (git rev-parse --show-toplevel)
-        ${lib.getExe cfg.smfhPackage} deactivate .config/filegen-manifest.json
-      '';
+          deactivate = pkgs.writers.writeNu "filegen-deactivate-script" ''
+            cd (git rev-parse --show-toplevel)
+            ${lib.getExe cfg.smfhPackage} deactivate .config/filegen-manifest.json
+          '';
+        in
+        {
+          filegen-activate = {
+            program = activate.outPath;
+            meta.description = "Install files defined by the `filegen` options of this flake";
+          };
+
+          filegen-deactivate = {
+            program = deactivate.outPath;
+            meta.description = "Uninstall all files previously installed using `filegen-activate`";
+          };
+        };
     };
 }
