@@ -5,16 +5,16 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/5ldkanbxjp5h2pc1z273df5p0zv7y1y9-envrc",
-      "target": "./nix/rust/test-project/.envrc",
+      "source": "/nix/store/i0y1fyw2c367rm9lwjkym1fsw1632j9y-pre-commit-config.yaml",
+      "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
     {
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/s9gdw1lr7yjzy18bh4vsh96qwry25mhx-pre-commit-config.yaml",
-      "target": "./nix/rust/test-project/.pre-commit-config.yaml",
+      "source": "/nix/store/pwc0ylvlrrksk96bwj3d2z5x2pds532h-envrc",
+      "target": "./.envrc",
       "type": "copy"
     }
   ],

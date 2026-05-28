@@ -1,0 +1,20 @@
+default_language_version:
+  docker: system
+  golang: system
+  node: system
+  python: system
+  ruby: system
+  rust: system
+repos:
+- hooks:
+  - id: trailing-whitespace
+  - id: check-case-conflict
+  - id: end-of-file-fixer
+  - id: fix-byte-order-marker
+  - id: check-json
+  - id: check-toml
+  - id: check-yaml
+  - id: mixed-line-ending
+  - id: check-symlinks
+  - id: check-merge-conflict
+  repo: builtin
