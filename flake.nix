@@ -5,7 +5,7 @@
     nixpkgs.url = "https://channels.nixos.org/nixos-25.11/nixexprs.tar.xz";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
-    devenv = {
+    devshell = {
       url = "github:numtide/devshell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -33,6 +33,8 @@
           filegen = ./nix/modules/filegen.nix;
           prek-pre-commit = importApply ./nix/modules/prek-pre-commit.nix { inherit filegen; };
         };
+
+        default = importApply ./nix (args // { inherit importApply flakeModules; });
       in
       {
         systems = [
@@ -42,8 +44,10 @@
         ];
 
         flake.flakeModules = flakeModules // {
-          default = importApply ./nix (args // { inherit importApply flakeModules; });
+          inherit default;
         };
+
+        imports = [ default ];
       }
     );
 }

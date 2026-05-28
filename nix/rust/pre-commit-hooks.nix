@@ -6,8 +6,6 @@
   ...
 }:
 importingFlake: {
-  imports = [ flakeModules.prek-pre-commit ];
-
   config.perSystem =
     {
       self',

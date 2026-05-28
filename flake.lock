@@ -1,6 +1,6 @@
 {
   "nodes": {
-    "devenv": {
+    "devshell": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
@@ -68,7 +68,7 @@
     },
     "root": {
       "inputs": {
-        "devenv": "devenv",
+        "devshell": "devshell",
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs",
         "rust-overlay": "rust-overlay"
