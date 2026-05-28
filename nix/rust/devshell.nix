@@ -30,6 +30,9 @@ importingFlake: {
 
               # We can consider adding mold/lld/wild for faster linking.
               inherit (self'.packages) famedly-rust-toolchain;
+
+              # To check dependencies are actually used
+              cargo-udeps = pkgs.callPackage ./packages/cargo-udeps.nix { inherit inputs; };
             })
 
             # TODO: Find a nice way to inherit all settings from the

@@ -70,6 +70,21 @@ importingFlake: {
 
                 pass_filenames = false;
               }
+
+              {
+                id = "udeps";
+                name = "udeps";
+                description = "Ensure all cargo dependencies are used";
+
+                entry = "${cargo} udeps";
+
+                language = "system";
+
+                # TODO: See above
+                files = "Cargo\\.toml|Cargo\\.lock";
+
+                pass_filenames = false;
+              }
             ];
           }
         ];
