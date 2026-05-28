@@ -31,7 +31,7 @@ importingFlake: {
 
                 entry = "${cargo} clippy --workspace --all-targets -- -D warnings";
 
-                language = "rust";
+                language = "system";
                 types = [ "rust" ];
                 pass_filenames = false;
               }
@@ -45,7 +45,7 @@ importingFlake: {
 
                 entry = "${cargo} fmt --all --check";
 
-                language = "rust";
+                language = "system";
                 types = [ "rust" ];
                 pass_filenames = false;
               }
@@ -57,7 +57,7 @@ importingFlake: {
 
                 entry = "${cargo} update --offline --workspace --locked";
 
-                language = "rust";
+                language = "system";
 
                 # TODO: In newer prek versions, a `glob` attribute is
                 # supported, which looks much nicer:
