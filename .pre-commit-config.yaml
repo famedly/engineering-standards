@@ -18,3 +18,15 @@ repos:
   - id: check-symlinks
   - id: check-merge-conflict
   repo: builtin
+- hooks:
+  - args:
+    - --write-changes
+    - --force-exclude
+    description: Check the repository for spelling mistakes
+    entry: /nix/store/zjzi7lf4v5l064i3kw9imwk9p47j1hqb-typos-1.46.3/bin/typos
+    id: typos
+    language: system
+    name: typos
+    types:
+    - text
+  repo: local

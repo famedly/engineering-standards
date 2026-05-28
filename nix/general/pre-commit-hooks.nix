@@ -50,9 +50,28 @@ importingFlake: {
             ];
           }
 
+          {
+            repo = "local";
+            hooks = [
+              {
+                id = "typos";
+                name = "typos";
+                description = "Check the repository for spelling mistakes";
+
+                entry = "${lib.getExe pkgs.typos}";
+                args = [
+                  "--write-changes"
+                  "--force-exclude"
+                ];
+
+                language = "system";
+                types = [ "text" ];
+              }
+            ];
+          }
+
           # TODO: Add these checks
           #
-          # typos.enable = true;
           # ruff-check.enable = cfg.pythonHooks.enable;
           # ruff-format.enable = cfg.pythonHooks.enable;
         ];

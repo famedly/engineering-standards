@@ -5,7 +5,7 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/viaidyd7vpya8w6ha8rjqwamryq2lqyv-pre-commit-config.yaml",
+      "source": "/nix/store/7lmqw9hjcp0wrrcr1fn8vgyjcpsiryns-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
