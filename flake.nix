@@ -2,7 +2,7 @@
   description = "Famedly Engineering Standards — Nix-first standards distribution";
 
   inputs = {
-    nixpkgs.url = "https://channels.nixos.org/nixos-25.11/nixexprs.tar.xz";
+    nixpkgs.url = "https://channels.nixos.org/nixos-26.05/nixexprs.tar.xz";
     flake-parts.url = "github:hercules-ci/flake-parts";
 
     devshell = {

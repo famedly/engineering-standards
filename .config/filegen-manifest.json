@@ -5,7 +5,7 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/i0y1fyw2c367rm9lwjkym1fsw1632j9y-pre-commit-config.yaml",
+      "source": "/nix/store/viaidyd7vpya8w6ha8rjqwamryq2lqyv-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
@@ -13,7 +13,7 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/pwc0ylvlrrksk96bwj3d2z5x2pds532h-envrc",
+      "source": "/nix/store/glxwjx24212kdvwwwpzcqkhdzck96cvi-envrc",
       "target": "./.envrc",
       "type": "copy"
     }
