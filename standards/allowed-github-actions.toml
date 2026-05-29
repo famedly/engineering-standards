@@ -1,0 +1,11 @@
+["actions/checkout"]
+rev = "v6.0.2"
+ref = "900f2210b1d28bbbd0bd22d17926b9e224e8f231"
+
+["cachix/install-nix-action"]
+rev = "v31.10.2"
+ref = "51f3067b56fe8ae331890c77d4e454f6d60615ff"
+
+["cachix/cachix-action"]
+rev = "v17"
+ref = "1eb2ef646ac0255473d23a5907ad7b04ce94065c"

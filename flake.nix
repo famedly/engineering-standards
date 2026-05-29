@@ -10,6 +10,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    github-actions-nix = {
+      url = "github:synapdeck/github-actions-nix";
+      inputs.flake-parts.follows = "flake-parts";
+    };
+
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
