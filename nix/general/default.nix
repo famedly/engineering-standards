@@ -8,6 +8,7 @@ importingFlake: {
   imports = [
     ./action-versions.nix
     (importApply ./devshell.nix args)
+    (importApply ./git-cliff.nix args)
     (importApply ./pre-commit-hooks.nix args)
   ];
 
