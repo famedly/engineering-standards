@@ -17,13 +17,23 @@ importingFlake: {
     {
       githubActions.enable = true;
 
-      filegen.settings.files = lib.mkIf (config.githubActions.workflows != { }) (
-        lib.mapAttrsToList (workflow: source: {
-          type = "copy";
-          target = "./.github/workflows/${workflow}";
-          inherit source;
-          clobber = true;
-        }) config.githubActions.workflowFiles
+      filegen.settings.files = (
+        [
+          {
+            type = "copy";
+            target = "./.editorconfig";
+            source = ../../standards/editorconfig.toml;
+            clobber = true;
+          }
+        ]
+        ++ lib.optionals (config.githubActions.workflows != { }) (
+          lib.mapAttrsToList (workflow: source: {
+            type = "copy";
+            target = "./.github/workflows/${workflow}";
+            inherit source;
+            clobber = true;
+          }) config.githubActions.workflowFiles
+        )
       );
     };
 }

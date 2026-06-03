@@ -67,6 +67,19 @@ importingFlake: {
                 language = "system";
                 types = [ "text" ];
               }
+
+              {
+                id = "editorconfig";
+                name = "editorconfig";
+                description = "Ensure all files in the project match editorconfig rules";
+
+                entry = lib.getExe pkgs.editorconfig-checker;
+                args = [
+                  "--config"
+                  ../../standards/editorconfig.toml
+                ];
+                language = "system";
+              }
             ];
           }
 
