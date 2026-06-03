@@ -10,6 +10,7 @@ importingFlake: {
     (importApply ./devshell.nix args)
     (importApply ./git-cliff.nix args)
     (importApply ./pre-commit-hooks.nix args)
+    ./ff-merge_workflow.nix
   ];
 
   # Install all defined GitHub workflows

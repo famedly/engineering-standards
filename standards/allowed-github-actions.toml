@@ -9,3 +9,7 @@ ref = "51f3067b56fe8ae331890c77d4e454f6d60615ff"
 ["cachix/cachix-action"]
 rev = "v17"
 ref = "1eb2ef646ac0255473d23a5907ad7b04ce94065c"
+
+["sequoia-pgp/fast-forward"]
+rev = "v1.0.0"
+ref = "ea7628bedcb0b0b96e94383ada458d812fca4979"

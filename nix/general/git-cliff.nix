@@ -5,7 +5,7 @@ importingFlake: {
       filegen.settings.files = [
         {
           type = "copy";
-          target = "./cliff.toml";
+          target = "./.config/cliff.toml";
           source = ../../standards/cliff.toml;
           clobber = true;
         }

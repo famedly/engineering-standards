@@ -2,7 +2,9 @@ importingFlake: {
   perSystem =
     { lib, pkgs, ... }:
     {
-      devshells.general.packages = lib.attrValues { inherit (pkgs) prek; };
+      devshells.general.packages = lib.attrValues {
+        inherit (pkgs) prek git-cliff;
+      };
 
       filegen.settings.files = [
         {
