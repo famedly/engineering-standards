@@ -1,10 +1,19 @@
-{ config, ... }:
+{ config, lib, ... }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
 in
 {
   perSystem =
-    { ... }:
+    { config, ... }:
+    let
+      run-pre-commit = project: ''
+        nix develop .#general --command sh -c ${lib.escapeShellArg "cd ${lib.escapeShellArg project} && prek run --all-files"}
+      '';
+      dart-project-steps = lib.mapAttrsToList (project: _: {
+        name = "Run Dart pre-commit checks (${project})";
+        run = run-pre-commit project;
+      }) config.famedly.standards.dart.projects;
+    in
     {
       githubActions.workflows.dart-test = {
         name = "Dart test workflow";
@@ -40,7 +49,7 @@ in
           steps = [
             { uses = allowed-actions."actions/checkout".uses; }
             { uses = allowed-actions."cachix/install-nix-action".uses; }
-          ];
+          ] ++ dart-project-steps;
         };
       };
     };

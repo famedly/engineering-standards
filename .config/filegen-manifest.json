@@ -5,7 +5,7 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/7lmqw9hjcp0wrrcr1fn8vgyjcpsiryns-pre-commit-config.yaml",
+      "source": "/nix/store/yhbigqfbyr91f9si3b6y6ib5558ddzx3-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
@@ -13,7 +13,15 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/lai6c0kl9c0r0j1ld4j8ilrw53k3bxmq-rust-test.yml",
+      "source": "/nix/store/1i9xz4fis8a12qlv03ss9smrhhv8nicn-dart-test.yml",
+      "target": "./.github/workflows/dart-test.yml",
+      "type": "copy"
+    },
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "source": "/nix/store/59cxdgpnmw5y43fhn7q2bcvz0jv5v9b3-rust-test.yml",
       "target": "./.github/workflows/rust-test.yml",
       "type": "copy"
     },
@@ -21,7 +29,7 @@
       "clobber": true,
       "deactivate": null,
       "ignore-modification": null,
-      "source": "/nix/store/glxwjx24212kdvwwwpzcqkhdzck96cvi-envrc",
+      "source": "/nix/store/qxl4d2ablir1lzshp9manp44nkl0328x-envrc",
       "target": "./.envrc",
       "type": "copy"
     }
