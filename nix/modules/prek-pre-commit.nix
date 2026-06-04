@@ -17,6 +17,7 @@ in
           description = "";
           type = types.package;
           default = pkgs.prek;
+          defaultText = "pkgs.prek";
         };
 
         workspaces = lib.mkOption {

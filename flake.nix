@@ -19,6 +19,8 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    flake-parts-website.url = "github:hercules-ci/flake.parts-website";
   };
 
   outputs =
@@ -51,8 +53,19 @@
         flake.flakeModules = flakeModules // {
           inherit default;
         };
-
-        imports = [ default ];
+        flake.flakeModule = default;
+        imports = [
+          default
+          inputs.flake-parts-website.flakeModules.empty-site
+        ];
+        perSystem = {
+          render.inputs.self = {
+            baseUrl = "https://github.com/famedly/engineering-standards";
+            intro = "The Famedly Engineering Standards module";
+            flakeRef = "github:famedly/engineering-standards";
+            title = "engineering-standards";
+          };
+        };
       }
     );
 }
