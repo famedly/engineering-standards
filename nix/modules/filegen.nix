@@ -75,6 +75,7 @@ in
             The smfh package to use.
           '';
           default = pkgs.smfh;
+          defaultText = "pkgs.smfh";
           type = types.package;
         };
 
