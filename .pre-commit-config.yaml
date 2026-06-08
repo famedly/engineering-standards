@@ -1,0 +1,32 @@
+repos:
+- hooks:
+  - id: trailing-whitespace
+  - id: check-case-conflict
+  - id: end-of-file-fixer
+  - id: fix-byte-order-marker
+  - id: check-json
+  - id: check-toml
+  - id: check-yaml
+  - args:
+    - --fix=lf
+    id: mixed-line-ending
+  - id: check-symlinks
+  - id: check-merge-conflict
+  repo: builtin
+- hooks:
+  - args:
+    - --write-changes
+    - --force-exclude
+    description: Check the repository for spelling mistakes
+    entry: /nix/store/zjzi7lf4v5l064i3kw9imwk9p47j1hqb-typos-1.46.3/bin/typos
+    id: typos
+    language: system
+    name: typos
+    types:
+    - text
+  - description: Ensure all files in the project match editorconfig rules
+    entry: /nix/store/bnnbf3nnp01wfv73bcl27fwlifs1vc1d-editorconfig-checker-3.6.1/bin/editorconfig-checker
+    id: editorconfig
+    language: system
+    name: editorconfig
+  repo: local

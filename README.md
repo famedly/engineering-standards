@@ -60,7 +60,7 @@ To use the standards in a new project, create the following
         # Specify a default devshell for the project; other options are
         # documented in the devshells section below.
         #
-        # devShells.default = inputs'.famedly-engineering-standards.devShells.rust;
+        # devShells.default = inputs'.famedly-engineering-standards.devShells.standards;
 
         famedly.standards = {
           # Read module documentation for further details, but most
@@ -87,6 +87,7 @@ The following basic devshells are available:
 
 | Name      | Purpose |
 | --------- | ------- |
+| standards | Contains basic tools and configuration used by all famedly projects. |
 | rust      | Contains the Famedly Rust toolchain, and everything required to build Rust projects. |
 | k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS. |
 

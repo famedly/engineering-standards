@@ -6,7 +6,16 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/kzmn0sh10g17q526a6zczgl9pi8da21d-gitattributes",
+      "source": "/nix/store/1sk5sn0lrnbsfhqpvnwbkdd87wl74p99-pre-commit-config.yaml",
+      "target": "./.pre-commit-config.yaml",
+      "type": "copy"
+    },
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/mxj7rb28wyyck8kxlhpybq86cw124x32-gitattributes",
       "target": ".gitattributes",
       "type": "copy"
     }

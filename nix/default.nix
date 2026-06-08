@@ -25,7 +25,20 @@ importingFlake: {
   ];
 
   # TODO: Break this out into a proper ecosystem-oriented module.
-  perSystem = { pkgs, lib, ... }: {
-    devshells.k8s.packages = lib.attrValues { inherit (pkgs) kubectl kubelogin-oidc kubetui; };
-  };
+  perSystem =
+    {
+      config,
+      pkgs,
+      lib,
+      ...
+    }:
+    {
+      devshells.k8s = {
+        packages = lib.attrValues { inherit (pkgs) kubectl kubelogin-oidc kubetui; };
+
+        # TODO: Find a better way to inherit devshell
+        # configurations.
+        commands = lib.filter (command: command.name != "menu") config.devshells.standards.commands;
+      };
+    };
 }
