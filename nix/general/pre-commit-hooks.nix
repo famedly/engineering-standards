@@ -19,18 +19,44 @@ importingFlake: {
           # https://prek.j178.dev/builtin/#supported-hooks_1
           hooks = [
             { id = "trailing-whitespace"; }
+            { id = "check-added-large-files"; }
             { id = "check-case-conflict"; }
+            { id = "check-illegal-windows-names"; }
             { id = "end-of-file-fixer"; }
+
+            # This needs very specific per-repo configuration, so we
+            # don't globally enable it.
+            #
+            # {id = "file-contents-sorter";}
+
             { id = "fix-byte-order-marker"; }
             { id = "check-json"; }
+            { id = "check-json5"; }
+
+            # We should use treefmt-nix for this instead.
+            #
+            # { id = "pretty-format-json"; }
+
             { id = "check-toml"; }
+            { id = "check-vcs-permalinks"; }
             { id = "check-yaml"; }
+            { id = "check-xml"; }
             {
               id = "mixed-line-ending";
               args = [ "--fix=lf" ];
             }
             { id = "check-symlinks"; }
+            { id = "destroyed-symlinks"; }
             { id = "check-merge-conflict"; }
+            { id = "detect-private-key"; }
+
+            # Branch protection rules should be set on the git forge
+            # instead.
+            #
+            # { id = "no-commit-to-branch"; }
+
+            { id = "check-shebang-scripts-are-executable"; }
+            { id = "check-executables-have-shebangs"; }
           ];
         }
 

@@ -1,17 +1,26 @@
 repos:
 - hooks:
   - id: trailing-whitespace
+  - id: check-added-large-files
   - id: check-case-conflict
+  - id: check-illegal-windows-names
   - id: end-of-file-fixer
   - id: fix-byte-order-marker
   - id: check-json
+  - id: check-json5
   - id: check-toml
+  - id: check-vcs-permalinks
   - id: check-yaml
+  - id: check-xml
   - args:
     - --fix=lf
     id: mixed-line-ending
   - id: check-symlinks
+  - id: destroyed-symlinks
   - id: check-merge-conflict
+  - id: detect-private-key
+  - id: check-shebang-scripts-are-executable
+  - id: check-executables-have-shebangs
   repo: builtin
 - hooks:
   - args:
