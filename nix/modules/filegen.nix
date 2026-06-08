@@ -179,14 +179,15 @@ in
           activate = pkgs.writers.writeNu "filegen-apply-script" ''
             cd (git rev-parse --show-toplevel)
 
+            (${lib.getExe cfg.smfhPackage}
+              --verbose
+              --impure
+              diff
+              --fallback
+              ${new-manifest}
+              .config/filegen-manifest.json)
+
             mkdir .config
-
-            if ('.config/filegen-manifest.json' | path exists) {
-              ${lib.getExe cfg.smfhPackage} --impure diff ${new-manifest} .config/filegen-manifest.json
-            } else {
-              ${lib.getExe cfg.smfhPackage} --impure activate ${new-manifest}
-            }
-
             cp --preserve [] ${new-manifest} .config/filegen-manifest.json
           '';
 
