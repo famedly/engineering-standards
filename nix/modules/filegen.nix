@@ -39,72 +39,92 @@ in
             default = [ ];
 
             type = types.listOf (
-              types.submodule {
-                options = {
-                  type = lib.mkOption {
-                    description = ''
-                      The type of operation to perform on the given file.
+              types.submodule (
+                { config, ... }:
+                {
+                  options = {
+                    type = lib.mkOption {
+                      description = ''
+                        The type of operation to perform on the given file.
 
-                      Normally, this should be set to `copy`.
-                    '';
+                        Normally, this should be set to `copy`.
+                      '';
 
-                    type = types.enum [
-                      "copy"
-                      "symlink"
-                      "modify"
-                      "directory"
-                      "delete"
-                    ];
+                      type = types.enum [
+                        "copy"
+                        "symlink"
+                        "modify"
+                        "directory"
+                        "delete"
+                      ];
+                    };
+
+                    target = lib.mkOption {
+                      description = ''
+                        The target of the file operation.
+
+                        To create a file in-repo, use `.` as the project root.
+                      '';
+                      type = types.pathWith { absolute = false; };
+                    };
+
+                    source = lib.mkOption {
+                      description = ''
+                        The source of the file operation.
+
+                        This *can* be a nix store path, potentially created by interpolating a
+                        variable.
+                      '';
+                      type = types.nullOr types.path;
+                    };
+
+                    clobber = lib.mkOption {
+                      description = ''
+                        Whether to overwrite files that already exist.
+                      '';
+                      type = types.nullOr types.bool;
+                    };
+
+                    ignore-modification = lib.mkOption {
+                      description = ''
+                        Whether to skip content integrity checks during activation.
+                      '';
+                      type = types.nullOr types.bool;
+                    };
+
+                    deactivate = lib.mkOption {
+                      description = ''
+                        If enabled, `filegen-deactivate` will ignore this file.
+                      '';
+                      type = types.nullOr types.bool;
+                    };
+
+                    permissions = lib.mkOption {
+                      description = ''
+                        The permissions of the created file.
+
+                        Only the execute bit will be preserved by git, so this should
+                        practically always be "600" or "700", but other values are
+                        technically possible.
+                      '';
+                      type = types.str;
+
+                      # Since creating read-only files can cause
+                      # issues, and nix store paths are by default
+                      # read-only, we cautiously set this to 600 by
+                      # default.
+                      default = "600";
+                    };
+
+                    # Not implemented:
+                    #
+                    # - permissions/uid/gid, as these should not matter for a
+                    #   project repo.
+                    # - follow_symlinks, since for a git repo we should never
+                    #   want to symlink to absolute paths.
                   };
-
-                  target = lib.mkOption {
-                    description = ''
-                      The target of the file operation.
-
-                      To create a file in-repo, use `.` as the project root.
-                    '';
-                    type = types.pathWith { absolute = false; };
-                  };
-
-                  source = lib.mkOption {
-                    description = ''
-                      The source of the file operation.
-
-                      This *can* be a nix store path, potentially created by interpolating a
-                      variable.
-                    '';
-                    type = types.nullOr types.path;
-                  };
-
-                  clobber = lib.mkOption {
-                    description = ''
-                      Whether to overwrite files that already exist.
-                    '';
-                    type = types.nullOr types.bool;
-                  };
-
-                  ignore-modification = lib.mkOption {
-                    description = ''
-                      Whether to skip content integrity checks during activation.
-                    '';
-                    type = types.nullOr types.bool;
-                  };
-
-                  deactivate = lib.mkOption {
-                    description = ''
-                      If enabled, `filegen-deactivate` will ignore this file.
-                    '';
-                    type = types.nullOr types.bool;
-                  };
-
-                  # Not implemented:
-                  #
-                  # - permissions/uid/gid, as these should not matter for a
-                  #   project repo.
-                  # - follow_symlinks, since for a git repo we should never
-                  #   want to symlink to absolute paths.
-                };
-              }
+                }
+              )
             );
           };
 
