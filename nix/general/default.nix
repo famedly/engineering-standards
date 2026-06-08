@@ -9,6 +9,8 @@ importingFlake: {
     ./action-versions.nix
     (importApply ./devshell.nix args)
     (importApply ./pre-commit-hooks.nix args)
+
+    ./workflows/check-pre-commit-hooks.nix
   ];
 
   config.perSystem =

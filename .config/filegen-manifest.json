@@ -15,7 +15,16 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/mxj7rb28wyyck8kxlhpybq86cw124x32-gitattributes",
+      "source": "/nix/store/2m8m5hrfx6kxvcxh75af9ggk7215sfim-check-pre-commit-hooks.yml",
+      "target": "./.github/workflows/check-pre-commit-hooks.yml",
+      "type": "copy"
+    },
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/mv9zlzz043051izx92fxk6ibz6fn21yd-gitattributes",
       "target": ".gitattributes",
       "type": "copy"
     }
