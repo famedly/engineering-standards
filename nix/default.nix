@@ -17,4 +17,10 @@ importingFlake: {
     (importApply ./python args)
     (importApply ./rust args)
   ];
+
+  flake.lib.famedlySystems = [
+    "x86_64-linux"
+    "aarch64-linux"
+    "aarch64-darwin"
+  ];
 }

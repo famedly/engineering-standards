@@ -54,7 +54,7 @@ To use the standards in a new project, create the following
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ famedly-engineering-standards.flakeModules.default ];
 
-      systems = [ "x86_64-linux" ];
+      systems = famedly-engineering-standards.lib.famedlySystems;
 
       perSystem.famedly.standards = {
         # Read module documentation for further details, but most

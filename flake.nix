@@ -42,11 +42,7 @@
         default = importApply ./nix (args // { inherit importApply flakeModules; });
       in
       {
-        systems = [
-          "x86_64-linux"
-          "aarch64-linux"
-          "aarch64-darwin"
-        ];
+        systems = self.lib.famedlySystems;
 
         flake.flakeModules = flakeModules // {
           inherit default;
