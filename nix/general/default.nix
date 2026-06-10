@@ -5,7 +5,10 @@
   ...
 }:
 importingFlake: {
-  imports = [ ./action-versions.nix ];
+  imports = [
+    ./action-versions.nix
+    ./skills.nix
+  ];
 
   config.perSystem =
     { config, ... }:
