@@ -13,6 +13,7 @@
     github-actions-nix = {
       url = "github:synapdeck/github-actions-nix";
       inputs.flake-parts.follows = "flake-parts";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     rust-overlay = {
