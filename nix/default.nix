@@ -23,4 +23,9 @@ importingFlake: {
     "aarch64-linux"
     "aarch64-darwin"
   ];
+
+  # TODO: Break this out into a proper ecosystem-oriented module.
+  perSystem = { pkgs, lib, ... }: {
+    devshells.k8s.packages = lib.attrValues { inherit (pkgs) kubectl kubelogin-oidc kubetui; };
+  };
 }
