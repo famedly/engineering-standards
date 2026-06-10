@@ -1,0 +1,33 @@
+{
+  "clobber-by-default": null,
+  "files": [
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/is33zqwvd62zv52jjjk2xqf34p2n5hpz-ADR-FORMAT.md",
+      "target": "./.agents/skills/align/ADR-FORMAT.md",
+      "type": "copy"
+    },
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/1rd8h8d3nniwnzm8lvq999l439v3vppl-CONTEXT-FORMAT.md",
+      "target": "./.agents/skills/align/CONTEXT-FORMAT.md",
+      "type": "copy"
+    },
+    {
+      "clobber": true,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/2wq7jci81iq1976yaghqais7cbd38j4p-SKILL.md",
+      "target": "./.agents/skills/align/SKILL.md",
+      "type": "copy"
+    }
+  ],
+  "version": 3
+}
