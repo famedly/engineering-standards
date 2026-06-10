@@ -3,9 +3,12 @@
   lib,
   importApply,
   ...
-}:
+}@args:
 importingFlake: {
-  imports = [ ];
+  imports = [
+    (importApply ./devshell.nix args)
+    (importApply ./toolchain.nix args)
+  ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.rust.projects = lib.mkOption {
