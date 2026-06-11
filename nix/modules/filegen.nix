@@ -195,11 +195,10 @@ in
       ];
       apps =
         let
-          activate = pkgs.writers.writeNu "filegen-apply-script" ''
+          activate = pkgs.writers.writeNuBin "filegen-apply-script" ''
             cd (git rev-parse --show-toplevel)
 
             (${lib.getExe cfg.smfhPackage}
-              --verbose
               --impure
               diff
               --fallback
@@ -210,20 +209,26 @@ in
             cp --preserve [] ${new-manifest} .config/filegen-manifest.json
           '';
 
-          deactivate = pkgs.writers.writeNu "filegen-deactivate-script" ''
+          deactivate = pkgs.writers.writeNuBin "filegen-deactivate-script" ''
             cd (git rev-parse --show-toplevel)
             ${lib.getExe cfg.smfhPackage} deactivate .config/filegen-manifest.json
           '';
         in
         {
           filegen-activate = {
-            program = activate.outPath;
-            meta.description = "Install files defined by the `filegen` options of this flake";
+            program = lib.getExe activate;
+            meta = {
+              description = "Install files defined by the `filegen` options of this flake";
+              package = activate;
+            };
           };
 
           filegen-deactivate = {
-            program = deactivate.outPath;
-            meta.description = "Uninstall all files previously installed using `filegen-activate`";
+            program = lib.getExe deactivate;
+            meta = {
+              description = "Uninstall all files previously installed using `filegen-activate`";
+              package = deactivate;
+            };
           };
         };
     };

@@ -38,4 +38,10 @@ repos:
     id: editorconfig
     language: system
     name: editorconfig
+  - description: Ensure that files set up with the filegen module are up-to-date
+    entry: filegen-apply-script
+    id: filegen
+    language: system
+    name: filegen
+    pass_filenames: false
   repo: local

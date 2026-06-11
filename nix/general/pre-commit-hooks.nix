@@ -5,9 +5,12 @@
   ...
 }:
 importingFlake: {
-  config.perSystem = { pkgs, ... }: {
+  config.perSystem = { pkgs, self', ... }: {
     prek-pre-commit = {
-      package.runtimePkgs = lib.attrValues { inherit (pkgs) editorconfig-checker typos; };
+      package.runtimePkgs = lib.attrValues {
+        inherit (pkgs) editorconfig-checker typos;
+        filegen-activate = self'.apps.filegen-activate.meta.package;
+      };
 
       workspaces.".".repos = [
         {
@@ -85,6 +88,16 @@ importingFlake: {
               description = "Ensure all files in the project match editorconfig rules";
 
               entry = "editorconfig-checker";
+              language = "system";
+            }
+
+            {
+              id = "filegen";
+              name = "filegen";
+              description = "Ensure that files set up with the filegen module are up-to-date";
+              pass_filenames = false;
+
+              entry = "filegen-apply-script";
               language = "system";
             }
           ];
