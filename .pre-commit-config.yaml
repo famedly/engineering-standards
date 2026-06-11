@@ -27,14 +27,14 @@ repos:
     - --write-changes
     - --force-exclude
     description: Check the repository for spelling mistakes
-    entry: /nix/store/zjzi7lf4v5l064i3kw9imwk9p47j1hqb-typos-1.46.3/bin/typos
+    entry: typos
     id: typos
     language: system
     name: typos
     types:
     - text
   - description: Ensure all files in the project match editorconfig rules
-    entry: /nix/store/bnnbf3nnp01wfv73bcl27fwlifs1vc1d-editorconfig-checker-3.6.1/bin/editorconfig-checker
+    entry: editorconfig-checker
     id: editorconfig
     language: system
     name: editorconfig

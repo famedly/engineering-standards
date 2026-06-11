@@ -4,13 +4,13 @@ concurrency:
   cancel-in-progress: true
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
-  test:
+  prek:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
       - name: Run pre-commit hooks
-        run: prek --from-ref $GITHUB_BASE_REF --to-ref $GITHUB_HEAD_REF --show-diff-on-failure
+        run: prek --all-files --show-diff-on-failure
         shell: nix develop .#standards --command bash {0}
 name: Make sure all pre-commit hooks pass
 "on":

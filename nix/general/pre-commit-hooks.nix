@@ -5,10 +5,11 @@
   ...
 }:
 importingFlake: {
-  config.perSystem =
-    { pkgs, ... }:
-    {
-      prek-pre-commit.workspaces.".".repos = [
+  config.perSystem = { pkgs, ... }: {
+    prek-pre-commit = {
+      package.runtimePkgs = lib.attrValues { inherit (pkgs) editorconfig-checker typos; };
+
+      workspaces.".".repos = [
         {
           repo = "builtin";
 
@@ -68,7 +69,7 @@ importingFlake: {
               name = "typos";
               description = "Check the repository for spelling mistakes";
 
-              entry = lib.getExe pkgs.typos;
+              entry = "typos";
               args = [
                 "--write-changes"
                 "--force-exclude"
@@ -83,11 +84,12 @@ importingFlake: {
               name = "editorconfig";
               description = "Ensure all files in the project match editorconfig rules";
 
-              entry = lib.getExe pkgs.editorconfig-checker;
+              entry = "editorconfig-checker";
               language = "system";
             }
           ];
         }
       ];
     };
+  };
 }

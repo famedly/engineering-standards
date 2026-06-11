@@ -5,9 +5,7 @@
   ...
 }:
 importingFlake: {
-  config.perSystem =
-    { pkgs, ... }:
-    {
-      devshells.standards.packages = [ pkgs.prek ];
-    };
+  config.perSystem = { config, ... }: {
+    devshells.standards.packages = [ config.prek-pre-commit.package.wrapper ];
+  };
 }

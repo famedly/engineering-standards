@@ -6,7 +6,7 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/2ic8q0gyh9pikd4820sh8i6algh0wxwq-pre-commit-config.yaml",
+      "source": "/nix/store/fam20bd7gyhnhski81ah69x72sdb7crf-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
@@ -15,7 +15,7 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/2m8m5hrfx6kxvcxh75af9ggk7215sfim-check-pre-commit-hooks.yml",
+      "source": "/nix/store/yw3vsh26id80w6bivi9v4x3b835b4r5j-check-pre-commit-hooks.yml",
       "target": "./.github/workflows/check-pre-commit-hooks.yml",
       "type": "copy"
     },

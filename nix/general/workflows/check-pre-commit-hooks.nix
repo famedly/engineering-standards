@@ -27,7 +27,7 @@ in
       cancelInProgress = true;
     };
 
-    jobs.test = {
+    jobs.prek = {
       runsOn = "ubuntu-latest";
 
       steps = [
@@ -37,7 +37,7 @@ in
         {
           name = "Run pre-commit hooks";
           shell = "nix develop .#standards --command bash {0}";
-          run = "prek --from-ref $GITHUB_BASE_REF --to-ref $GITHUB_HEAD_REF --show-diff-on-failure";
+          run = "prek --all-files --show-diff-on-failure";
         }
       ];
     };
