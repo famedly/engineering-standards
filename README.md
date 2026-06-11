@@ -155,3 +155,35 @@ to ensure that most developers can interact with this repository.
 If you struggle creating a completely new file, ask someone with more
 nix experience to help you hook this into the filegen-activate
 command.
+
+### Adding pre-commit hooks
+
+Pre-commit hooks are intended to be *very* fast to execute. These
+should be ergonomic to run every time you create a git commit - when
+doing rebase operations, that can mean dozens in a few 100ms.
+
+As such, these should never contain expensive operations - compiling
+code is absolutely not acceptable, and even complex parsing (for
+formatting) may be pushing it.
+
+For more expensive operations, add a workflow instead, and let CI
+perform the check.
+
+---
+
+To actually add a pre-commit hook, in addition to defining the hook,
+any dependencies required **must** be added to the `prek`
+wrapper. Assuming the dependency is packaged in nixpkgs, this is quite
+easy:
+
+```nix
+{
+  config.perSystem = { pkgs, ... }: {
+    prek-pre-commit.package.runtimePkgs = [ pkgs.foobar ];
+  };
+}
+```
+
+More complex modifications to the `prek` wrapper are possible too,
+refer to our [wrapper module provider](https://birdeehub.github.io/nix-wrapper-modules/modules/default.html)
+for details.

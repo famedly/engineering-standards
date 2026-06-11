@@ -27,6 +27,10 @@ in
           description = ''
             `prek` configuration for each workspace.
 
+            Note that any hooks that depend on system packages being installed
+            should have their packages installed via the
+            `prek-pre-commit.package.runtimePkgs` option.
+
             See the [`prek` documentation](https://prek.j178.dev/workspace/) for details.
           '';
           default = { };
