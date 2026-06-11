@@ -1,0 +1,15 @@
+{
+  "clobber-by-default": null,
+  "files": [
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/kzmn0sh10g17q526a6zczgl9pi8da21d-gitattributes",
+      "target": ".gitattributes",
+      "type": "copy"
+    }
+  ],
+  "version": 3
+}
