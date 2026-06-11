@@ -20,9 +20,9 @@ If you want to get started using this, follow these steps:
 1. Install lix, following the [upstream
    instructions](https://lix.systems/install/).
 2. Once lix is installed, you can enter any Famedly project and run
-   `nix develop. #standards`. Assuming the project is configured to
-   use the engineering standards, the resulting shell will give any
-   further instructions.
+   `nix develop`. Assuming the project is configured to use the
+   engineering standards, the resulting shell will give any further
+   instructions.
 3. [Optional] use [direnv](https://direnv.net/) to automatically enter
    project shells when entering Famedly project directories.
    - This is especially useful if you use a non-bash shell.
@@ -56,18 +56,75 @@ To use the standards in a new project, create the following
 
       systems = famedly-engineering-standards.lib.famedlySystems;
 
-      perSystem.famedly.standards = {
-        # Read module documentation for further details, but most
-        # likely you want one of the following:
+      perSystem = { inputs', ... }: {
+        # Specify a default devshell for the project; other options are
+        # documented in the devshells section below.
         #
-        # dart.projects."." = { };
-        # rust.projects."." = { };
+        # devShells.default = inputs'.famedly-engineering-standards.devShells.rust;
+
+        famedly.standards = {
+          # Read module documentation for further details, but most
+          # likely you want one of the following:
+          #
+          # dart.projects."." = { };
+          # rust.projects."." = { };
+        };
       };
     };
 }
 ```
 
 After this, follow the [Updating](#updating) section.
+
+### Devshells
+
+Devshells allow setting up development environments for projects. For
+the most part, the devshells in this project should contain everything
+needed, but some project-specific development utilities and scripts
+can make sense to add downstream.
+
+The following basic devshells are available:
+
+| Name      | Purpose |
+| --------- | ------- |
+| rust      | Contains the Famedly Rust toolchain, and everything required to build Rust projects. |
+| k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS. |
+
+Projects should generally choose one of these to alias to the
+projects' `default` devshell - this allows new developers to very
+easily get started by just running `nix develop`.
+
+To customize the projects' shell, override the relevant devshell's
+settings according to the [upstream documentation](https://numtide.github.io/devshell/modules_schema.html).
+For example:
+
+```nix
+# flake-parts module
+{
+  perSystem = { pkgs, lib, ... }: {
+    devshells.rust = {
+      name = "example-famedly-project";
+
+      commands = [
+        {
+          name = "project-help";
+          help = "print information to help getting started with this project";
+          category = "[general commands]";
+          command = ''
+            ${lib.getExe' pkgs.coreutils "cat"} <<'EOF'
+            This is an example project to help show off our engineering standards!
+
+            Normally this would contain some simple build instructions, or maybe some
+            hints for testing, but since this is an example there is nothing actually
+            here.
+            EOF
+          '';
+        }
+      ];
+    };
+  };
+}
+```
 
 ### Updating
 
