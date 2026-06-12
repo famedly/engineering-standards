@@ -8,6 +8,7 @@ importingFlake: {
   imports = [
     inputs.devshell.flakeModule
     inputs.github-actions-nix.flakeModules.default
+    inputs.treefmt.flakeModule
     flakeModules.prek-pre-commit
 
     (importApply ./general args)
