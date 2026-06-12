@@ -6,7 +6,7 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/jj4vdg2y2x58hyb2jnx01ln0fvzw4qr6-pre-commit-config.yaml",
+      "source": "/nix/store/9qakq8nv15bh26zlwvq7xj1nxj6ppqb4-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },

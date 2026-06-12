@@ -43,7 +43,12 @@ importingFlake: {
 
             { id = "check-toml"; }
             { id = "check-vcs-permalinks"; }
-            { id = "check-yaml"; }
+
+            # TODO: We would like to use this, but we need to tweak it
+            # a little for helm charts.
+            #
+            # { id = "check-yaml"; }
+
             { id = "check-xml"; }
             {
               id = "mixed-line-ending";
@@ -82,14 +87,18 @@ importingFlake: {
               types = [ "text" ];
             }
 
-            {
-              id = "editorconfig";
-              name = "editorconfig";
-              description = "Ensure all files in the project match editorconfig rules";
+            # TODO: Currently too invasive for some downstreams, we
+            # need to either tweak the configuration or make it
+            # somewhat overridable.
+            #
+            # {
+            #   id = "editorconfig";
+            #   name = "editorconfig";
+            #   description = "Ensure all files in the project match editorconfig rules";
 
-              entry = "editorconfig-checker";
-              language = "system";
-            }
+            #   entry = "editorconfig-checker";
+            #   language = "system";
+            # }
 
             {
               id = "filegen";
