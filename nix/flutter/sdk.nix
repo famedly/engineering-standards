@@ -1,4 +1,5 @@
-{ ... }: importingFlake: {
+{ ... }:
+importingFlake: {
   perSystem =
     {
       lib,
@@ -10,8 +11,6 @@
       packages = lib.optionalAttrs (lib.elem system [
         "x86_64-linux"
         "aarch64-darwin"
-      ]) {
-        famedly-flutter-sdk = pkgs.callPackage ./packages/flutter-sdk.nix { };
-      };
+      ]) { famedly-flutter-sdk = pkgs.callPackage ./packages/flutter-sdk.nix { }; };
     };
 }

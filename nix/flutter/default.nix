@@ -5,9 +5,7 @@
   ...
 }@args:
 importingFlake: {
-  imports = [
-    (importApply ./sdk.nix args)
-  ];
+  imports = [ (importApply ./sdk.nix args) ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.flutter.projects = lib.mkOption {

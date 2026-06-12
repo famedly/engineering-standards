@@ -33,9 +33,7 @@ stdenv.mkDerivation {
     hash = hashes.${stdenv.hostPlatform.system};
   };
 
-  nativeBuildInputs = [
-    unzip
-  ];
+  nativeBuildInputs = [ unzip ];
 
   installPhase = ''
     runHook preInstall

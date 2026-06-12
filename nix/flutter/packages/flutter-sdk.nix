@@ -1,7 +1,4 @@
-{
-  flutterPackages,
-  lib,
-}:
+{ flutterPackages, lib }:
 
 let
   data = lib.importJSON ./data.json;
