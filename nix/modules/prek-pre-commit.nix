@@ -1,4 +1,4 @@
-{ filegen, ... }:
+{ filegen, wrappers, ... }:
 { flake-parts-lib, lib, ... }:
 let
   inherit (lib) types;
@@ -15,13 +15,21 @@ in
       options.prek-pre-commit = {
         package = lib.mkOption {
           description = "The `prek` package to use to execute pre-commit hooks";
-          type = types.package;
-          default = pkgs.prek;
+          type = wrappers.lib.types.subWrapperModule {
+            imports = [ wrappers.lib.modules.default ];
+
+            pkgs = lib.mkDefault pkgs;
+            package = lib.mkDefault pkgs.prek;
+          };
         };
 
         workspaces = lib.mkOption {
           description = ''
             `prek` configuration for each workspace.
+
+            Note that any hooks that depend on system packages being installed
+            should have their packages installed via the
+            `prek-pre-commit.package.runtimePkgs` option.
 
             See the [`prek` documentation](https://prek.j178.dev/workspace/) for details.
           '';

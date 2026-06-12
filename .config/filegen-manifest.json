@@ -6,7 +6,25 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/kzmn0sh10g17q526a6zczgl9pi8da21d-gitattributes",
+      "source": "/nix/store/9qakq8nv15bh26zlwvq7xj1nxj6ppqb4-pre-commit-config.yaml",
+      "target": "./.pre-commit-config.yaml",
+      "type": "copy"
+    },
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/yw3vsh26id80w6bivi9v4x3b835b4r5j-check-pre-commit-hooks.yml",
+      "target": "./.github/workflows/check-pre-commit-hooks.yml",
+      "type": "copy"
+    },
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/mv9zlzz043051izx92fxk6ibz6fn21yd-gitattributes",
       "target": ".gitattributes",
       "type": "copy"
     }

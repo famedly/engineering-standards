@@ -48,6 +48,10 @@
               value = "${self'.packages.famedly-rust-toolchain}/lib/rustlib/src/rust/library";
             }
           ];
+
+          # TODO: Find a better way to inherit devshell
+          # configurations.
+          commands = lib.filter (command: command.name != "menu") config.devshells.standards.commands;
         };
       }
 

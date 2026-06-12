@@ -3,9 +3,15 @@
   lib,
   importApply,
   ...
-}:
+}@args:
 importingFlake: {
-  imports = [ ./action-versions.nix ];
+  imports = [
+    ./action-versions.nix
+    (importApply ./devshell.nix args)
+    (importApply ./pre-commit-hooks.nix args)
+
+    ./workflows/check-pre-commit-hooks.nix
+  ];
 
   config.perSystem =
     { config, ... }:

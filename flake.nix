@@ -20,6 +20,11 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    wrappers = {
+      url = "github:BirdeeHub/nix-wrapper-modules";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -37,7 +42,10 @@
 
         flakeModules = rec {
           filegen = ./nix/modules/filegen.nix;
-          prek-pre-commit = importApply ./nix/modules/prek-pre-commit.nix { inherit filegen; };
+          prek-pre-commit = importApply ./nix/modules/prek-pre-commit.nix {
+            inherit filegen;
+            inherit (inputs) wrappers;
+          };
         };
 
         default = importApply ./nix (args // { inherit importApply flakeModules; });
