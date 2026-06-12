@@ -22,7 +22,10 @@ importingFlake: {
           #
           # https://prek.j178.dev/builtin/#supported-hooks_1
           hooks = [
-            { id = "trailing-whitespace"; }
+            # TODO: We want to use this, but it conflicts with rustfmt in places
+            # In the future, we can simply make rustfmt run as a pre-commit hook
+            # after trailing-whitespace, and it won't be a problem.
+            # { id = "trailing-whitespace"; }
             { id = "check-added-large-files"; }
             { id = "check-case-conflict"; }
             { id = "check-illegal-windows-names"; }
@@ -43,7 +46,12 @@ importingFlake: {
 
             { id = "check-toml"; }
             { id = "check-vcs-permalinks"; }
-            { id = "check-yaml"; }
+
+            # TODO: We would like to use this, but we need to tweak it
+            # a little for helm charts.
+            #
+            # { id = "check-yaml"; }
+
             { id = "check-xml"; }
             {
               id = "mixed-line-ending";
@@ -82,14 +90,18 @@ importingFlake: {
               types = [ "text" ];
             }
 
-            {
-              id = "editorconfig";
-              name = "editorconfig";
-              description = "Ensure all files in the project match editorconfig rules";
+            # TODO: Currently too invasive for some downstreams, we
+            # need to either tweak the configuration or make it
+            # somewhat overridable.
+            #
+            # {
+            #   id = "editorconfig";
+            #   name = "editorconfig";
+            #   description = "Ensure all files in the project match editorconfig rules";
 
-              entry = "editorconfig-checker";
-              language = "system";
-            }
+            #   entry = "editorconfig-checker";
+            #   language = "system";
+            # }
 
             {
               id = "filegen";

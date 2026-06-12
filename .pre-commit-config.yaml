@@ -1,6 +1,5 @@
 repos:
 - hooks:
-  - id: trailing-whitespace
   - id: check-added-large-files
   - id: check-case-conflict
   - id: check-illegal-windows-names
@@ -10,7 +9,6 @@ repos:
   - id: check-json5
   - id: check-toml
   - id: check-vcs-permalinks
-  - id: check-yaml
   - id: check-xml
   - args:
     - --fix=lf
@@ -33,11 +31,6 @@ repos:
     name: typos
     types:
     - text
-  - description: Ensure all files in the project match editorconfig rules
-    entry: editorconfig-checker
-    id: editorconfig
-    language: system
-    name: editorconfig
   - description: Ensure that files set up with the filegen module are up-to-date
     entry: filegen-apply-script
     id: filegen
