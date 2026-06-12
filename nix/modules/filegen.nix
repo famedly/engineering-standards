@@ -207,6 +207,7 @@ in
 
             mkdir .config
             cp --preserve [] ${new-manifest} .config/filegen-manifest.json
+            chmod 600 .config/filegen-manifest.json
           '';
 
           deactivate = pkgs.writers.writeNuBin "filegen-deactivate-script" ''
