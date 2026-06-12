@@ -8,6 +8,7 @@ importingFlake: {
   imports = [
     ./action-versions.nix
     (importApply ./devshell.nix args)
+    ./formatting.nix
     (importApply ./pre-commit-hooks.nix args)
 
     ./workflows/check-pre-commit-hooks.nix

@@ -6,13 +6,22 @@
 }:
 importingFlake: {
   config.perSystem =
-    { pkgs, self', ... }:
+    {
+      config,
+      pkgs,
+      self',
+      ...
+    }:
     {
       prek-pre-commit = {
-        package.runtimePkgs = lib.attrValues {
-          inherit (pkgs) editorconfig-checker typos;
-          filegen-activate = self'.apps.filegen-activate.meta.package;
-        };
+        package.runtimePkgs = lib.attrValues (
+          {
+            inherit (pkgs) editorconfig-checker typos;
+            filegen-activate = self'.apps.filegen-activate.meta.package;
+            treefmt = config.treefmt.package;
+          }
+          // config.treefmt.build.programs
+        );
 
         workspaces.".".repos = [
           {
@@ -112,6 +121,15 @@ importingFlake: {
                 pass_filenames = false;
 
                 entry = "filegen-apply-script";
+                language = "system";
+              }
+
+              {
+                id = "treefmt";
+                name = "treefmt";
+                description = "Format *all* files";
+
+                entry = "treefmt";
                 language = "system";
               }
             ];

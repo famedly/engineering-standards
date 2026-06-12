@@ -37,4 +37,9 @@ repos:
     language: system
     name: filegen
     pass_filenames: false
+  - description: Format *all* files
+    entry: treefmt
+    id: treefmt
+    language: system
+    name: treefmt
   repo: local

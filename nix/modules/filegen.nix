@@ -105,6 +105,14 @@ in
           readOnly = true;
           type = types.pathInStore;
         };
+
+        generatedFiles = lib.mkOption {
+          description = ''
+            The list of generated files.
+          '';
+          readOnly = true;
+          type = types.listOf types.str;
+        };
       };
     }
   );
@@ -113,9 +121,11 @@ in
     { pkgs, config, ... }:
     let
       cfg = config.filegen;
-      new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" config.filegen.settings;
+      new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" cfg.settings;
     in
     {
+      filegen.generatedFiles = map (file: lib.removePrefix "./" file.target) cfg.settings.files;
+
       filegen.settings.files = [
         {
           # We generate a .gitattributes file, which tells the GitHub diff
@@ -127,14 +137,14 @@ in
           target = ".gitattributes";
           source = pkgs.writeTextFile {
             name = ".gitattributes";
-            text = lib.pipe cfg.settings.files [
-              (map (file: lib.removePrefix "./" file.target))
+            text = lib.pipe cfg.generatedFiles [
               (map (target: "${target} linguist-generated"))
               lib.concatLines
             ];
           };
         }
       ];
+
       apps =
         let
           activate = pkgs.writers.writeNuBin "filegen-apply-script" ''
