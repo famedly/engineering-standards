@@ -1,0 +1,61 @@
+allowMissingFormatter = false
+excludes = [
+    "*.lock",
+    "*.patch",
+    "package-lock.json",
+    "go.mod",
+    "go.sum",
+    ".gitattributes",
+    ".gitignore",
+    ".gitmodules",
+    ".hgignore",
+    ".svnignore",
+    "LICENSE",
+    ".pre-commit-config.yaml",
+    ".github/workflows/check-pre-commit-hooks.yml",
+    ".gitattributes",
+    "treefmt.toml",
+    ".config/filegen-manifest.json",
+]
+walk = "git"
+
+[formatter.nixfmt]
+command = "/nix/store/01945jlqwsgq7a9nbw00y0p0x6027yy3-nixfmt-1.2.0/bin/nixfmt"
+excludes = []
+includes = ["*.nix"]
+options = ["--strict"]
+
+[formatter.prettier]
+command = "/nix/store/yk6kxy9ahaxw9xrq16r5wphz4k92zcb2-prettier-3.8.3/bin/prettier"
+excludes = ["*.md"]
+includes = [
+    "*.cjs",
+    "*.css",
+    "*.html",
+    "*.js",
+    "*.json",
+    "*.json5",
+    "*.jsx",
+    "*.md",
+    "*.mdx",
+    "*.mjs",
+    "*.scss",
+    "*.ts",
+    "*.tsx",
+    "*.vue",
+    "*.yaml",
+    "*.yml",
+]
+options = ["--write"]
+
+[formatter.shfmt]
+command = "/nix/store/hyjd216vnfpm7md7llw5vjakd5n2xj1d-shfmt-3.13.1/bin/shfmt"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = ["-w", "-i", "2", "-s"]
+
+[formatter.sqlfluff]
+command = "/nix/store/r1d77w9ywqp8wgczsbxa0xrbl5ipj0vx-sqlfluff-4.2.1/bin/sqlfluff"
+excludes = []
+includes = ["*.sql"]
+options = ["format", "--disable-progress-bar", "--processes", "0"]

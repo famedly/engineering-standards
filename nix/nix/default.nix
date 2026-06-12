@@ -5,7 +5,7 @@
   ...
 }:
 importingFlake: {
-  imports = [ ];
+  imports = [ ./formatting.nix ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.nix.projects = lib.mkOption {

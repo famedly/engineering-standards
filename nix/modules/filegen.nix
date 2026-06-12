@@ -144,6 +144,14 @@ in
           type = types.package;
         };
 
+        generatedFiles = lib.mkOption {
+          description = ''
+            The list of generated files.
+          '';
+          readOnly = true;
+          type = types.listOf types.str;
+        };
+
         scripts = {
           activate = lib.mkOption {
             description = ''
@@ -170,10 +178,14 @@ in
     let
       cfg = config.filegen;
       new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" (
-        config.filegen.settings // { inherit (smfh) version; }
+        cfg.settings // { inherit (smfh) version; }
       );
     in
     {
+      filegen.generatedFiles = map (file: lib.removePrefix "./" file.target) (
+        cfg.settings.files ++ [ { target = ".config/filegen-manifest.json"; } ]
+      );
+
       filegen.settings.files = [
         {
           # We generate a .gitattributes file, which tells the GitHub diff
@@ -185,14 +197,14 @@ in
           target = ".gitattributes";
           source = pkgs.writeTextFile {
             name = ".gitattributes";
-            text = lib.pipe (cfg.settings.files ++ [ { target = ".config/filegen-manifest.json"; } ]) [
-              (map (file: lib.removePrefix "./" file.target))
+            text = lib.pipe cfg.generatedFiles [
               (map (target: "${target} linguist-generated"))
               lib.concatLines
             ];
           };
         }
       ];
+
       apps =
         let
           activate = pkgs.writers.writeNuBin "filegen-apply-script" ''
