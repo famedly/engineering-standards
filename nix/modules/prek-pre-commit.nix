@@ -43,7 +43,6 @@ in
 
         target = "${workspace}/.pre-commit-config.yaml";
         source = settingsFormat.generate "pre-commit-config.yaml" config;
-        clobber = true;
       }) config.prek-pre-commit.workspaces;
     };
 }

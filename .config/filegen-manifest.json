@@ -1,5 +1,5 @@
 {
-  "clobber-by-default": null,
+  "clobber-by-default": true,
   "files": [
     {
       "clobber": null,
