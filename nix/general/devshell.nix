@@ -6,12 +6,19 @@
 }:
 importingFlake: {
   config.perSystem =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       devshells.standards = {
         name = lib.mkDefault "engineering-standards";
 
         commands = [
+          {
+            name = "nix fmt";
+            help = "Auto-format all files in the project.";
+            category = "[[lints and checks]]";
+            package = pkgs.nix;
+          }
+
           {
             name = "prek";
             help = "Run pre-commit hooks on currently staged changes";

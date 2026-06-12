@@ -1,4 +1,5 @@
 .pre-commit-config.yaml linguist-generated
 .github/workflows/check-pre-commit-hooks.yml linguist-generated
 .gitattributes linguist-generated
+treefmt.toml linguist-generated
 .config/filegen-manifest.json linguist-generated
