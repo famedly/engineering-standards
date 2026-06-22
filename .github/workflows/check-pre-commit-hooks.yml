@@ -14,6 +14,7 @@ jobs:
         shell: nix develop .#standards --command bash {0}
 name: Make sure all pre-commit hooks pass
 "on":
+  merge_group: {}
   pull_request:
     branches:
       - '**'

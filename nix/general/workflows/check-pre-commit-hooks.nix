@@ -21,6 +21,7 @@ in
         "ready_for_review"
       ];
     };
+    on.mergeGroup = { };
 
     concurrency = {
       group = "\${{ github.workflow }}-\${{ github.ref }}";
