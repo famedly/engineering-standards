@@ -15,7 +15,7 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/yw3vsh26id80w6bivi9v4x3b835b4r5j-check-pre-commit-hooks.yml",
+      "source": "/nix/store/wyggpw11mkdvbcgbqzs80py8z8khjk9i-check-pre-commit-hooks.yml",
       "target": "./.github/workflows/check-pre-commit-hooks.yml",
       "type": "copy"
     },
