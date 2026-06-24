@@ -1,3 +1,7 @@
+["actions/cache"]
+rev = "v4.3.0"
+ref = "0057852bfaa89a56745cba8c7296529d2fc39830"
+
 ["actions/checkout"]
 rev = "v6.0.3"
 ref = "df4cb1c069e1874edd31b4311f1884172cec0e10"
@@ -5,3 +9,7 @@ ref = "df4cb1c069e1874edd31b4311f1884172cec0e10"
 ["cachix/install-nix-action"]
 rev = "v31.10.6"
 ref = "8aa03977d8d733052d78f4e008a241fd1dbf36b3"
+
+["codecov/codecov-action"]
+rev = "v5.5.5"
+ref = "0fb7174895f61a3b6b78fc075e0cd60383518dac"
