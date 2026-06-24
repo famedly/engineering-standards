@@ -7,6 +7,8 @@
 importingFlake: {
   imports = [
     (importApply ./devshell.nix args)
+    (importApply ./linting.nix args)
+    (importApply ./pre-commit.nix args)
     (importApply ./sdk.nix args)
     ./workflow.nix
   ];
