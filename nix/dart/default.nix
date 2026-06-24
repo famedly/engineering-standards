@@ -6,6 +6,7 @@
 }@args:
 importingFlake: {
   imports = [
+    (importApply ./devshell.nix args)
     (importApply ./sdk.nix args)
   ];
 
