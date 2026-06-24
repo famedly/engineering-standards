@@ -169,6 +169,9 @@ in
     { pkgs, config, ... }:
     let
       cfg = config.filegen;
+      # The manifest records absolute /nix/store source paths, which differ
+      # per system. It is therefore local activation state (gitignored), not a
+      # committed artifact — committing it would cause cross-system drift.
       new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" (
         config.filegen.settings // { inherit (smfh) version; }
       );
@@ -185,7 +188,7 @@ in
           target = ".gitattributes";
           source = pkgs.writeTextFile {
             name = ".gitattributes";
-            text = lib.pipe (cfg.settings.files ++ [ { target = ".config/filegen-manifest.json"; } ]) [
+            text = lib.pipe cfg.settings.files [
               (map (file: lib.removePrefix "./" file.target))
               (map (target: "${target} linguist-generated"))
               lib.concatLines

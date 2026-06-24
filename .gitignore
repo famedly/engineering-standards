@@ -1,1 +1,5 @@
 .devenv/
+
+# filegen activation state — contains machine-specific /nix/store source
+# paths, so it must not be committed (would cause cross-system drift).
+.config/filegen-manifest.json
