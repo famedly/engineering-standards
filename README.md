@@ -187,3 +187,27 @@ easy:
 More complex modifications to the `prek` wrapper are possible too,
 refer to our [wrapper module provider](https://birdeehub.github.io/nix-wrapper-modules/modules/default.html)
 for details.
+
+### Updating the Dart/Flutter SDK versions
+
+The Dart and Flutter SDKs are pinned centrally in
+[`nix/dart/sdk-versions.nix`](nix/dart/sdk-versions.nix), so that the
+DevShell and CI always use identical toolchain binaries. This file is
+generated — do not edit it by hand.
+
+To bump the pins, run:
+
+```console
+$ nix run .#updateSdkVersions                     # latest stable of both
+$ nix run .#updateSdkVersions -- --dart X.Y.Z     # pin a specific Dart version
+$ nix run .#updateSdkVersions -- --flutter X.Y.Z  # pin a specific Flutter version
+```
+
+This fetches the requested (or latest stable) versions, prefetches the
+SDK archives for every supported platform, records their SHA256 hashes,
+and rewrites `sdk-versions.nix`. Review and commit the result.
+
+The versions are resolved from the official release-metadata endpoints
+that the Dart and Flutter tooling itself uses
+(`dart-archive/.../latest/VERSION` and
+`flutter_infra_release/releases/releases_linux.json`).
