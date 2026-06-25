@@ -13,14 +13,6 @@
 
           excludes = config.filegen.generatedFiles;
         };
-
-        programs = {
-          prettier.enable = true;
-          sqlfluff.enable = true;
-          shfmt.enable = true;
-        };
-
-        settings.formatter.prettier.excludes = [ "*.md" ];
       };
 
       filegen.settings.files = [
