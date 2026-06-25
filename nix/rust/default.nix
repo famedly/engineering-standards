@@ -7,6 +7,7 @@
 importingFlake: {
   imports = [
     (importApply ./devshell.nix args)
+    (importApply ./formatting.nix args)
     (importApply ./toolchain.nix args)
   ];
 

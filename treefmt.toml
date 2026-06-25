@@ -47,6 +47,12 @@ includes = [
 ]
 options = ["--write"]
 
+[formatter.rustfmt]
+command = "/nix/store/9wi5z0im56rqi3j9g8n4dksazifvfbi9-rust-default-1.95.0/bin/rustfmt"
+excludes = []
+includes = ["*.rs"]
+options = ["--config", "skip_children=true", "--edition", "2024"]
+
 [formatter.shfmt]
 command = "/nix/store/hyjd216vnfpm7md7llw5vjakd5n2xj1d-shfmt-3.13.1/bin/shfmt"
 excludes = []
