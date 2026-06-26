@@ -6,7 +6,7 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/i9wgm4ljangrsv39rjdqyq9j96hj29zm-pre-commit-config.yaml",
+      "source": "/nix/store/0ssc8kv2q4p28ff36m1n8y8s9306h2ib-pre-commit-config.yaml",
       "target": "./.pre-commit-config.yaml",
       "type": "copy"
     },
@@ -24,8 +24,17 @@
       "deactivate": null,
       "ignore-modification": null,
       "permissions": "600",
-      "source": "/nix/store/mv9zlzz043051izx92fxk6ibz6fn21yd-gitattributes",
+      "source": "/nix/store/p0hgnx38vpmxa9gd8xlyws7fi01x60w2-gitattributes",
       "target": ".gitattributes",
+      "type": "copy"
+    },
+    {
+      "clobber": null,
+      "deactivate": null,
+      "ignore-modification": null,
+      "permissions": "600",
+      "source": "/nix/store/zwsnbfj6jmwxx1n5gv7wz5cca3a41zh1-treefmt.toml",
+      "target": "treefmt.toml",
       "type": "copy"
     }
   ],
