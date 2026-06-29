@@ -1,7 +1,7 @@
 {
   flake-parts-lib,
-  lib,
   importApply,
+  lib,
   ...
 }@args:
 importingFlake: {
@@ -10,19 +10,20 @@ importingFlake: {
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
-    options.famedly.standards.dart.projects = lib.mkOption {
+    options.famedly.standards.flutter.projects = lib.mkOption {
       description = ''
-        Dart projects in the repository that should be equipped with our
+        Flutter projects in the repository that should be equipped with our
         standards.
 
         This must be a relative path starting with `.`. Simply use `.` if the
-        whole project is a Dart project.
+        whole project is a Flutter project.
       '';
       default = { };
 
       example = ''
         {
           "." = { };
+          "./example" = { };
         }
       '';
 
