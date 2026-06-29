@@ -76,6 +76,39 @@ To use the standards in a new project, create the following
 
 After this, follow the [Updating](#updating) section.
 
+### Dart and Flutter projects
+
+For a pure Dart project (library, CLI tool, SDK):
+
+```nix
+famedly.standards = {
+  dart.projects."." = { };
+};
+```
+
+For a Flutter app:
+
+```nix
+famedly.standards = {
+  # dart.projects enables the dart format pre-commit hook
+  dart.projects."." = { };
+  # flutter.projects enables the flutter devshell and CI workflow
+  flutter.projects."." = { };
+};
+```
+
+Downstream projects update their `famedly_dart_lints` / `famedly_flutter_lints`
+git URL from `frontend-ci-templates` to `engineering-standards`:
+
+```yaml
+# pubspec.yaml
+dev_dependencies:
+  famedly_dart_lints:
+    git:
+      url: https://github.com/famedly/engineering-standards.git
+      path: nix/dart/lints
+```
+
 ### Devshells
 
 Devshells allow setting up development environments for projects. For
@@ -88,6 +121,8 @@ The following basic devshells are available:
 | Name      | Purpose |
 | --------- | ------- |
 | standards | Contains basic tools and configuration used by all famedly projects. |
+| dart      | Contains the Dart SDK and everything required to develop pure Dart projects. |
+| flutter   | Contains the Flutter SDK (which includes Dart) and everything required to develop Flutter projects. |
 | rust      | Contains the Famedly Rust toolchain, and everything required to build Rust projects. |
 | k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS. |
 
