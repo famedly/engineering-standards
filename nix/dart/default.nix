@@ -8,6 +8,7 @@ importingFlake: {
   imports = [
     (importApply ./devshell.nix args)
     (importApply ./pre-commit-hooks.nix args)
+    ./workflows/dart-ci.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
