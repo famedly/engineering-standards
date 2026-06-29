@@ -15,11 +15,21 @@ importingFlake: {
             repo = "local";
             hooks = [
               {
+                id = "dart-pub-get";
+                name = "dart pub get";
+                description = "Fetch Dart dependencies before formatting";
+                entry = "dart pub get --no-example";
+                language = "system";
+                pass_filenames = false;
+                always_run = true;
+              }
+              {
                 id = "dart-format";
                 name = "dart format";
                 description = "Format Dart source code";
-                entry = "dart format";
+                entry = "dart format .";
                 language = "system";
+                pass_filenames = false;
                 types = [ "file" ];
                 files = "\\.dart$";
               }
