@@ -1,0 +1,12 @@
+name: famedly_flutter_lints
+version: 1.0.0
+description: Default linting rules for Famedly Flutter projects
+homepage: https://famedly.com
+repository: https://github.com/famedly/engineering-standards
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  lints: ^6.1.0
+  riverpod_lint: ^3.1.3
