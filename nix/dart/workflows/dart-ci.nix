@@ -41,7 +41,7 @@ in
             {
               name = "Fetch dependencies";
               shell = "nix develop .#dart --command bash {0}";
-              run = "dart pub get";
+              run = "dart pub get --no-example";
             }
             {
               name = "Run analyzer";
