@@ -41,7 +41,7 @@ in
             {
               name = "Fetch dependencies";
               shell = "nix develop .#flutter --command bash {0}";
-              run = "flutter pub get";
+              run = "flutter pub get --no-example";
             }
             {
               name = "Run analyzer";
