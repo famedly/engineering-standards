@@ -3,9 +3,11 @@
   lib,
   importApply,
   ...
-}:
+}@args:
 importingFlake: {
-  imports = [ ];
+  imports = [
+    (importApply ./devshell.nix args)
+  ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
