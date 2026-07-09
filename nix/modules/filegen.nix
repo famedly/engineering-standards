@@ -1,7 +1,6 @@
 { flake-parts-lib, lib, ... }:
 let
   inherit (lib) types;
-  smfh.version = 3;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -20,10 +19,6 @@ in
 
               To generate the files, an "app" named `filegen-activate` is created,
               which can be executed with `nix run .#filegen-activate`.
-
-              The configuration is as expected by
-              [smfh](https://github.com/feel-co/smfh), which is used
-              to perform the actual file manipulations.
 
               ---
 
@@ -50,13 +45,7 @@ in
                         Normally, this should be set to `copy`.
                       '';
 
-                      type = types.enum [
-                        "copy"
-                        "symlink"
-                        "modify"
-                        "directory"
-                        "delete"
-                      ];
+                      type = types.enum [ "copy" ];
                     };
 
                     target = lib.mkOption {
@@ -80,21 +69,8 @@ in
 
                     clobber = lib.mkOption {
                       description = ''
-                        Whether to overwrite files that already exist.
-                      '';
-                      type = types.nullOr types.bool;
-                    };
-
-                    ignore-modification = lib.mkOption {
-                      description = ''
-                        Whether to skip content integrity checks during activation.
-                      '';
-                      type = types.nullOr types.bool;
-                    };
-
-                    deactivate = lib.mkOption {
-                      description = ''
-                        If enabled, `filegen-deactivate` will ignore this file.
+                        Whether to backup files that already exist. If true or unset, the files
+                        will just be deleted.
                       '';
                       type = types.nullOr types.bool;
                     };
@@ -115,51 +91,19 @@ in
                       # default.
                       default = "600";
                     };
-
-                    # Not implemented:
-                    #
-                    # - permissions/uid/gid, as these should not matter for a
-                    #   project repo.
-                    # - follow_symlinks, since for a git repo we should never
-                    #   want to symlink to absolute paths.
                   };
                 }
               )
             );
           };
-
-          clobber-by-default = lib.mkOption {
-            description = ''
-              Whether files should be overwritten by default.
-            '';
-            type = types.nullOr types.bool;
-          };
         };
 
-        smfhPackage = lib.mkOption {
+        scripts.activate = lib.mkOption {
           description = ''
-            The smfh package to use.
+            A script that applies the files configured with `filegen.files`.
           '';
-          default = pkgs.smfh;
-          type = types.package;
-        };
-
-        scripts = {
-          activate = lib.mkOption {
-            description = ''
-              A script that applies the files configured with `filegen.files`.
-            '';
-            readOnly = true;
-            type = types.pathInStore;
-          };
-
-          deactivate = lib.mkOption {
-            description = ''
-              A script that removes configured by a previous invocation of the activate script.
-            '';
-            readOnly = true;
-            type = types.pathInStore;
-          };
+          readOnly = true;
+          type = types.pathInStore;
         };
       };
     }
@@ -169,9 +113,7 @@ in
     { pkgs, config, ... }:
     let
       cfg = config.filegen;
-      new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" (
-        config.filegen.settings // { inherit (smfh) version; }
-      );
+      new-manifest = pkgs.writers.writeJSON "filegen-manifest.json" config.filegen.settings;
     in
     {
       filegen.settings.files = [
@@ -185,7 +127,7 @@ in
           target = ".gitattributes";
           source = pkgs.writeTextFile {
             name = ".gitattributes";
-            text = lib.pipe (cfg.settings.files ++ [ { target = ".config/filegen-manifest.json"; } ]) [
+            text = lib.pipe cfg.settings.files [
               (map (file: lib.removePrefix "./" file.target))
               (map (target: "${target} linguist-generated"))
               lib.concatLines
@@ -198,21 +140,22 @@ in
           activate = pkgs.writers.writeNuBin "filegen-apply-script" ''
             cd (git rev-parse --show-toplevel)
 
-            (${lib.getExe cfg.smfhPackage}
-              --impure
-              diff
-              --fallback
-              ${new-manifest}
-              .config/filegen-manifest.json)
-
-            mkdir .config
-            cp --preserve [] ${new-manifest} .config/filegen-manifest.json
-            chmod 600 .config/filegen-manifest.json
-          '';
-
-          deactivate = pkgs.writers.writeNuBin "filegen-deactivate-script" ''
-            cd (git rev-parse --show-toplevel)
-            ${lib.getExe cfg.smfhPackage} deactivate .config/filegen-manifest.json
+            for file in (open '${new-manifest}' | $in.files) {
+              match $file.type {
+                "copy" => {
+                  (${lib.getExe' pkgs.coreutils "install"}
+                    -D
+                    --compare
+                    $'--mode=($file.permissions)'
+                    (if ($file.clobber | default true) { --backup=none } else { --backup=numbered })
+                    $file.source $file.target)
+                },
+                _ => {
+                  print $"Type '($file.type)' for '($file.source)' is currently unsupported"
+                  exit 1
+                }
+              }
+            }
           '';
         in
         {
@@ -221,14 +164,6 @@ in
             meta = {
               description = "Install files defined by the `filegen` options of this flake";
               package = activate;
-            };
-          };
-
-          filegen-deactivate = {
-            program = lib.getExe deactivate;
-            meta = {
-              description = "Uninstall all files previously installed using `filegen-activate`";
-              package = deactivate;
             };
           };
         };
