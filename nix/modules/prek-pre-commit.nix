@@ -47,8 +47,6 @@ in
     in
     {
       filegen.settings.files = lib.mapAttrsToList (workspace: config: {
-        type = "copy";
-
         target = "${workspace}/.pre-commit-config.yaml";
         source = settingsFormat.generate "pre-commit-config.yaml" config;
       }) config.prek-pre-commit.workspaces;
