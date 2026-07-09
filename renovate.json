@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:daily",
+    "schedule:automergeDaily"
+  ],
+  "timezone": "Europe/Vienna",
+  "enabledManagers": [
+    "nix"
+  ],
+  "nix": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": "before 4am"
+  }
+}
