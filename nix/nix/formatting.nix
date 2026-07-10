@@ -1,6 +1,9 @@
 {
   perSystem.treefmt = {
     programs.nixfmt.enable = true;
-    settings.formatter.nixfmt.options = [ "--strict" ];
+    settings.formatter.nixfmt = {
+      command = "nixfmt";
+      options = [ "--strict" ];
+    };
   };
 }

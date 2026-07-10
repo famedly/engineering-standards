@@ -53,9 +53,13 @@
       ...
     }:
     {
-      treefmt.programs.rustfmt = {
-        enable = true;
-        package = self'.packages.famedly-rust-toolchain;
+      treefmt = {
+        programs.rustfmt = {
+          enable = true;
+          package = self'.packages.famedly-rust-toolchain;
+        };
+
+        settings.formatter.rustfmt.command = "rustfmt";
       };
 
       filegen.settings.files = map (
