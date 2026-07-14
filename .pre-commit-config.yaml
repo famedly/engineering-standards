@@ -44,3 +44,15 @@ repos:
     name: treefmt
     require_serial: true
   repo: local
+- hooks:
+  - args:
+    - follow
+    description: Ensure that flake inputs are recursively de-duplicated
+    entry: flake-edit
+    files:
+      glob: '{flake.nix,flake.lock}'
+    id: flake-follows
+    language: system
+    name: flake-follows
+    pass_filenames: false
+  repo: local
