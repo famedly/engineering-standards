@@ -25,13 +25,14 @@ importingFlake: {
             rustfmtToolchain = rust-bin.selectLatestNightlyWith (
               toolchain: toolchain.default.override { extensions = [ "rustfmt" ]; }
             );
-
             # We want *only* the rustfmt binaries. This trick doesn't
             # really work for other components of the rust toolchain,
             # but specifically rustfmt is quite self-contained.
+            # Symlink so rustfmt keeps working on aarch64-darwin, where
+            # it's dynamically linked against the toolchain's lib/.
             rustfmtNightly = pkgs.runCommand rustfmtToolchain.name { } ''
               mkdir -p $out/bin
-              cp ${rustfmtToolchain}/bin/{cargo-fmt,rustfmt} $out/bin
+              ln -s ${rustfmtToolchain}/bin/{cargo-fmt,rustfmt} $out/bin
             '';
           in
           [
