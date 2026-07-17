@@ -5,3 +5,19 @@ ref = "df4cb1c069e1874edd31b4311f1884172cec0e10"
 ["cachix/install-nix-action"]
 rev = "v31.10.6"
 ref = "8aa03977d8d733052d78f4e008a241fd1dbf36b3"
+
+[codecov/codecov-action]
+rev = "v7.0.0"
+ref = "fb8b3582c8e4def4969c97caa2f19720cb33a72f"
+
+[codecov/test-results-action]
+rev = "v1.2.1"
+ref = "0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3"
+
+["docker/login-action"]
+rev = "v4.4.0"
+ref = "af1e73f918a031802d376d3c8bbc3fe56130a9b0"
+
+[Swatinem/rust-cache]
+rev = "v2.9.1"
+ref = "c19371144df3bb44fab255c43d04cbc2ab54d1c4"
