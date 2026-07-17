@@ -22,6 +22,21 @@ importingFlake: {
     ./workflows/release.nix
   ];
 
+  options.famedly.standards = {
+    isOpenSource = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether the project should be considered "open source". If it is
+        open source, the resulting image will be published to our public OCI
+        registry.
+
+        **Caution:** If set, the resulting binaries will become publicly
+        accessible.
+      '';
+    };
+  };
+
   perSystem =
     { config, ... }:
     lib.mkMerge [
