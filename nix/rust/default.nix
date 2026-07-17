@@ -9,6 +9,8 @@ importingFlake: {
     (importApply ./devshell.nix args)
     (importApply ./formatting.nix args)
     (importApply ./toolchain.nix args)
+
+    ./workflows/test.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
