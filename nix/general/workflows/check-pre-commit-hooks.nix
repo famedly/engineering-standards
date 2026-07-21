@@ -39,6 +39,14 @@ in
           name = "Run pre-commit hooks";
           shell = "nix develop .#standards --command bash {0}";
           run = "prek --all-files --show-diff-on-failure";
+          env = {
+            # On some CI runners, the cache would time out, causing the pipeline to fail.
+            # Since the official documentation (https://treefmt.com/usage/#ci-integration)
+            # recommends using `----no-cache` anyway, we add it here.
+            #
+            # We do not add `--fail-on-change`, since prek takes care of that
+            TREEFMT_NO_CACHE = "1";
+          };
         }
       ];
     };
