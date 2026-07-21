@@ -42,4 +42,5 @@ repos:
     id: treefmt
     language: system
     name: treefmt
+    require_serial: true
   repo: local

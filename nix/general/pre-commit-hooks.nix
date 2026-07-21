@@ -128,6 +128,7 @@ importingFlake: {
                 id = "treefmt";
                 name = "treefmt";
                 description = "Format *all* files";
+                require_serial = true;
 
                 entry = "treefmt";
                 language = "system";
