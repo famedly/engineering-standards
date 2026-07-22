@@ -78,7 +78,13 @@ importingFlake: {
               #
               # { id = "no-commit-to-branch"; }
 
-              { id = "check-shebang-scripts-are-executable"; }
+              {
+                id = "check-shebang-scripts-are-executable";
+                exclude_types = [
+                  # Rust macros can look like shebangs
+                  "rust"
+                ];
+              }
               { id = "check-executables-have-shebangs"; }
             ];
           }
