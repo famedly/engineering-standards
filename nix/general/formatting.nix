@@ -13,6 +13,15 @@
 
           excludes = config.filegen.generatedFiles;
         };
+
+        # We include shfmt in general, because all projects probably use shell scripts
+        programs.shfmt = {
+          enable = true;
+          # Setting the indent_size to 0 uses tabs for indentation
+          indent_size = 0;
+        };
+        settings.formatter.shfmt.command = "shfmt";
+
       };
 
       filegen.settings.files = [

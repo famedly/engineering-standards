@@ -29,3 +29,9 @@ command = "rustfmt"
 excludes = []
 includes = ["*.rs"]
 options = ["--config", "skip_children=true", "--edition", "2024"]
+
+[formatter.shfmt]
+command = "shfmt"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = ["-w", "-i", "0", "-s"]
