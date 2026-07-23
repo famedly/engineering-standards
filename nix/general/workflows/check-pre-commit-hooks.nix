@@ -34,6 +34,14 @@ in
       steps = [
         { uses = allowed-actions."actions/checkout".uses; }
         { uses = allowed-actions."cachix/install-nix-action".uses; }
+        {
+          uses = allowed-actions."cachix/cachix-action".uses;
+          with_ = {
+            name = "famedly";
+            signingKey = "\${{ secrets.CACHIX_SIGNING_KEY_FAMEDLY }}";
+            authToken = "\${{ secrets.CACHIX_AUTH_TOKEN_FAMEDLY }}";
+          };
+        }
 
         {
           name = "Run pre-commit hooks";
