@@ -38,7 +38,7 @@ in
         {
           name = "Run pre-commit hooks";
           shell = "nix develop .#standards --command bash {0}";
-          run = "prek --all-files --show-diff-on-failure";
+          run = "prek --all-files --show-diff-on-failure --stage pre-push";
           env = {
             PREK_COLOR = "always";
             # On some CI runners, the cache would time out, causing the pipeline to fail.

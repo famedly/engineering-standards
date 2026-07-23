@@ -33,6 +33,13 @@ importingFlake: {
           }
 
           {
+            name = "prek --stage pre-push";
+            help = "*Also* slow pre-commit hooks";
+            category = "[[lints and checks]]";
+            package = config.prek-pre-commit.package.wrapper;
+          }
+
+          {
             name = "prek -s main -o HEAD";
             help = "Run pre-commit hooks on all commits in the current branch";
             category = "[[lints and checks]]";
