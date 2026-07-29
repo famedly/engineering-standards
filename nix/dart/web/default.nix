@@ -14,6 +14,7 @@
     ./workflows/build.nix
     ./workflows/github-pages.nix
     ./workflows/image.nix
+    ./workflows/review-app.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
