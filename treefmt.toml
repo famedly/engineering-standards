@@ -14,6 +14,7 @@ excludes = [
     ".pre-commit-config.yaml",
     ".github/workflows/check-pre-commit-hooks.yml",
     ".gitattributes",
+    ".editorconfig",
     "treefmt.toml",
 ]
 walk = "git"
