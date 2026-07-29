@@ -4,14 +4,77 @@ importingFlake: {
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (
         lib.types.submodule {
-          options.linting.dartCodeLinter.enable = lib.mkEnableOption ''
-            the `dart_code_linter` rule set for this project.
+          options.linting.exclude = lib.mkOption {
+            description = ''
+              Further paths the analyzer should not look at, on top of the
+              generated localisations.
 
-            Off by default, because these rules come from an analyzer plugin
-            that `dart analyze` ignores: they need a separate step, which the
-            checks workflow adds when this is enabled. The project has to carry
-            the `dart_code_linter` dev dependency for that step to resolve
-          '';
+              For code that a generator writes: holding it to rules that a
+              human would be held to only produces findings nobody can act on.
+            '';
+
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+            example = [ "lib/shared/l10n/*.dart" ];
+          };
+
+          options.linting.dartCodeLinter = {
+            enable = lib.mkEnableOption ''
+              the `dart_code_linter` rule set for this project.
+
+              Off by default, because these rules come from an analyzer plugin
+              that `dart analyze` ignores: they need a separate step, which the
+              checks workflow adds when this is enabled. The project has to
+              carry the `dart_code_linter` dev dependency for that step to
+              resolve
+            '';
+
+            extraRules = lib.mkOption {
+              description = ''
+                Further rules for this project, on top of the standard set.
+
+                They go into the generated file rather than into the project's
+                own `analysis_options.yaml`, because the analyzer replaces
+                rather than merges the rule list of a file it includes — a
+                project that spelled its own rules out there would silently
+                lose every rule the standards contribute.
+
+                A rule that takes configuration is written as an attribute set
+                of one entry.
+              '';
+
+              type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
+              default = [ ];
+
+              example = lib.literalExpression ''
+                [
+                  {
+                    avoid-banned-imports.entries = [
+                      {
+                        paths = [ "features/.*\\.dart" ];
+                        deny = [ "services/implementations.*\\.dart" ];
+                        message = "Use the service API instead.";
+                      }
+                    ];
+                  }
+                ]
+              '';
+            };
+
+            disabledRules = lib.mkOption {
+              description = ''
+                Standard rules this project does not follow yet.
+
+                Listing them here keeps what a project has not got round to
+                visible in one place, rather than as an override that reads
+                like a decision.
+              '';
+
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              example = [ "member-ordering" ];
+            };
+          };
         }
       );
     };
@@ -95,6 +158,10 @@ importingFlake: {
         "prefer-extracting-callbacks"
       ];
 
+      # A rule is either a bare name or a single-entry set of a name and its
+      # configuration.
+      ruleName = rule: if lib.isString rule then rule else lib.head (lib.attrNames rule);
+
       mkOptions =
         projectConfig:
         let
@@ -115,7 +182,7 @@ importingFlake: {
               use_build_context_synchronously = "ignore";
             };
 
-            exclude = [ "lib/l10n/*.dart" ];
+            exclude = [ "lib/l10n/*.dart" ] ++ projectConfig.linting.exclude;
           }
           // lib.optionalAttrs dartCodeLinter { plugins = [ "dart_code_linter" ]; };
         }
@@ -126,7 +193,24 @@ importingFlake: {
         }
         // lib.optionalAttrs dartCodeLinter {
           dart_code_linter.rules =
-            dartCodeLinterRules ++ (if flutter then dartCodeLinterFlutterRules else dartCodeLinterDartRules);
+            let
+              disabled = projectConfig.linting.dartCodeLinter.disabledRules;
+
+              standard =
+                dartCodeLinterRules ++ (if flutter then dartCodeLinterFlutterRules else dartCodeLinterDartRules);
+
+              # An entry that matches nothing is how a suppression outlives the
+              # rule it was written for, so say so rather than ignoring it.
+              stale = lib.subtractLists (map ruleName standard) disabled;
+            in
+            assert lib.assertMsg (stale == [ ]) ''
+              famedly.standards.dart.projects: disabledRules names ${lib.concatStringsSep ", " stale}, which the standard rule set does not contain.
+            '';
+            # Removed rather than restated as `rule: false`, which would leave
+            # the same rule in the list twice and make the outcome depend on
+            # which entry the linter reads last.
+            lib.filter (rule: !lib.elem (ruleName rule) disabled) standard
+            ++ projectConfig.linting.dartCodeLinter.extraRules;
         };
 
       # `builtins.readFile` on the generated file would force it at evaluation
