@@ -89,6 +89,19 @@ in
                 type = lib.types.str;
                 default = "licenses.yaml";
               };
+
+              version = lib.mkOption {
+                description = ''
+                  Constraint the `license_checker` tool is installed under.
+
+                  Installed globally rather than carried as a dev dependency,
+                  because it resolves the whole of `pana` and would then get a
+                  say in which analyzer the project may use — its auditor
+                  vetoing the linters it is supposed to audit alongside.
+                '';
+                type = lib.types.str;
+                default = "^1.6.2";
+              };
             };
 
             privateDependencies = lib.mkOption {
@@ -182,7 +195,13 @@ in
                 # through: an unreviewed licence is not the same as a fine one.
                 name = "Check the dependency licences";
                 shell = steps.devshell;
-                run = inProject project "dart run license_checker check-licenses -c ${cfg.licenses.config} --problematic";
+
+                run = inProject project ''
+                  dart pub global activate license_checker '${cfg.licenses.version}'
+
+                  dart pub global run license_checker \
+                  	-c ${cfg.licenses.config} check-licenses --problematic
+                '';
               }
               ++ lib.optional (cfg.testCommand != null) {
                 name = "Test";
