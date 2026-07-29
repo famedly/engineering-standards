@@ -16,6 +16,7 @@ importingFlake: {
     ./pre-commit-hooks.nix
     ./runtime.nix
     ./toolchain.nix
+    ./web
 
     ./workflows/checks.nix
     ./workflows/image.nix
