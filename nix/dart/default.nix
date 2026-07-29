@@ -10,6 +10,7 @@ importingFlake: {
     (importApply ./formatting.nix args)
     (importApply ./linting.nix args)
     (importApply ./sdk.nix args)
+    (importApply ./vodozemac.nix args)
 
     ./pre-commit-hooks.nix
 
