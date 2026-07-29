@@ -228,7 +228,7 @@ importingFlake: {
               else
                 [ "lints: ^6.1.0" ]
             )
-            ++ lib.optional projectConfig.linting.dartCodeLinter.enable "dart_code_linter: ^3.2.1";
+            ++ lib.optional projectConfig.linting.dartCodeLinter.enable "dart_code_linter: ^4.1.2";
 
           header = pkgs.writeText "analysis_options.standards.yaml.header" (
             ''
