@@ -13,6 +13,7 @@ importingFlake: {
     (importApply ./vodozemac.nix args)
 
     ./pre-commit-hooks.nix
+    ./runtime.nix
 
     ./workflows/checks.nix
   ];
