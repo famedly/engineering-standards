@@ -1,14 +1,14 @@
 { lib, ... }:
 importingFlake: {
   config.perSystem =
-    { config, self', ... }:
+    { config, ... }:
     # The Dart SDK is a hefty download, so only pull it in for repositories
     # that actually contain Dart code.
     lib.mkIf (config.famedly.standards.dart.projects != { }) {
       treefmt = {
         programs.dart-format = {
           enable = true;
-          package = self'.packages.famedly-dart-sdk;
+          package = config.famedly.standards.dart.toolchain;
         };
 
         # `treefmt.toml` is committed, so it must not contain store paths. The
