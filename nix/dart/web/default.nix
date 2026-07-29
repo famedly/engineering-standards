@@ -12,6 +12,7 @@
     ./image.nix
 
     ./workflows/build.nix
+    ./workflows/github-pages.nix
     ./workflows/image.nix
   ];
 
