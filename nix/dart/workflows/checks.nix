@@ -150,6 +150,23 @@ in
                 };
               };
 
+              translations = {
+                enable = lib.mkEnableOption ''
+                  checking this project's ARB files for unused keys and for being
+                  sorted
+
+                  Needs an `l10n.yaml`, which is where the tool finds them
+                '';
+
+                version = lib.mkOption {
+                  description = ''
+                    Constraint the `sweeper` tool is installed under.
+                  '';
+                  type = lib.types.str;
+                  default = "^0.4.2";
+                };
+              };
+
               privateDependencies = lib.mkOption {
                 description = ''
                   Whether this project depends on private famedly repositories,
@@ -295,6 +312,29 @@ in
                   dart pub global activate dependency_validator '${cfg.dependencies.version}'
 
                   dart pub global run dependency_validator
+                '';
+              }
+              ++ lib.optional cfg.translations.enable {
+                name = "Check the translations";
+                shell = steps.devshell;
+
+                # Sorted ARB files are what keeps two branches from both adding
+                # a key at the end of the file and conflicting over it. There is
+                # no check-only mode, so the sort runs and the question is
+                # whether it changed anything.
+                run = inProject project ''
+                  dart pub global activate sweeper '${cfg.translations.version}'
+
+                  dart pub global run sweeper check
+
+                  dart pub global run sweeper sort
+
+                  if ! git diff --quiet -- '*.arb'; then
+                    git diff -- '*.arb'
+
+                    echo '::error::ARB files are not sorted — run `dart pub global run sweeper sort` and commit the result.'
+                    exit 1
+                  fi
                 '';
               }
               ++ lib.optional cfg.licenses.enable {
