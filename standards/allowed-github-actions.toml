@@ -25,3 +25,7 @@ ref = "fc324d3547104276b827a68afc52ff2a11cc49c9"
 ["cachix/install-nix-action"]
 rev = "v31.10.6"
 ref = "8aa03977d8d733052d78f4e008a241fd1dbf36b3"
+
+["codecov/codecov-action"]
+rev = "v7.0.0"
+ref = "fb8b3582c8e4def4969c97caa2f19720cb33a72f"

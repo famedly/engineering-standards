@@ -5,8 +5,9 @@
   ...
 }:
 let
+  allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../lib/project-paths.nix { inherit lib; }) inProject suffix;
+  inherit (import ../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
@@ -34,6 +35,60 @@ in
               type = lib.types.nullOr lib.types.str;
               default = null;
               example = "dart test test/unit/";
+            };
+
+            browser = lib.mkOption {
+              description = ''
+                Whether this project's tests run in a browser, and therefore
+                need one on `PATH`.
+
+                See `famedly.standards.dart.projects.<name>.checks.testCommand`
+                for how they are started — this only makes the browser Flutter
+                launches a pinned one.
+              '';
+              type = lib.types.bool;
+              default = false;
+            };
+
+            coverage = {
+              enable = lib.mkEnableOption "uploading this project's test coverage to Codecov";
+
+              file = lib.mkOption {
+                description = ''
+                  Coverage report the test command leaves behind, relative to
+                  the project.
+
+                  Producing it is up to `testCommand`, which for Flutter means
+                  passing `--coverage`. CI insists on finding it rather than
+                  skipping the upload when it is absent: a report that quietly
+                  stops being written is how coverage stops being measured
+                  without anybody noticing.
+                '';
+                type = lib.types.str;
+                default = "coverage/lcov.info";
+              };
+
+              flags = lib.mkOption {
+                description = ''
+                  Codecov flag to file this report under, or `null` for none.
+                '';
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                example = "unit-tests";
+              };
+            };
+
+            licenses = {
+              enable = lib.mkEnableOption "checking this project's dependency licences";
+
+              config = lib.mkOption {
+                description = ''
+                  Licence policy to check the dependencies against, relative to
+                  the project.
+                '';
+                type = lib.types.str;
+                default = "licenses.yaml";
+              };
             };
 
             privateDependencies = lib.mkOption {
@@ -121,11 +176,45 @@ in
                 shell = steps.devshell;
                 run = inProject project "dart run dart_code_linter:metrics analyze lib --reporter=github";
               }
+              ++ lib.optional cfg.licenses.enable {
+                # `--problematic`, so a dependency under a licence the policy
+                # neither allows nor rejects is raised rather than waved
+                # through: an unreviewed licence is not the same as a fine one.
+                name = "Check the dependency licences";
+                shell = steps.devshell;
+                run = inProject project "dart run license_checker check-licenses -c ${cfg.licenses.config} --problematic";
+              }
               ++ lib.optional (cfg.testCommand != null) {
                 name = "Test";
                 shell = steps.devshell;
                 run = inProject project cfg.testCommand;
-              };
+              }
+              ++ lib.optionals cfg.coverage.enable [
+                {
+                  # Codecov's own error for a missing file says little about
+                  # why it is missing, and this is the failure that hid for a
+                  # long time behind a condition that skipped the upload.
+                  name = "Check that the tests produced a coverage report";
+                  run = inProject project ''
+                    if ! test -s ${cfg.coverage.file}; then
+                      echo '::error::${cfg.coverage.file} is missing or empty — does the test command ask for coverage?'
+                      exit 1
+                    fi
+                  '';
+                }
+
+                {
+                  name = "Upload the coverage to Codecov";
+                  uses = allowed-actions."codecov/codecov-action".uses;
+
+                  with_ = {
+                    files = "${directory project}${cfg.coverage.file}";
+                    fail_ci_if_error = true;
+                    token = "\${{ secrets.CODECOV_TOKEN }}";
+                  }
+                  // lib.optionalAttrs (cfg.coverage.flags != null) { inherit (cfg.coverage) flags; };
+                }
+              ];
           }
         ) projects;
       };
