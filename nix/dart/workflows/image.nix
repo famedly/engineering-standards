@@ -7,7 +7,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../project-paths.nix { inherit lib; }) directory inProject suffix;
+  inherit (import ../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
 
   # One workflow per project, so anything that has to distinguish them keys off
   # this. `github.workflow` cannot: it holds the display name.

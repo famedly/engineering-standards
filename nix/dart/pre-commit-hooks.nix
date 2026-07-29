@@ -12,7 +12,7 @@
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
 
-      inherit (import ./project-paths.nix { inherit lib; }) directory;
+      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
 
       # Forgetting the `include` is silent: `dart analyze` then simply analyzes
       # with the default rule set and reports nothing about it.

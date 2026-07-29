@@ -6,7 +6,7 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../project-paths.nix { inherit lib; }) inProject suffix;
+  inherit (import ../../lib/project-paths.nix { inherit lib; }) inProject suffix;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({

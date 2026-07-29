@@ -126,7 +126,7 @@ importingFlake: {
       # "create once" mode — `clobber = false` still overwrites and merely
       # leaves a numbered backup behind — so we would trample the very
       # overrides it is meant to hold.
-      inherit (import ./project-paths.nix { inherit lib; }) directory;
+      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
 
       mkProjectFiles = project: projectConfig: [
         {
