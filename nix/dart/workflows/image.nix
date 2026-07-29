@@ -147,7 +147,7 @@ in
 
           # Pinned like everything else, since it resolves against the
           # repository's own locked nixpkgs.
-          publishShell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash {0}";
+          publishShell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash -e {0}";
         in
         {
           name = "Build and push the container image${
