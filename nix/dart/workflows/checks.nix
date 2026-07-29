@@ -171,6 +171,36 @@ in
                   # below look at it.
                   run = inProject project "${cli} pub get --no-example";
                 }
+
+                {
+                  # Resolution just ran, so a lockfile that moved means the one
+                  # in the repository was not what the manifest asks for — and
+                  # every run before this one resolved something nobody chose.
+                  name = "Check that the lockfile is up to date";
+
+                  run = inProject project ''
+                    # A library leaves its lockfile untracked on purpose: it
+                    # resolves against whatever the application above it picks.
+                    if git check-ignore -q pubspec.lock; then
+                      exit 0
+                    fi
+
+                    # An application that never committed its lockfile leaves
+                    # nothing for the comparison below to differ from, and
+                    # resolution just wrote one either way.
+                    if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
+                      echo '::error::pubspec.lock is not committed — run `${cli} pub get` and commit it.'
+                      exit 1
+                    fi
+
+                    if ! git diff --quiet -- pubspec.lock; then
+                      git diff -- pubspec.lock
+
+                      echo '::error::pubspec.lock is out of date — run `${cli} pub get` and commit it.'
+                      exit 1
+                    fi
+                  '';
+                }
               ]
               ++ lib.optional cfg.analyze {
                 name = "Analyze";
