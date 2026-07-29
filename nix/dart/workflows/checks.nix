@@ -13,109 +13,156 @@ in
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (
-        lib.types.submodule {
-          options.checks = {
-            analyze = lib.mkOption {
-              description = ''
-                Whether to run `dart analyze` against this project in CI.
-              '';
-              type = lib.types.bool;
-              default = true;
-            };
-
-            testCommand = lib.mkOption {
-              description = ''
-                The command that runs this projects' tests in CI, or `null` to
-                not run any.
-
-                This is deliberately not defaulted to `dart test`, since test
-                suites that need external services (databases, homeservers,
-                ...) have to be wired up by the project itself.
-              '';
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-              example = "dart test test/unit/";
-            };
-
-            browser = lib.mkOption {
-              description = ''
-                Whether this project's tests run in a browser, and therefore
-                need one on `PATH`.
-
-                See `famedly.standards.dart.projects.<name>.checks.testCommand`
-                for how they are started — this only makes the browser Flutter
-                launches a pinned one.
-              '';
-              type = lib.types.bool;
-              default = false;
-            };
-
-            coverage = {
-              enable = lib.mkEnableOption "uploading this project's test coverage to Codecov";
-
-              file = lib.mkOption {
+        lib.types.submodule (
+          { config, ... }:
+          {
+            options.checks = {
+              analyze = lib.mkOption {
                 description = ''
-                  Coverage report the test command leaves behind, relative to
-                  the project.
-
-                  Producing it is up to `testCommand`, which for Flutter means
-                  passing `--coverage`. CI insists on finding it rather than
-                  skipping the upload when it is absent: a report that quietly
-                  stops being written is how coverage stops being measured
-                  without anybody noticing.
+                  Whether to run `dart analyze` against this project in CI.
                 '';
-                type = lib.types.str;
-                default = "coverage/lcov.info";
+                type = lib.types.bool;
+                default = true;
               };
 
-              flags = lib.mkOption {
+              testCommand = lib.mkOption {
                 description = ''
-                  Codecov flag to file this report under, or `null` for none.
+                  The command that runs this projects' tests in CI, or `null` to
+                  not run any.
+
+                  This is deliberately not defaulted to `dart test`, since test
+                  suites that need external services (databases, homeservers,
+                  ...) have to be wired up by the project itself.
                 '';
                 type = lib.types.nullOr lib.types.str;
                 default = null;
-                example = "unit-tests";
+                example = "dart test test/unit/";
               };
-            };
 
-            licenses = {
-              enable = lib.mkEnableOption "checking this project's dependency licences";
-
-              config = lib.mkOption {
+              browser = lib.mkOption {
                 description = ''
-                  Licence policy to check the dependencies against, relative to
-                  the project.
+                  Whether this project's tests run in a browser, and therefore
+                  need one on `PATH`.
+
+                  See `famedly.standards.dart.projects.<name>.checks.testCommand`
+                  for how they are started — this only makes the browser Flutter
+                  launches a pinned one.
                 '';
-                type = lib.types.str;
-                default = "licenses.yaml";
+                type = lib.types.bool;
+                default = false;
               };
 
-              version = lib.mkOption {
+              coverage = {
+                enable = lib.mkEnableOption "uploading this project's test coverage to Codecov";
+
+                file = lib.mkOption {
+                  description = ''
+                    Coverage report the test command leaves behind, relative to
+                    the project.
+
+                    Producing it is up to `testCommand`, which for Flutter means
+                    passing `--coverage`. CI insists on finding it rather than
+                    skipping the upload when it is absent: a report that quietly
+                    stops being written is how coverage stops being measured
+                    without anybody noticing.
+                  '';
+                  type = lib.types.str;
+                  default = "coverage/lcov.info";
+                };
+
+                flags = lib.mkOption {
+                  description = ''
+                    Codecov flag to file this report under, or `null` for none.
+                  '';
+                  type = lib.types.nullOr lib.types.str;
+                  default = null;
+                  example = "unit-tests";
+                };
+              };
+
+              licenses = {
+                enable = lib.mkEnableOption "checking this project's dependency licences";
+
+                config = lib.mkOption {
+                  description = ''
+                    Licence policy to check the dependencies against, relative to
+                    the project.
+                  '';
+                  type = lib.types.str;
+                  default = "licenses.yaml";
+                };
+
+                version = lib.mkOption {
+                  description = ''
+                    Constraint the `license_checker` tool is installed under.
+
+                    Installed globally rather than carried as a dev dependency,
+                    because it resolves the whole of `pana` and would then get a
+                    say in which analyzer the project may use — its auditor
+                    vetoing the linters it is supposed to audit alongside.
+                  '';
+                  type = lib.types.str;
+                  default = "^1.6.2";
+                };
+              };
+
+              unused = {
+                files = lib.mkOption {
+                  description = ''
+                    Whether to look for files in `lib` that nothing imports.
+                  '';
+                  type = lib.types.bool;
+                  default = config.linting.dartCodeLinter.enable;
+                  defaultText = lib.literalExpression "config.linting.dartCodeLinter.enable";
+                };
+
+                code = lib.mkOption {
+                  description = ''
+                    Whether to look for declarations in `lib` that nothing
+                    references.
+                  '';
+                  type = lib.types.bool;
+                  default = config.linting.dartCodeLinter.enable;
+                  defaultText = lib.literalExpression "config.linting.dartCodeLinter.enable";
+                };
+
+                exclude = lib.mkOption {
+                  description = ''
+                    Globs the two checks above should not report on.
+
+                    Generated code is excluded by default, and so is whatever
+                    `linting.exclude` names: a generator writes what its template
+                    says whether anything imports it or not, so a finding there is
+                    not something anybody can act on.
+                  '';
+                  type = lib.types.listOf lib.types.str;
+
+                  default = [
+                    "**/generated/**.dart"
+                    "**.g.dart"
+                    "**.freezed.dart"
+                  ]
+                  ++ config.linting.exclude;
+
+                  defaultText = lib.literalExpression ''
+                    [ "**/generated/**.dart" "**.g.dart" "**.freezed.dart" ] ++ config.linting.exclude
+                  '';
+                };
+              };
+
+              privateDependencies = lib.mkOption {
                 description = ''
-                  Constraint the `license_checker` tool is installed under.
+                  Whether this project depends on private famedly repositories,
+                  and therefore needs an SSH key to resolve its dependencies.
 
-                  Installed globally rather than carried as a dev dependency,
-                  because it resolves the whole of `pana` and would then get a
-                  say in which analyzer the project may use — its auditor
-                  vetoing the linters it is supposed to audit alongside.
+                  See `famedly.standards.ci.steps.privateDependencies`.
                 '';
-                type = lib.types.str;
-                default = "^1.6.2";
+                type = lib.types.bool;
+                default = false;
               };
             };
-
-            privateDependencies = lib.mkOption {
-              description = ''
-                Whether this project depends on private famedly repositories,
-                and therefore needs an SSH key to resolve its dependencies.
-
-                See `famedly.standards.ci.steps.privateDependencies`.
-              '';
-              type = lib.types.bool;
-              default = false;
-            };
-          };
-        }
+          }
+        )
       );
     };
   });
@@ -155,6 +202,12 @@ in
             # `flutter analyze` is not `dart analyze` with a different name: it
             # resolves the framework packages the project builds against.
             cli = if projectConfig.flutter then "flutter" else "dart";
+
+            # One brace-delimited set of globs, quoted so that the shell leaves
+            # the braces to the linter instead of expanding them itself.
+            unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
+              " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
+            );
           in
           lib.nameValuePair "checks${suffix project}" {
             runsOn = "ubuntu-latest";
@@ -218,6 +271,21 @@ in
                 name = "Lint";
                 shell = steps.devshell;
                 run = inProject project "dart run dart_code_linter:metrics analyze lib --reporter=github";
+              }
+              ++ lib.optional cfg.unused.files {
+                # A file nothing imports is either dead or was meant to be
+                # wired up and never was. Both are worth knowing, and neither
+                # shows up in `dart analyze`.
+                name = "Check for unused files";
+                shell = steps.devshell;
+
+                run = inProject project "dart run dart_code_linter:metrics check-unused-files lib${unusedExclude}";
+              }
+              ++ lib.optional cfg.unused.code {
+                name = "Check for unused code";
+                shell = steps.devshell;
+
+                run = inProject project "dart run dart_code_linter:metrics check-unused-code lib${unusedExclude}";
               }
               ++ lib.optional cfg.licenses.enable {
                 # `--problematic`, so a dependency under a licence the policy
