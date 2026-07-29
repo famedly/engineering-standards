@@ -83,6 +83,10 @@ in
           project: projectConfig:
           let
             cfg = projectConfig.checks;
+
+            # `flutter analyze` is not `dart analyze` with a different name: it
+            # resolves the framework packages the project builds against.
+            cli = if projectConfig.flutter then "flutter" else "dart";
           in
           lib.nameValuePair "checks${suffix project}" {
             runsOn = "ubuntu-latest";
@@ -94,13 +98,16 @@ in
                 {
                   name = "Resolve dependencies";
                   shell = steps.devshell;
-                  run = inProject project "dart pub get";
+                  # `--no-example`, because resolving a package's bundled example
+                  # app needs whatever that app needs, and none of the checks
+                  # below look at it.
+                  run = inProject project "${cli} pub get --no-example";
                 }
               ]
               ++ lib.optional cfg.analyze {
                 name = "Analyze";
                 shell = steps.devshell;
-                run = inProject project "dart analyze";
+                run = inProject project "${cli} analyze";
               }
               ++ lib.optional (cfg.testCommand != null) {
                 name = "Test";

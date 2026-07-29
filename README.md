@@ -66,7 +66,7 @@ To use the standards in a new project, create the following
           # Read module documentation for further details, but most
           # likely you want one of the following:
           #
-          # dart.projects."." = { };
+          # dart.projects."." = { };                  # Flutter: { flutter = true; }
           # rust.projects."." = { };
         };
       };
