@@ -11,6 +11,8 @@ importingFlake: {
     (importApply ./linting.nix args)
     (importApply ./sdk.nix args)
 
+    ./pre-commit-hooks.nix
+
     ./workflows/checks.nix
   ];
 
