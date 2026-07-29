@@ -9,6 +9,11 @@ jobs:
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
       - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
+      - uses: cachix/cachix-action@5f2d7c5294214f71b873db4b969586b980625e71
+        with:
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN_FAMEDLY }}
+          name: famedly
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY_FAMEDLY }}
       - env:
           PREK_COLOR: always
           TREEFMT_NO_CACHE: "1"
