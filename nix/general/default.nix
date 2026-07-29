@@ -13,6 +13,7 @@ importingFlake: {
     (importApply ./pre-commit-hooks.nix args)
 
     ./workflows/ci-steps.nix
+    ./workflows/check-commit-messages.nix
     ./workflows/check-pre-commit-hooks.nix
   ];
 
