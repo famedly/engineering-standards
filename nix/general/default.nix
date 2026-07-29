@@ -11,6 +11,7 @@ importingFlake: {
     ./formatting.nix
     (importApply ./pre-commit-hooks.nix args)
 
+    ./workflows/ci-steps.nix
     ./workflows/check-pre-commit-hooks.nix
   ];
 

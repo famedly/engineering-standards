@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  allowed-actions = config.famedly.standards.allowed-action-versions;
+  inherit (config.famedly.standards.ci) steps;
 in
 {
   perSystem.githubActions.workflows.check-pre-commit-hooks = {
@@ -31,13 +31,10 @@ in
     jobs.prek = {
       runsOn = "ubuntu-latest";
 
-      steps = [
-        { uses = allowed-actions."actions/checkout".uses; }
-        { uses = allowed-actions."cachix/install-nix-action".uses; }
-
+      steps = steps.setup ++ [
         {
           name = "Run pre-commit hooks";
-          shell = "nix develop .#standards --command bash {0}";
+          shell = steps.devshell;
           run = "prek --all-files --show-diff-on-failure --stage pre-push";
           env = {
             PREK_COLOR = "always";
