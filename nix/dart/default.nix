@@ -5,7 +5,12 @@
   ...
 }@args:
 importingFlake: {
-  imports = [ (importApply ./sdk.nix args) ];
+  imports = [
+    (importApply ./devshell.nix args)
+    (importApply ./formatting.nix args)
+    (importApply ./sdk.nix args)
+
+  ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
