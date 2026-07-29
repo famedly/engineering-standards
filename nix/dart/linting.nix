@@ -7,12 +7,10 @@ importingFlake: {
           options.linting.dartCodeLinter.enable = lib.mkEnableOption ''
             the `dart_code_linter` rule set for this project.
 
-            Off by default, because these rules come from an analyzer plugin:
-            the analysis server reports them in the editor, but `dart analyze`
-            ignores them. Enabling them without also adding the
-            `dart_code_linter` dev dependency and a
-            `dart run dart_code_linter:metrics analyze` step therefore produces
-            findings that CI never checks
+            Off by default, because these rules come from an analyzer plugin
+            that `dart analyze` ignores: they need a separate step, which the
+            checks workflow adds when this is enabled. The project has to carry
+            the `dart_code_linter` dev dependency for that step to resolve
           '';
         }
       );

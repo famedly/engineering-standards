@@ -109,6 +109,18 @@ in
                 shell = steps.devshell;
                 run = inProject project "${cli} analyze";
               }
+              ++ lib.optional projectConfig.linting.dartCodeLinter.enable {
+                # The plugin's findings are invisible to `dart analyze`, so
+                # without this step the rule set would only ever be enforced in
+                # whichever editor happens to load the analysis server.
+                #
+                # `lib`, because that is where a package's own code lives;
+                # pointing it at the repository root would drag generated and
+                # vendored code in.
+                name = "Lint";
+                shell = steps.devshell;
+                run = inProject project "dart run dart_code_linter:metrics analyze lib --reporter=github";
+              }
               ++ lib.optional (cfg.testCommand != null) {
                 name = "Test";
                 shell = steps.devshell;
