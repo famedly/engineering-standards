@@ -222,6 +222,12 @@ in
                   name = "Smoke test the image";
                   run = ''
                     docker load <image-''${{ matrix.architecture }}.tar
+
+                    # The arm64 runners are self-hosted and reused, and the container
+                    # outlives a cancelled job: without this, one cancellation fails
+                    # every later run on that runner.
+                    docker rm --force smoke 2>/dev/null || true
+
                     docker run --detach --name smoke --health-interval 2s ${cfg.name}:latest
 
                     for _ in $(seq 30); do
