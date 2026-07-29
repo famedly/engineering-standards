@@ -287,6 +287,16 @@ in
 
                 run = inProject project "dart run dart_code_linter:metrics check-unused-code lib${unusedExclude}";
               }
+              ++ lib.optional cfg.dependencies.enable {
+                name = "Check the declared dependencies";
+                shell = steps.devshell;
+
+                run = inProject project ''
+                  dart pub global activate dependency_validator '${cfg.dependencies.version}'
+
+                  dart pub global run dependency_validator
+                '';
+              }
               ++ lib.optional cfg.licenses.enable {
                 # `--problematic`, so a dependency under a licence the policy
                 # neither allows nor rejects is raised rather than waved

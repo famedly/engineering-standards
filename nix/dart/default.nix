@@ -12,6 +12,7 @@ importingFlake: {
     (importApply ./sdk.nix args)
     (importApply ./vodozemac.nix args)
 
+    ./dependencies.nix
     ./image.nix
     ./pre-commit-hooks.nix
     ./runtime.nix
