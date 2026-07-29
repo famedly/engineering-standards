@@ -51,7 +51,7 @@
         toolchain =
           if flutter then
             self'.packages.famedly-flutter-sdk
-              or (throw "A Flutter project is configured, but famedly-flutter-sdk is not packaged for ${system}. See nix/flutter/sdk.nix in the engineering standards.")
+              or (throw "A Flutter project is configured, but famedly-flutter-sdk is not packaged for ${system}. See nix/dart/sdk.nix in the engineering standards.")
           else
             self'.packages.famedly-dart-sdk;
       };
