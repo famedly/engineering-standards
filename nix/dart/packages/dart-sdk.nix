@@ -38,7 +38,10 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    rm -f LICENSE README revision
+    # `revision` has to stay: `dart compile exe --target-arch` resolves the
+    # matching target SDK from the Dart archive through it, and without it
+    # cross-compiling fails with 'Channel "stable" requires valid revision'.
+    rm -f LICENSE README
     cp -R . $out
   ''
   + lib.optionalString stdenv.hostPlatform.isLinux ''
