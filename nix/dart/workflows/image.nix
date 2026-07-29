@@ -147,7 +147,7 @@ in
 
           # Pinned like everything else, since it resolves against the
           # repository's own locked nixpkgs.
-          publishShell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash {0}";
+          publishShell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash -e {0}";
         in
         {
           name = "Build and push the container image${
@@ -222,6 +222,12 @@ in
                   name = "Smoke test the image";
                   run = ''
                     docker load <image-''${{ matrix.architecture }}.tar
+
+                    # The arm64 runners are self-hosted and reused, and the container
+                    # outlives a cancelled job: without this, one cancellation fails
+                    # every later run on that runner.
+                    docker rm --force smoke 2>/dev/null || true
+
                     docker run --detach --name smoke --health-interval 2s ${cfg.name}:latest
 
                     for _ in $(seq 30); do

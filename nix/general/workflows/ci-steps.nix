@@ -106,6 +106,9 @@ in
       }
     ];
 
-    devshell = "nix develop .#standards --command bash {0}";
+    # `-e` because a custom `shell` replaces the `bash -e` GitHub runs `run`
+    # scripts with, and a multi-command script that carries on after a failure
+    # reports the exit status of its last command.
+    devshell = "nix develop .#standards --command bash -e {0}";
   };
 }
