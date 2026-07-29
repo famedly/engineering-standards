@@ -5,7 +5,20 @@
   ...
 }@args:
 importingFlake: {
-  imports = [ (importApply ./sdk.nix args) ];
+  imports = [
+    (importApply ./devshell.nix args)
+    (importApply ./formatting.nix args)
+    (importApply ./linting.nix args)
+    (importApply ./sdk.nix args)
+    (importApply ./vodozemac.nix args)
+
+    ./image.nix
+    ./pre-commit-hooks.nix
+    ./runtime.nix
+
+    ./workflows/checks.nix
+    ./workflows/image.nix
+  ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
