@@ -38,7 +38,7 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    rm -f LICENSE README revision
+    rm -f LICENSE README
     cp -R . $out
   ''
   + lib.optionalString stdenv.hostPlatform.isLinux ''
