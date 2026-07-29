@@ -9,7 +9,10 @@
 { flake-parts-lib, ... }:
 {
   imports = [
+    ./image.nix
+
     ./workflows/build.nix
+    ./workflows/image.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
