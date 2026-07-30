@@ -6,6 +6,28 @@ let
   script = import ../../lib/compose-script.nix { inherit lib; };
 in
 {
+  options.famedly.standards.ci.advisories.failOn = lib.mkOption {
+    description = ''
+      Severity at which a known vulnerability in a published image stops the
+      run, or `null` to only report what was found.
+
+      Null to begin with, deliberately: a gate switched on before anyone has
+      seen a single report either blocks every release on the day it lands or
+      teaches everyone to ignore it. Read the reports first, then set this.
+    '';
+
+    type = lib.types.nullOr (
+      lib.types.enum [
+        "low"
+        "medium"
+        "high"
+        "critical"
+      ]
+    );
+
+    default = null;
+  };
+
   options.famedly.standards.ci.steps = lib.mkOption {
     description = ''
       Workflow steps shared between our GitHub workflows.
@@ -214,6 +236,45 @@ in
             path = "sboms";
             if-no-files-found = "error";
           };
+        }
+
+        {
+          # Held against the documents just written rather than against the
+          # archives again: whatever the scanner has to say, it says it about
+          # the same list of packages that ships with the image.
+          name = "Look for known vulnerabilities";
+
+          shell = "nix shell --inputs-from . nixpkgs#grype --command bash -e {0}";
+
+          run =
+            let
+              inherit (config.famedly.standards.ci.advisories) failOn;
+            in
+            ''
+              mkdir -p reports
+
+              echo '### Known vulnerabilities' >>"$GITHUB_STEP_SUMMARY"
+
+              status=0
+
+              for sbom in sboms/*.spdx.json; do
+              	name="$(basename "$sbom" .spdx.json)"
+
+              	# Into a file rather than through a pipe, so the summary below
+              	# is written even when the report is the reason this step fails.
+              	grype "sbom:$sbom" --output table --file "reports/$name.txt" \
+              		${lib.optionalString (failOn != null) "--fail-on ${failOn} "}|| status=$?
+
+              	{
+              		echo "#### $name"
+              		echo '```'
+              		cat "reports/$name.txt"
+              		echo '```'
+              	} >>"$GITHUB_STEP_SUMMARY"
+              done
+
+              exit "$status"
+            '';
         }
 
         {
