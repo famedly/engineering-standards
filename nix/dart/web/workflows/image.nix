@@ -154,6 +154,10 @@ in
                       images = builtins.getAttr builtins.currentSystem flake.dartWebImages;
                     in images."${project}" {
                       site = ./site;
+
+                      source = "''${{ github.server_url }}/''${{ github.repository }}";
+                      revision = "''${{ github.sha }}";
+                      version = "''${{ github.ref_name }}";
                     }
                   ')"
 
