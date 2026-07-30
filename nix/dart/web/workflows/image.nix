@@ -7,7 +7,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) suffix;
+  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   script = import ../../../lib/compose-script.nix { inherit lib; };
@@ -276,6 +276,7 @@ in
               ++ steps.publishImages {
                 inherit architectures tag;
                 reference = "${registry}/${cfg.name}";
+                lockfile = "${directory project}pubspec.lock";
               };
           };
         };
