@@ -58,6 +58,84 @@
                   default = false;
                 };
 
+                headers = lib.mkOption {
+                  description = ''
+                    Headers the server sends with every response.
+
+                    The defaults are the ones no static site has a reason to
+                    withhold: they narrow what a browser may infer or hand out,
+                    without saying anything about the site's own contents.
+                    `Content-Security-Policy` is deliberately not among them —
+                    a policy that fits one application forbids another one's
+                    inline bootstrap, so it belongs to the project.
+                  '';
+
+                  type = lib.types.attrsOf lib.types.str;
+
+                  default = {
+                    # A browser that sniffs types defeats the content types the
+                    # smoke test insists on.
+                    X-Content-Type-Options = "nosniff";
+
+                    Referrer-Policy = "strict-origin-when-cross-origin";
+
+                    # Nothing an administration interface serves needs any of
+                    # these, and a page that never asks cannot be tricked into
+                    # asking.
+                    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+
+                    # Framing is how a page gets read by one it did not choose.
+                    X-Frame-Options = "DENY";
+
+                    # The ingress terminates TLS and should send this itself;
+                    # sending it here too means a mistake there does not silently
+                    # leave the door open.
+                    Strict-Transport-Security = "max-age=63072000; includeSubDomains";
+                  };
+                };
+
+                sentHeaders = lib.mkOption {
+                  description = ''
+                    The headers the server is configured with: `headers`, plus
+                    the isolation pair when `crossOriginIsolation` asks for it.
+
+                    Derived, so that the image and the test that fetches from it
+                    cannot disagree about what it sends.
+                  '';
+
+                  type = lib.types.attrsOf lib.types.str;
+                  readOnly = true;
+
+                  default =
+                    config.web.image.headers
+                    // lib.optionalAttrs config.web.image.crossOriginIsolation {
+                      Cross-Origin-Opener-Policy = "same-origin";
+                      Cross-Origin-Embedder-Policy = "require-corp";
+                    };
+
+                  defaultText = "the headers above, plus the isolation pair when it is enabled";
+                };
+
+                crossOriginIsolation = lib.mkOption {
+                  description = ''
+                    Whether to ask the browser for cross-origin isolation.
+
+                    Off by default, because `Cross-Origin-Embedder-Policy`
+                    blocks every cross-origin resource that does not opt in,
+                    which takes down a site that loads fonts, images or frames
+                    from elsewhere.
+
+                    Worth turning on for a Flutter web build that carries the
+                    threaded renderer: only an isolated page may hold a
+                    `SharedArrayBuffer`, and without it the runtime falls back
+                    to the single-threaded variant while still shipping the
+                    other one.
+                  '';
+
+                  type = lib.types.bool;
+                  default = false;
+                };
+
                 user = {
                   uid = lib.mkOption {
                     description = "Uid the server runs as.";
@@ -112,6 +190,20 @@
           # their working directory.
           root = lib.escapeShellArg (lib.removePrefix "/" cfg.documentRoot);
 
+          settingsPath = "/etc/static-web-server.toml";
+
+          # Headers are the one thing the server takes only from a file, so it
+          # gets a file — and nothing else, since every other setting reads
+          # better as the flag it is below.
+          settings = (pkgs.formats.toml { }).generate "static-web-server.toml" {
+            advanced.headers = [
+              {
+                source = "/**";
+                headers = cfg.sentHeaders;
+              }
+            ];
+          };
+
           # No `created`: a timestamp would make two builds of the same commit
           # differ, and the commit these name has a date of its own.
           labels = lib.filterAttrs (_: value: value != null) {
@@ -131,13 +223,15 @@
           # outside `--root`, so such a document root serves nothing but 404s —
           # and the store copy would ship twice over.
           #
-          # Beyond the site the image holds only the server: no `/etc/passwd`,
-          # no CA bundle, no shell. The server neither looks its own user up nor
-          # opens an outbound connection, and there is nothing here to exec
-          # into. What it cannot reach, it cannot be made to reach.
+          # Beyond the site and the server's settings the image holds only the
+          # server: no `/etc/passwd`, no CA bundle, no shell. The server neither
+          # looks its own user up nor opens an outbound connection, and there is
+          # nothing here to exec into. What it cannot reach, it cannot be made
+          # to reach.
           extraCommands = ''
-            mkdir -p ${root}
+            mkdir -p ${root} etc
             cp -r ${site}/. ${root}/
+            cp ${settings} .${settingsPath}
           '';
 
           # Files created above carry the build user, which has no meaning
@@ -163,6 +257,13 @@
 
               "--cache-control-headers"
               (lib.boolToString cfg.cacheControl)
+
+              "--config-file"
+              settingsPath
+
+              # A probe that says the server answers, without a line in the log
+              # for every one of them.
+              "--health"
             ];
 
             Labels = labels;
