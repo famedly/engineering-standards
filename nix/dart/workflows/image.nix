@@ -276,7 +276,12 @@ in
 
               timeoutMinutes = 20;
 
-              steps = steps.setup ++ steps.publishImages { inherit architectures reference tag; };
+              steps =
+                steps.setup
+                ++ steps.publishImages {
+                  inherit architectures reference tag;
+                  lockfile = "${directory project}pubspec.lock";
+                };
             };
           }
           // lib.optionalAttrs (cfg.gate != null) {

@@ -2,6 +2,8 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
+
+  script = import ../../lib/compose-script.nix { inherit lib; };
 in
 {
   options.famedly.standards.ci.steps = lib.mkOption {
@@ -89,12 +91,18 @@ in
             holding an `image-<architecture>.tar`, and credentials in the
             `REGISTRY_USER` variable and the `registry_password` secret.
 
+            Each image is described in an SPDX document before it is pushed, and
+            a `lockfile` adds one for what the application was built from — what
+            the image itself holds says nothing about that, since a compiled
+            bundle carries no manifest.
+
             E.g.:
 
             ```nix
             steps.publishImages {
               reference = "registry.famedly.net/docker-releases/foo";
               tag = "latest";
+              lockfile = "pubspec.lock";
             }
             ```
           '';
@@ -148,6 +156,7 @@ in
       {
         reference,
         tag,
+        lockfile ? null,
         architectures ? [
           "amd64"
           "arm64"
@@ -161,6 +170,49 @@ in
             pattern = "image-*";
             path = "images";
             merge-multiple = true;
+          };
+        }
+
+        {
+          # Written from the archives rather than from the recipe, so it
+          # describes what is about to be pushed and not what was meant to be.
+          name = "Describe what the images hold";
+
+          shell = "nix shell --inputs-from . nixpkgs#syft --command bash -e {0}";
+
+          env = {
+            IMAGE = reference;
+            TAG = tag;
+          };
+
+          run = script (
+            [
+              ''
+                mkdir -p sboms
+              ''
+            ]
+            ++ map (architecture: ''
+              syft scan docker-archive:images/image-${architecture}.tar \
+              	--source-name "$IMAGE" --source-version "$TAG-${architecture}" \
+              	--output spdx-json=sboms/image-${architecture}.spdx.json
+            '') architectures
+            ++ lib.optional (lockfile != null) ''
+              # The bundle in the image carries no trace of the packages it was
+              # compiled from, so the lockfile speaks for them.
+              syft scan file:${lockfile} \
+              	--source-name "$IMAGE" --source-version "$TAG" \
+              	--output spdx-json=sboms/source.spdx.json
+            ''
+          );
+        }
+
+        {
+          uses = allowed-actions."actions/upload-artifact".uses;
+
+          with_ = {
+            name = "sbom";
+            path = "sboms";
+            if-no-files-found = "error";
           };
         }
 
