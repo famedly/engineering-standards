@@ -58,6 +58,71 @@
                   default = false;
                 };
 
+                headers = lib.mkOption {
+                  description = ''
+                    Headers the server sends with every response.
+
+                    The defaults say nothing about the site's own contents, so
+                    no static site has a reason to withhold them.
+                    `Content-Security-Policy` is not among them: a policy that
+                    fits one application forbids another one's inline
+                    bootstrap, so it belongs to the project.
+                  '';
+
+                  type = lib.types.attrsOf lib.types.str;
+
+                  default = {
+                    X-Content-Type-Options = "nosniff";
+                    Referrer-Policy = "strict-origin-when-cross-origin";
+                    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+                    X-Frame-Options = "DENY";
+
+                    # Sent by the ingress as well; a mistake there should not
+                    # leave the door open.
+                    Strict-Transport-Security = "max-age=63072000; includeSubDomains";
+                  };
+                };
+
+                sentHeaders = lib.mkOption {
+                  description = ''
+                    The headers the server is configured with: `headers`, plus
+                    the isolation pair when `crossOriginIsolation` asks for it.
+
+                    Derived, so that the image and the test that fetches from it
+                    cannot disagree about what it sends.
+                  '';
+
+                  type = lib.types.attrsOf lib.types.str;
+                  readOnly = true;
+
+                  default =
+                    config.web.image.headers
+                    // lib.optionalAttrs config.web.image.crossOriginIsolation {
+                      Cross-Origin-Opener-Policy = "same-origin";
+                      Cross-Origin-Embedder-Policy = "require-corp";
+                    };
+
+                  defaultText = "the headers above, plus the isolation pair when it is enabled";
+                };
+
+                crossOriginIsolation = lib.mkOption {
+                  description = ''
+                    Whether to ask the browser for cross-origin isolation.
+
+                    Off by default: `Cross-Origin-Embedder-Policy` blocks every
+                    cross-origin resource that does not opt in, which takes
+                    down a site that loads fonts, images or frames from
+                    elsewhere.
+
+                    Worth turning on for a Flutter web build with the threaded
+                    renderer, which needs a `SharedArrayBuffer` and otherwise
+                    falls back to the single-threaded one.
+                  '';
+
+                  type = lib.types.bool;
+                  default = false;
+                };
+
                 user = {
                   uid = lib.mkOption {
                     description = "Uid the server runs as.";
@@ -109,6 +174,18 @@
           # their working directory.
           root = lib.escapeShellArg (lib.removePrefix "/" cfg.documentRoot);
 
+          settingsPath = "/etc/static-web-server.toml";
+
+          # Headers are the one thing the server takes only from a file.
+          settings = (pkgs.formats.toml { }).generate "static-web-server.toml" {
+            advanced.headers = [
+              {
+                source = "/**";
+                headers = cfg.sentHeaders;
+              }
+            ];
+          };
+
           # No `created`: a timestamp would make two builds of the same commit
           # differ.
           labels = lib.filterAttrs (_: value: value != null) {
@@ -128,13 +205,15 @@
           # outside `--root`, so such a document root serves nothing but 404s —
           # and the store copy would ship twice over.
           #
-          # Beyond the site the image holds only the server: no `/etc/passwd`,
-          # no CA bundle, no shell. The server neither looks its own user up nor
-          # opens an outbound connection, and there is nothing here to exec
-          # into. What it cannot reach, it cannot be made to reach.
+          # Beyond the site and the server's settings the image holds only the
+          # server: no `/etc/passwd`, no CA bundle, no shell. The server neither
+          # looks its own user up nor opens an outbound connection, and there is
+          # nothing here to exec into. What it cannot reach, it cannot be made
+          # to reach.
           extraCommands = ''
-            mkdir -p ${root}
+            mkdir -p ${root} etc
             cp -r ${site}/. ${root}/
+            cp ${settings} .${settingsPath}
           '';
 
           # Files created above carry the build user, which has no meaning
@@ -160,6 +239,12 @@
 
               "--cache-control-headers"
               (lib.boolToString cfg.cacheControl)
+
+              "--config-file"
+              settingsPath
+
+              # The endpoint Kubernetes probes, which stays out of the log.
+              "--health"
             ];
 
             Labels = labels;

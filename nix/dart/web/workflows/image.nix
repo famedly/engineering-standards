@@ -202,8 +202,25 @@ in
                       # Again, so that a server which never came up fails the
                       # step rather than only the loop.
                       curl -fsS -o /dev/null "$base/index.html"
+
+                      # What Kubernetes asks before it sends anyone here.
+                      curl -fsS -o /dev/null "$base/health"
+
+                      # Read once for the comparisons below. Names come back
+                      # lower-cased, so the patterns are folded, not the file.
+                      curl -fsSI "$base/index.html" | tr -d '\r' >headers
                     ''
                   ]
+                  ++ lib.mapAttrsToList (header: expected: ''
+                    sent="$(sed -n 's/^${lib.toLower header}: *//p' headers)"
+
+                    if test "$sent" != ${lib.escapeShellArg expected}; then
+                      echo "::error::${header} is sent as '$sent', expected '${expected}'"
+                      exit 1
+                    fi
+
+                    echo "${header}: $sent"
+                  '') cfg.sentHeaders
                   ++ lib.mapAttrsToList (extension: expected: ''
                     file="$(cd site && find . -type f -name '*.${extension}' -print -quit)"
 
