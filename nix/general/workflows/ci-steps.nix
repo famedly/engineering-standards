@@ -232,8 +232,11 @@ in
           };
 
           run = ''
+            mkdir -p digests
+
             ${lib.concatMapStringsSep "\n" (architecture: ''
               skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+              	--digestfile digests/${architecture} \
               	docker-archive:images/image-${architecture}.tar \
               	"docker://$IMAGE:$TAG-${architecture}"
             '') architectures}
@@ -242,7 +245,65 @@ in
             	--platforms ${lib.concatMapStringsSep "," (architecture: "linux/${architecture}") architectures} \
             	--template "$IMAGE:$TAG-ARCH" \
             	--target "$IMAGE:$TAG"
+
+            # A digest is the hash of the manifest bytes, and the list is the
+            # one thing pushed here that arrived without one of its own. Read
+            # back rather than parsed out of the push, so what gets signed
+            # below is what the registry now serves under this tag.
+            skopeo inspect --creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+            	--raw "docker://$IMAGE:$TAG" \
+            	| sha256sum | cut -d' ' -f1 | sed 's/^/sha256:/' >digests/list
           '';
+        }
+
+        {
+          name = "Sign the images and attest what they hold";
+
+          shell = "nix shell --inputs-from . nixpkgs#cosign --command bash -e {0}";
+
+          env = {
+            REGISTRY_USER = "\${{ vars.REGISTRY_USER }}";
+            REGISTRY_PASSWORD = "\${{ secrets.registry_password }}";
+
+            IMAGE = reference;
+          };
+
+          run = script (
+            [
+              ''
+                # Keyless, so there is no key of ours to hold, leak or rotate:
+                # the signature is bound to this workflow's identity, which
+                # GitHub vouches for over OIDC. The price is a public record in
+                # the transparency log, naming the image and its digest.
+                printf '%s' "$REGISTRY_PASSWORD" \
+                	| cosign login "''${IMAGE%%/*}" \
+                		--username "$REGISTRY_USER" --password-stdin
+              ''
+            ]
+            ++ map (architecture: ''
+              digest="$(cat digests/${architecture})"
+
+              cosign sign --yes "$IMAGE@$digest"
+
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/image-${architecture}.spdx.json \
+              	"$IMAGE@$digest"
+            '') architectures
+            ++ [
+              ''
+                # The list is what anyone pulls by tag, so it is what a policy
+                # will be checking.
+                list="$(cat digests/list)"
+
+                cosign sign --yes "$IMAGE@$list"
+              ''
+            ]
+            ++ lib.optional (lockfile != null) ''
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/source.spdx.json \
+              	"$IMAGE@$list"
+            ''
+          );
         }
       ];
   };

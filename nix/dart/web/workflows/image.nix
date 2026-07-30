@@ -273,6 +273,14 @@ in
 
             timeoutMinutes = 20;
 
+            # `id-token`, because the signature is bound to this workflow's
+            # identity instead of to a key, and GitHub hands that identity out
+            # only to a job that asks for it.
+            permissions = {
+              contents = "read";
+              id-token = "write";
+            };
+
             steps =
               steps.setup
               ++ steps.publishImages {
