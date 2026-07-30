@@ -6,6 +6,27 @@ let
   script = import ../../lib/compose-script.nix { inherit lib; };
 in
 {
+  options.famedly.standards.ci.advisories.failOn = lib.mkOption {
+    description = ''
+      Severity at which a known vulnerability in a published image stops the
+      run, or `null` to only report what was found.
+
+      Null until the reports have been read: a gate nobody has calibrated
+      either blocks every release or gets ignored.
+    '';
+
+    type = lib.types.nullOr (
+      lib.types.enum [
+        "low"
+        "medium"
+        "high"
+        "critical"
+      ]
+    );
+
+    default = null;
+  };
+
   options.famedly.standards.ci.steps = lib.mkOption {
     description = ''
       Workflow steps shared between our GitHub workflows.
@@ -219,6 +240,44 @@ in
             path = "sboms";
             if-no-files-found = "error";
           };
+        }
+
+        {
+          # Against the documents just written, so the report covers the
+          # packages that ship.
+          name = "Look for known vulnerabilities";
+
+          shell = "nix shell --inputs-from . nixpkgs#grype --command bash -e {0}";
+
+          run =
+            let
+              inherit (config.famedly.standards.ci.advisories) failOn;
+            in
+            ''
+              mkdir -p reports
+
+              echo '### Known vulnerabilities' >>"$GITHUB_STEP_SUMMARY"
+
+              status=0
+
+              for sbom in sboms/*.spdx.json; do
+              	name="$(basename "$sbom" .spdx.json)"
+
+              	# Into a file, so the summary is written even when the report
+              	# is what fails this step.
+              	grype "sbom:$sbom" --output table --file "reports/$name.txt" \
+              		${lib.optionalString (failOn != null) "--fail-on ${failOn} "}|| status=$?
+
+              	{
+              		echo "#### $name"
+              		echo '```'
+              		cat "reports/$name.txt"
+              		echo '```'
+              	} >>"$GITHUB_STEP_SUMMARY"
+              done
+
+              exit "$status"
+            '';
         }
 
         {
