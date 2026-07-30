@@ -197,8 +197,8 @@ in
                       image="$(nix build --impure --no-link --print-out-paths --expr '
                         let
                           flake = builtins.getFlake (toString ./.);
-                          images = builtins.getAttr builtins.currentSystem flake.legacyPackages;
-                        in images.dartImages."${project}" {
+                          images = builtins.getAttr builtins.currentSystem flake.dartImages;
+                        in images."${project}" {
                           server = ./${directory project}${cfg.binary};
                         }
                       ')"
