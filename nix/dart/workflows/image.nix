@@ -193,8 +193,13 @@ in
                     # `getAttr` rather than a dynamic attribute, so the
                     # expression carries nothing that looks like a shell
                     # variable to shellcheck.
+                    #
+                    # `--print-build-logs`, because without it a failure prints
+                    # only the path of a log that `nix log` would read — and the
+                    # runner that holds it is gone by the time anyone reads the
+                    # step.
                     run = ''
-                      image="$(nix build --impure --no-link --print-out-paths --expr '
+                      image="$(nix build --impure --no-link --print-build-logs --print-out-paths --expr '
                         let
                           flake = builtins.getFlake (toString ./.);
                           images = builtins.getAttr builtins.currentSystem flake.dartImages;
@@ -245,6 +250,12 @@ in
                     with_ = {
                       name = "image-\${{ matrix.architecture }}";
                       path = "image-\${{ matrix.architecture }}.tar";
+
+                      # The publishing job reads the archive out of this
+                      # artefact, and would push whatever it finds. Nothing is
+                      # not an image.
+                      if-no-files-found = "error";
+
                       retention-days = 1;
                     };
                   }
