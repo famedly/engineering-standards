@@ -129,6 +129,8 @@ in
 
             runsOn = "\${{ matrix.architecture == 'arm64' && '${cfg.runners.arm64}' || '${cfg.runners.amd64}' }}";
 
+            timeoutMinutes = 30;
+
             steps = steps.setup ++ [
               {
                 uses = allowed-actions."actions/download-artifact".uses;
@@ -268,6 +270,8 @@ in
             if_ = "github.event_name != 'merge_group'";
             needs = [ "image" ];
             runsOn = "ubuntu-latest";
+
+            timeoutMinutes = 20;
 
             steps =
               steps.setup

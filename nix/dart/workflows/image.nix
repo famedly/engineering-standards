@@ -150,6 +150,11 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
+          # The floor every job here starts from, so that one added later reads
+          # the repository and nothing more until it says otherwise. The job
+          # that publishes raises it itself.
+          permissions.contents = "read";
+
           on.pullRequest.branches = [ "**" ];
           on.push = {
             branches = [ "main" ];
@@ -174,6 +179,8 @@ in
               };
 
               runsOn = "\${{ matrix.architecture == 'arm64' && ${arm64Runner} || '${cfg.runners.amd64}' }}";
+
+              timeoutMinutes = 30;
 
               steps =
                 steps.setup
@@ -266,6 +273,8 @@ in
               if_ = "github.event_name != 'merge_group'";
               needs = gated;
               runsOn = "ubuntu-latest";
+
+              timeoutMinutes = 20;
 
               steps = steps.setup ++ steps.publishImages { inherit architectures reference tag; };
             };

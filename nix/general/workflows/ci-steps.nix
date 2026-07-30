@@ -106,7 +106,18 @@ in
   };
 
   config.famedly.standards.ci.steps = {
-    checkout = [ { uses = allowed-actions."actions/checkout".uses; } ];
+    checkout = [
+      {
+        uses = allowed-actions."actions/checkout".uses;
+
+        # Without this the action leaves the token in `.git/config`, where
+        # every later step can read it — including the code generators and
+        # package scripts a build runs. Nothing of ours talks to the remote
+        # after the checkout; what needs the API takes the token as an
+        # environment variable of the one step that needs it.
+        with_.persist-credentials = false;
+      }
+    ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
     setup = steps.checkout ++ steps.installNix;

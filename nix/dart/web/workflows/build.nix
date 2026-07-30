@@ -25,6 +25,11 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
+          # The floor every job in this workflow starts from, so that one added
+          # later reads the repository and nothing more until it says otherwise.
+          # The jobs that publish something raise it themselves.
+          permissions.contents = "read";
+
           on.pullRequest.branches = [ "**" ];
           on.push = {
             branches = [ "main" ];
@@ -43,6 +48,11 @@ in
 
           jobs.build = {
             runsOn = "ubuntu-latest";
+
+            # A ceiling meant to catch a build that hangs, not to hurry one
+            # that works: a runner that waits for something which will never
+            # come otherwise holds the queue for six hours.
+            timeoutMinutes = 45;
 
             steps =
               steps.setup

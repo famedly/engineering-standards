@@ -6,6 +6,10 @@ in
   perSystem.githubActions.workflows.check-pre-commit-hooks = {
     name = "Make sure all pre-commit hooks pass";
 
+    # The floor every job here starts from, so that one added later reads
+    # the repository and nothing more until it says otherwise.
+    permissions.contents = "read";
+
     # We don't run these on `push`, since the start and end of the
     # commit series isn't clear in that case.
     #
@@ -30,6 +34,8 @@ in
 
     jobs.prek = {
       runsOn = "ubuntu-latest";
+
+      timeoutMinutes = 30;
 
       steps = steps.setup ++ [
         {
