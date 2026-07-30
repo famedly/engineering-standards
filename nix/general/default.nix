@@ -15,6 +15,7 @@ importingFlake: {
     ./workflows/ci-steps.nix
     ./workflows/check-commit-messages.nix
     ./workflows/check-pre-commit-hooks.nix
+    ./workflows/release.nix
   ];
 
   config.perSystem =
