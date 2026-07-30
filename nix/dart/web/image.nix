@@ -92,7 +92,14 @@
         # Kept a function so the built site can be handed in from CI: resolving
         # a project's dependencies needs both network access and credentials for
         # our private repositories, which rules out building inside a sandbox.
-        { site }:
+        #
+        # The rest is optional: a build by hand has no commit to name.
+        {
+          site,
+          source ? null,
+          revision ? null,
+          version ? null,
+        }:
         let
           cfg = projectConfig.web.image;
 
@@ -101,6 +108,15 @@
           # Relative, because the commands below run with the image root as
           # their working directory.
           root = lib.escapeShellArg (lib.removePrefix "/" cfg.documentRoot);
+
+          # No `created`: a timestamp would make two builds of the same commit
+          # differ.
+          labels = lib.filterAttrs (_: value: value != null) {
+            "org.opencontainers.image.title" = cfg.name;
+            "org.opencontainers.image.source" = source;
+            "org.opencontainers.image.revision" = revision;
+            "org.opencontainers.image.version" = version;
+          };
         in
         pkgs.dockerTools.streamLayeredImage {
           inherit (cfg) name;
@@ -145,6 +161,8 @@
               "--cache-control-headers"
               (lib.boolToString cfg.cacheControl)
             ];
+
+            Labels = labels;
 
             User = "${toString cfg.user.uid}:${toString cfg.user.gid}";
 
