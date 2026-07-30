@@ -237,8 +237,11 @@ in
           };
 
           run = ''
+            mkdir -p digests
+
             ${lib.concatMapStringsSep "\n" (architecture: ''
               skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+              	--digestfile digests/${architecture} \
               	docker-archive:images/image-${architecture}.tar \
               	"docker://$IMAGE:$TAG-${architecture}"
             '') architectures}
@@ -247,7 +250,63 @@ in
             	--platforms ${lib.concatMapStringsSep "," (architecture: "linux/${architecture}") architectures} \
             	--template "$IMAGE:$TAG-ARCH" \
             	--target "$IMAGE:$TAG"
+
+            # The one thing pushed here without a digest of its own. Read back
+            # rather than parsed out of the push, so what is signed below is
+            # what the registry serves.
+            skopeo inspect --creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+            	--raw "docker://$IMAGE:$TAG" >digests/list.json
+
+            skopeo manifest-digest digests/list.json >digests/list
           '';
+        }
+
+        {
+          name = "Sign the images and attest what they hold";
+
+          shell = "nix shell --inputs-from . nixpkgs#cosign --command bash -e {0}";
+
+          env = {
+            REGISTRY_USER = "\${{ vars.REGISTRY_USER }}";
+            REGISTRY_PASSWORD = "\${{ secrets.registry_password }}";
+
+            IMAGE = reference;
+          };
+
+          run = script (
+            [
+              ''
+                # Keyless: no key of ours to hold or rotate, at the price of a
+                # public record in the transparency log naming every image
+                # signed here.
+                printf '%s' "$REGISTRY_PASSWORD" \
+                	| cosign login "''${IMAGE%%/*}" \
+                		--username "$REGISTRY_USER" --password-stdin
+              ''
+            ]
+            ++ map (architecture: ''
+              digest="$(cat digests/${architecture})"
+
+              cosign sign --yes "$IMAGE@$digest"
+
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/image-${architecture}.spdx.json \
+              	"$IMAGE@$digest"
+            '') architectures
+            ++ [
+              ''
+                # What anyone pulls by tag, and so what a policy checks.
+                list="$(cat digests/list)"
+
+                cosign sign --yes "$IMAGE@$list"
+              ''
+            ]
+            ++ lib.optional (lockfile != null) ''
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/source.spdx.json \
+              	"$IMAGE@$list"
+            ''
+          );
         }
       ];
   };

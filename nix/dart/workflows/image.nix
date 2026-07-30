@@ -274,6 +274,13 @@ in
 
               timeoutMinutes = 20;
 
+              # `id-token`, because cosign signs with this workflow's identity
+              # rather than with a key.
+              permissions = {
+                contents = "read";
+                id-token = "write";
+              };
+
               steps =
                 steps.setup
                 ++ steps.publishImages {
