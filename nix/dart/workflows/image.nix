@@ -150,6 +150,9 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
+          # The floor for every job here; the job that publishes raises it.
+          permissions.contents = "read";
+
           on.pullRequest.branches = [ "**" ];
           on.push = {
             branches = [ "main" ];
@@ -174,6 +177,8 @@ in
               };
 
               runsOn = "\${{ matrix.architecture == 'arm64' && ${arm64Runner} || '${cfg.runners.amd64}' }}";
+
+              timeoutMinutes = 30;
 
               steps =
                 steps.setup
@@ -266,6 +271,8 @@ in
               if_ = "github.event_name != 'merge_group'";
               needs = gated;
               runsOn = "ubuntu-latest";
+
+              timeoutMinutes = 20;
 
               steps = steps.setup ++ steps.publishImages { inherit architectures reference tag; };
             };

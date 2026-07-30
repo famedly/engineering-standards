@@ -193,6 +193,10 @@ in
       githubActions.workflows.dart-checks = {
         name = "Dart checks";
 
+        # The floor for every job here, so that one added later reads the
+        # repository and nothing more until it says otherwise.
+        permissions.contents = "read";
+
         # Mirrors `check-pre-commit-hooks`: on `push` the start and end of the
         # commit series isn't clear, so we rely on PRs and the merge queue.
         on.pullRequest = {
@@ -228,6 +232,8 @@ in
           in
           lib.nameValuePair "checks${suffix project}" {
             runsOn = "ubuntu-latest";
+
+            timeoutMinutes = 30;
 
             steps =
               steps.setup

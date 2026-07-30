@@ -25,6 +25,9 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
+          # The floor for every job here; the ones that publish raise it.
+          permissions.contents = "read";
+
           on.pullRequest.branches = [ "**" ];
           on.push = {
             branches = [ "main" ];
@@ -43,6 +46,10 @@ in
 
           jobs.build = {
             runsOn = "ubuntu-latest";
+
+            # To catch a hung build: a runner waiting for what never comes
+            # holds the queue for six hours otherwise.
+            timeoutMinutes = 45;
 
             steps =
               steps.setup

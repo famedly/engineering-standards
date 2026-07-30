@@ -109,7 +109,16 @@ in
   };
 
   config.famedly.standards.ci.steps = {
-    checkout = [ { uses = allowed-actions."actions/checkout".uses; } ];
+    checkout = [
+      {
+        uses = allowed-actions."actions/checkout".uses;
+
+        # Otherwise the token stays in `.git/config` for every later step to
+        # read, package scripts included. What needs the API takes it as an
+        # environment variable instead.
+        with_.persist-credentials = false;
+      }
+    ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
     setup = steps.checkout ++ steps.installNix;

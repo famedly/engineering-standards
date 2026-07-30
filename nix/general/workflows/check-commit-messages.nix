@@ -55,6 +55,10 @@ in
       githubActions.workflows.check-commit-messages = {
         name = "Make sure all commit messages are conventional";
 
+        # The floor for every job here, so that one added later reads the
+        # repository and nothing more until it says otherwise.
+        permissions.contents = "read";
+
         # Like the pre-commit hooks, and for the same reason: on `push` there
         # is no telling where the series of commits under review starts.
         on.pullRequest = {

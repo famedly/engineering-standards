@@ -59,6 +59,8 @@ in
           needs = [ "build" ];
           runsOn = "ubuntu-latest";
 
+          timeoutMinutes = 15;
+
           # `id-token`, because the deployment is authorised by an OIDC token
           # rather than by a repository secret.
           permissions = {
