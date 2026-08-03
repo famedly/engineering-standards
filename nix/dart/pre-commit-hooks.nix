@@ -86,9 +86,11 @@
           status=0
           wanted="${self'.packages.famedly-vodozemac.version}"
 
+          # Either name will do: the Dart package and the Flutter plugin are cut
+          # from the same tag, and this is the tag.
           check() {
             pubspec="$1"
-            found="$(sed -n 's/^[[:space:]]*vodozemac:[[:space:]]*[^0-9]*\([0-9][0-9.]*\).*/\1/p' "$pubspec" | head -n1)"
+            found="$(sed -n 's/^[[:space:]]*\(flutter_\)\{0,1\}vodozemac:[[:space:]]*[^0-9]*\([0-9][0-9.]*\).*/\2/p' "$pubspec" | head -n1)"
 
             if [ -z "$found" ]; then
               printf 'error: no plain vodozemac version constraint found in %s.\n' "$pubspec"
@@ -99,7 +101,7 @@
             fi
 
             printf '       Both are released together and have to match. Either bump the\n'
-            printf '       constraint, or bump nix/dart/packages/vodozemac.nix in the\n'
+            printf '       constraint, or bump nix/dart/vodozemac/source.nix in the\n'
             printf '       engineering standards to the version this project needs.\n\n'
             status=1
           }
