@@ -2,7 +2,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject;
+  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   # The directory `flutter build web` writes to. Not an option: it is the
@@ -14,6 +14,10 @@ in
     { config, ... }:
     let
       projects = lib.filterAttrs (_: project: project.web.enable) config.famedly.standards.dart.projects;
+
+      # `assets.nix` builds one of these for a project whose `web/` needs
+      # something compiled first, and none for a project that needs nothing.
+      assets = project: "dart-web-assets${suffix project}";
 
       mkWorkflow =
         project: projectConfig:
@@ -57,6 +61,11 @@ in
             steps =
               steps.setup
               ++ lib.optionals projectConfig.checks.privateDependencies steps.privateDependencies
+              ++ lib.optional (config.packages ? ${assets project}) {
+                name = "Assemble the assets the web target needs";
+                shell = steps.devshell;
+                run = assets project;
+              }
               ++ [
                 {
                   name = "Build the web target";
