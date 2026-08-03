@@ -3,16 +3,13 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 {
-  callPackage,
   fixDarwinDylibNames,
   lib,
   rustPlatform,
+  source,
   stdenv,
 }:
 
-let
-  source = callPackage ./source.nix { };
-in
 rustPlatform.buildRustPackage {
   pname = "famedly-vodozemac";
 
