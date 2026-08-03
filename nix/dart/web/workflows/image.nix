@@ -82,9 +82,15 @@ in
                 };
 
                 arm64 = lib.mkOption {
-                  description = "Runner that assembles the arm64 image.";
+                  description = ''
+                    Runner that assembles the arm64 image.
+
+                    The standard one, for the reasons given at
+                    `image.runners.arm64`. Less to weigh here, since only the
+                    server in this image is architecture-specific.
+                  '';
                   type = lib.types.str;
-                  default = "arm-ubuntu-latest-8core";
+                  default = "ubuntu-24.04-arm";
                 };
               };
             };

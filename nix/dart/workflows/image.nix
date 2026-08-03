@@ -91,9 +91,16 @@ in
                   };
 
                   arm64 = lib.mkOption {
-                    description = "Runner that builds the arm64 image.";
+                    description = ''
+                      Runner that builds the arm64 image.
+
+                      The eight-core alternative costs 2.8 times as much per
+                      minute and measured 1.16 times faster here, since half
+                      the wait is fetching and unpacking. Name it here for a
+                      project whose build really is compilation throughout.
+                    '';
                     type = lib.types.str;
-                    default = "arm-ubuntu-latest-8core";
+                    default = "ubuntu-24.04-arm";
                   };
 
                   arm64Release = lib.mkOption {
