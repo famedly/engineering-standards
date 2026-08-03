@@ -5,6 +5,17 @@
 # image from the same nixpkgs is what keeps the two from drifting apart.
 { lib, flake-parts-lib, ... }:
 {
+  imports = [
+    (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
+      name = "dartImages";
+      file = ./image.nix;
+      description = ''
+        Images for the projects' servers, keyed by project. Each takes the
+        compiled binary as `{ server = ...; }` and returns the image.
+      '';
+    })
+  ];
+
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { lib, ... }:
     {
@@ -225,8 +236,6 @@
         };
     in
     {
-      # Not `packages`: these are functions, and the artefact they take only
-      # exists once CI has compiled it.
-      legacyPackages.dartImages = lib.mapAttrs (_: mkImage) projects;
+      dartImages = lib.mapAttrs (_: mkImage) projects;
     };
 }

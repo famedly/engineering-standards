@@ -7,7 +7,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../project-paths.nix { inherit lib; }) directory inProject suffix;
+  inherit (import ../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
 
   # One workflow per project, so anything that has to distinguish them keys off
   # this. `github.workflow` cannot: it holds the display name.
@@ -144,10 +144,6 @@ in
               "'${cfg.runners.arm64}'"
             else
               "(github.event_name == 'push' && '${cfg.runners.arm64Release}' || '${cfg.runners.arm64}')";
-
-          # Pinned like everything else, since it resolves against the
-          # repository's own locked nixpkgs.
-          publishShell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash -e {0}";
         in
         {
           name = "Build and push the container image${
@@ -197,12 +193,17 @@ in
                     # `getAttr` rather than a dynamic attribute, so the
                     # expression carries nothing that looks like a shell
                     # variable to shellcheck.
+                    #
+                    # `--print-build-logs`, because without it a failure prints
+                    # only the path of a log that `nix log` would read — and the
+                    # runner that holds it is gone by the time anyone reads the
+                    # step.
                     run = ''
-                      image="$(nix build --impure --no-link --print-out-paths --expr '
+                      image="$(nix build --impure --no-link --print-build-logs --print-out-paths --expr '
                         let
                           flake = builtins.getFlake (toString ./.);
-                          images = builtins.getAttr builtins.currentSystem flake.legacyPackages;
-                        in images.dartImages."${project}" {
+                          images = builtins.getAttr builtins.currentSystem flake.dartImages;
+                        in images."${project}" {
                           server = ./${directory project}${cfg.binary};
                         }
                       ')"
@@ -249,6 +250,12 @@ in
                     with_ = {
                       name = "image-\${{ matrix.architecture }}";
                       path = "image-\${{ matrix.architecture }}.tar";
+
+                      # The publishing job reads the archive out of this
+                      # artefact, and would push whatever it finds. Nothing is
+                      # not an image.
+                      if-no-files-found = "error";
+
                       retention-days = 1;
                     };
                   }
@@ -260,43 +267,7 @@ in
               needs = gated;
               runsOn = "ubuntu-latest";
 
-              steps = steps.setup ++ [
-                {
-                  uses = allowed-actions."actions/download-artifact".uses;
-
-                  with_ = {
-                    pattern = "image-*";
-                    path = "images";
-                    merge-multiple = true;
-                  };
-                }
-
-                {
-                  name = "Push the images and the manifest list";
-                  shell = publishShell;
-
-                  env = {
-                    REGISTRY_USER = "\${{ vars.REGISTRY_USER }}";
-                    REGISTRY_PASSWORD = "\${{ secrets.registry_password }}";
-
-                    IMAGE = reference;
-                    TAG = tag;
-                  };
-
-                  run = ''
-                    ${lib.concatMapStringsSep "\n" (architecture: ''
-                      skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
-                      	docker-archive:images/image-${architecture}.tar \
-                      	"docker://$IMAGE:$TAG-${architecture}"
-                    '') architectures}
-                    manifest-tool --username "$REGISTRY_USER" --password "$REGISTRY_PASSWORD" \
-                    	push from-args \
-                    	--platforms ${lib.concatMapStringsSep "," (architecture: "linux/${architecture}") architectures} \
-                    	--template "$IMAGE:$TAG-ARCH" \
-                    	--target "$IMAGE:$TAG"
-                  '';
-                }
-              ];
+              steps = steps.setup ++ steps.publishImages { inherit architectures reference tag; };
             };
           }
           // lib.optionalAttrs (cfg.gate != null) {

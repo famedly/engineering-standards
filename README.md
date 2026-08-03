@@ -56,17 +56,22 @@ To use the standards in a new project, create the following
 
       systems = famedly-engineering-standards.lib.famedlySystems;
 
-      perSystem = { inputs', ... }: {
+      perSystem = { config, ... }: {
         # Specify a default devshell for the project; other options are
         # documented in the devshells section below.
         #
-        # devShells.default = inputs'.famedly-engineering-standards.devShells.standards;
+        # This is the devshell the standards assemble for *this* repository,
+        # carrying the toolchain the configuration below asks for. Taking it
+        # from the standards flake instead would get you the one that repository
+        # uses on itself, which pins none of your tools.
+        #
+        # devShells.default = config.devShells.standards;
 
         famedly.standards = {
           # Read module documentation for further details, but most
           # likely you want one of the following:
           #
-          # dart.projects."." = { };
+          # dart.projects."." = { };                  # Flutter: { flutter = true; }
           # rust.projects."." = { };
         };
       };

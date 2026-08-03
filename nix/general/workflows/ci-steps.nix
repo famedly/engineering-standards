@@ -79,6 +79,28 @@ in
           type = lib.types.str;
           readOnly = true;
         };
+
+        publishImages = lib.mkOption {
+          description = ''
+            Steps that push the per-architecture image archives a build left
+            behind, and the manifest list that ties them together.
+
+            Expects one `image-<architecture>` artefact per architecture, each
+            holding an `image-<architecture>.tar`, and credentials in the
+            `REGISTRY_USER` variable and the `registry_password` secret.
+
+            E.g.:
+
+            ```nix
+            steps.publishImages {
+              reference = "registry.famedly.net/docker-releases/foo";
+              tag = "latest";
+            }
+            ```
+          '';
+          type = lib.types.functionTo (lib.types.listOf lib.types.attrs);
+          readOnly = true;
+        };
       };
     };
   };
@@ -110,5 +132,55 @@ in
     # scripts with, and a multi-command script that carries on after a failure
     # reports the exit status of its last command.
     devshell = "nix develop .#standards --command bash -e {0}";
+
+    publishImages =
+      {
+        reference,
+        tag,
+        architectures ? [
+          "amd64"
+          "arm64"
+        ],
+      }:
+      [
+        {
+          uses = allowed-actions."actions/download-artifact".uses;
+
+          with_ = {
+            pattern = "image-*";
+            path = "images";
+            merge-multiple = true;
+          };
+        }
+
+        {
+          name = "Push the images and the manifest list";
+
+          # Pinned like everything else, since it resolves against the
+          # repository's own locked nixpkgs.
+          shell = "nix shell --inputs-from . nixpkgs#manifest-tool nixpkgs#skopeo --command bash -e {0}";
+
+          env = {
+            REGISTRY_USER = "\${{ vars.REGISTRY_USER }}";
+            REGISTRY_PASSWORD = "\${{ secrets.registry_password }}";
+
+            IMAGE = reference;
+            TAG = tag;
+          };
+
+          run = ''
+            ${lib.concatMapStringsSep "\n" (architecture: ''
+              skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+              	docker-archive:images/image-${architecture}.tar \
+              	"docker://$IMAGE:$TAG-${architecture}"
+            '') architectures}
+            manifest-tool --username "$REGISTRY_USER" --password "$REGISTRY_PASSWORD" \
+            	push from-args \
+            	--platforms ${lib.concatMapStringsSep "," (architecture: "linux/${architecture}") architectures} \
+            	--template "$IMAGE:$TAG-ARCH" \
+            	--target "$IMAGE:$TAG"
+          '';
+        }
+      ];
   };
 }

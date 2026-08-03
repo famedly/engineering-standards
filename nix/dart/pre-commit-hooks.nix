@@ -12,7 +12,7 @@
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
 
-      inherit (import ./project-paths.nix { inherit lib; }) directory;
+      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
 
       # Forgetting the `include` is silent: `dart analyze` then simply analyzes
       # with the default rule set and reports nothing about it.
@@ -45,6 +45,30 @@
             ) projects
           )}
           exit "$status"
+        '';
+      };
+
+      # A line that is nothing but a statement behind `//` is code somebody
+      # meant to come back to. It stops being compiled, so it stops being
+      # updated, and it decays into a claim about the code that is no longer
+      # true — while git remembers it perfectly well without the help.
+      commented-out-code = pkgs.writeShellApplication {
+        name = "dart-no-commented-out-code";
+        runtimeInputs = [ pkgs.gnugrep ];
+
+        text = ''
+          # Without files grep would read stdin and hang, which is what a hook
+          # invoked on a commit that touches no Dart looks like.
+          if [ "$#" -eq 0 ]; then
+            exit 0
+          fi
+
+          # `//<` is left alone: that is how an editor's region markers start.
+          if grep -nE '^[[:space:]]*//[^/<].*;[[:space:]]*$' "$@"; then
+            printf '\nerror: the lines above are commented-out Dart code.\n'
+            printf '       Delete them — git has them if you want them back.\n\n'
+            exit 1
+          fi
         '';
       };
 
@@ -104,7 +128,11 @@
     in
     lib.mkIf (projects != { }) {
       prek-pre-commit = {
-        package.runtimePkgs = [ lints-included ] ++ lib.optional usesVodozemac vodozemac-version;
+        package.runtimePkgs = [
+          commented-out-code
+          lints-included
+        ]
+        ++ lib.optional usesVodozemac vodozemac-version;
 
         workspaces.".".repos = [
           {
@@ -112,6 +140,16 @@
 
             hooks = [
               (hook lints-included "Ensure the managed Dart lints are actually included")
+
+              # Unlike the checks above this one is about the files in the
+              # commit, so it takes them and stays cheap on a large repository.
+              (
+                hook commented-out-code "Reject commented-out Dart code"
+                // {
+                  pass_filenames = true;
+                  files = ''\.dart$'';
+                }
+              )
             ]
             ++ lib.optional usesVodozemac (
               hook vodozemac-version "Ensure the vodozemac constraint matches the nix bindings"

@@ -1,7 +1,7 @@
 { flutterPackages, lib }:
 
 let
-  data = lib.importJSON ./data.json;
+  data = lib.importJSON ./flutter-sdk-data.json;
 in
 (flutterPackages.wrapFlutter (
   flutterPackages.mkFlutter (

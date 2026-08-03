@@ -1,5 +1,5 @@
-# Helpers for the keys of `famedly.standards.dart.projects`, which are paths
-# relative to the repository root: `.` for a repository that is one Dart
+# Helpers for the keys of the `famedly.standards.*.projects` options, which are
+# paths relative to the repository root: `.` for a repository that is one
 # project, `./packages/foo` for one that holds several.
 { lib }:
 {
