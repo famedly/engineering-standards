@@ -63,7 +63,8 @@
               ''cd "$(git rev-parse --show-toplevel)/${directory project}"''
             ]
             ++ lib.optional projectConfig.vodozemac.enable ''
-              install -Dm644 -t web ${self'.packages.famedly-vodozemac-web}/*
+              # Where `vod.init` looks unless an application says otherwise.
+              install -Dm644 -t web/pkg ${self'.packages.famedly-vodozemac-web}/*
             ''
             ++ lib.optional projectConfig.web.livekitE2eeWorker.enable ''
               # The worker's imports resolve through the project's package config,
