@@ -7,7 +7,7 @@ importingFlake: {
       # again rather than read off `self'`: reaching into the flake's own
       # packages from inside an option declaration would make the projects
       # depend on config that is derived from the projects.
-      vodozemac = pkgs.callPackage ./packages/vodozemac.nix { };
+      vodozemac = pkgs.callPackage ./native.nix { };
     in
     {
       options.famedly.standards.dart.projects = lib.mkOption {
@@ -52,7 +52,8 @@ importingFlake: {
     in
     lib.mkMerge [
       (lib.mkIf (config.famedly.standards.dart.projects != { }) {
-        packages.famedly-vodozemac = pkgs.callPackage ./packages/vodozemac.nix { };
+        packages.famedly-vodozemac = pkgs.callPackage ./native.nix { };
+        packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { };
       })
 
       # The lookup itself goes through `runtime.env`; this only makes entering
