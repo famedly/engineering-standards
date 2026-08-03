@@ -46,10 +46,25 @@ in
           readOnly = true;
         };
 
+        freeDiskSpace = lib.mkOption {
+          description = ''
+            Delete the language toolchains GitHub preinstalls on its runners.
+
+            A runner has around 20 GB free, and a devshell that brings a Flutter
+            SDK and two Rust toolchains does not fit beside all of that. Builds
+            fail with "No space left on device" halfway through.
+
+            Nothing of ours uses any of it: our toolchain comes from the
+            devshell, which is the reason we can throw it away wholesale.
+          '';
+          type = lib.types.listOf lib.types.attrs;
+          readOnly = true;
+        };
+
         setup = lib.mkOption {
           description = ''
-            The steps every workflow of ours starts with: check out the
-            repository and install nix.
+            The steps every workflow of ours starts with: make room on the
+            runner, check out the repository and install nix.
 
             Since the toolchain comes from the devshell, there is deliberately
             no language-specific setup action here.
@@ -112,7 +127,18 @@ in
     checkout = [ { uses = allowed-actions."actions/checkout".uses; } ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
-    setup = steps.checkout ++ steps.installNix;
+    freeDiskSpace = [
+      {
+        name = "Free up disk space";
+        run = ''
+          sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android \
+          	/opt/ghc /opt/hostedtoolcache
+          df -h /
+        '';
+      }
+    ];
+
+    setup = steps.freeDiskSpace ++ steps.checkout ++ steps.installNix;
 
     privateDependencies = [
       {
