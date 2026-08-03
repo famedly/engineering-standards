@@ -61,11 +61,14 @@ in
         privateDependencies = lib.mkOption {
           description = ''
             Grant the runner read access to our private repositories, for
-            projects that depend on them over SSH.
+            projects that depend on them.
 
             Expects a deploy key in the `CI_SSH_PRIVATE_KEY` secret. We
             configure git rather than an ssh-agent, because an agent would not
             survive the step it was started in.
+
+            A dependency may name its repository over either protocol: the key
+            answers for both.
           '';
           type = lib.types.listOf lib.types.attrs;
           readOnly = true;
@@ -124,6 +127,12 @@ in
 
           git config --global core.sshCommand \
           	'ssh -i ~/.ssh/famedly-ci -o IdentitiesOnly=yes'
+
+          # Dependabot reaches our repositories over HTTPS with a token, so
+          # lockfiles that it is to keep up to date have to name them that way.
+          # Here the key is all we have, and it only speaks SSH.
+          git config --global url."git@github.com:famedly/".insteadOf \
+          	'https://github.com/famedly/'
         '';
       }
     ];
