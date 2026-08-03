@@ -7,12 +7,12 @@
 {
   binaryen,
   buildPackages,
-  callPackage,
   cargo,
   lib,
   removeReferencesTo,
   rustPlatform,
   rustc,
+  source,
   stdenv,
   symlinkJoin,
   wasm-bindgen-cli_0_2_100,
@@ -21,8 +21,6 @@
 }:
 
 let
-  source = callPackage ./source.nix { };
-
   # The stem `wasm-bindgen` writes, and the name the Dart package looks up.
   crate = "vodozemac_bindings_dart";
 
