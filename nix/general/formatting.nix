@@ -22,6 +22,15 @@
         };
         settings.formatter.shfmt.command = "shfmt";
 
+        # taplo formats .toml files, which are virtually omnipresent
+        programs.taplo = {
+          enable = true;
+          # We explicitly do not set `settings`, because it generates a nix
+          # store path, and puts it in treefmt.toml
+          # settings = builtins.fromTOML (builtins.readFile ./taplo.toml);
+        };
+        settings.formatter.taplo.command = "taplo";
+
       };
 
       filegen.settings.files = [
@@ -29,6 +38,11 @@
           type = "copy";
           target = "treefmt.toml";
           source = config.treefmt.build.configFile;
+        }
+        {
+          type = "copy";
+          target = ".taplo.toml";
+          source = ./taplo.toml;
         }
       ];
     };

@@ -16,6 +16,7 @@ excludes = [
     ".gitattributes",
     ".editorconfig",
     "treefmt.toml",
+    ".taplo.toml",
 ]
 walk = "git"
 
@@ -36,3 +37,9 @@ command = "shfmt"
 excludes = []
 includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
 options = ["-w", "-i", "0", "-s"]
+
+[formatter.taplo]
+command = "taplo"
+excludes = []
+includes = ["*.toml"]
+options = ["format"]

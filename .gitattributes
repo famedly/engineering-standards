@@ -3,3 +3,4 @@
 .gitattributes linguist-generated
 .editorconfig linguist-generated
 treefmt.toml linguist-generated
+.taplo.toml linguist-generated
