@@ -7,6 +7,8 @@ let
   inherit (config.famedly.standards.ci) steps;
   inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
+
+  identity = import ../identity.nix;
 in
 {
   config.perSystem =
@@ -54,7 +56,9 @@ in
             timeoutMinutes = 45;
 
             steps =
-              steps.setup
+              # Deep only where it earns the wait: `git describe` has nothing to
+              # describe against in a clone that carries no tags.
+              (if projectConfig.web.version.enable then steps.withHistory steps.setup else steps.setup)
               ++ lib.optionals projectConfig.checks.privateDependencies steps.privateDependencies
               ++ lib.optional (config.packages ? ${assets project}) {
                 name = "Assemble the assets the web target needs";
@@ -69,6 +73,46 @@ in
                 }
               ]
               ++ projectConfig.web.extraSteps
+              ++ lib.optionals projectConfig.web.sentry.enable [
+                {
+                  name = "Hand the debug symbols to Sentry";
+
+                  # A merge queue's build is thrown away, and nobody can ever
+                  # see a report from a build that was never deployed.
+                  # Dependabot's pull requests run without access to our
+                  # secrets, so this could only ever fail for them.
+                  if_ = "github.event_name != 'merge_group' && github.actor != 'dependabot[bot]'";
+
+                  shell = steps.devshell;
+                  env.SENTRY_AUTH_TOKEN = "\${{ secrets.SENTRY_AUTH_TOKEN }}";
+
+                  # In the script rather than in `env`, which GitHub takes
+                  # literally: it interpolates its own expressions there and
+                  # leaves everything else, command substitutions included, as
+                  # the characters they are.
+                  run = inProject project ''
+                    SENTRY_RELEASE="${identity.version}" \
+                    	SENTRY_DIST="${identity.commit}" \
+                    	dart run sentry_dart_plugin
+                  '';
+                }
+
+                {
+                  # A map left in the build directory is served with the site,
+                  # and hands anyone who asks for it the source the bundle was
+                  # compiled from. Sentry has them now, and it is the only one
+                  # that should.
+                  #
+                  # Unconditional, unlike the upload above: a run that skipped
+                  # it built the maps all the same, and that artefact reaches
+                  # the same places as any other.
+                  name = "Take the source maps back out of the build";
+
+                  run = inProject project ''
+                    find ${projectConfig.web.outputPath} \( -name '*.js.map' -o -name '*.wasm.map' \) -delete
+                  '';
+                }
+              ]
               ++ [
                 {
                   uses = allowed-actions."actions/upload-artifact".uses;

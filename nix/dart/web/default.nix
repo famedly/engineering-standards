@@ -10,7 +10,11 @@
 # is built are each stated once. The destinations are jobs of one workflow
 # because artefacts are shared within a run and not across them, which is what
 # makes all three ship the very bytes that were built and tested.
-{ flake-parts-lib, ... }: {
+{ flake-parts-lib, ... }:
+let
+  identity = import ./identity.nix;
+in
+{
   imports = [
     ./assets.nix
     ./image.nix
@@ -61,6 +65,32 @@
                   type = lib.types.bool;
                   default = false;
                 };
+
+                version.enable = lib.mkEnableOption ''
+                  telling the application which build it is.
+
+                  `git describe` and the commit reach it as the `version` and
+                  `commit` dart-defines, which it reads with
+                  `String.fromEnvironment`. Something the user can read off a
+                  screen, so that a bug report names a build rather than a day.
+
+                  Costs the job the full history, since a shallow clone carries
+                  no tags to describe against
+                '';
+
+                sentry.enable = lib.mkEnableOption ''
+                  uploading the debug symbols of this build to Sentry.
+
+                  Without them a report from the browser is a stack of minified
+                  names and no line numbers, which is to say no stack at all.
+                  Turns `version.enable` on, because a symbol file is only ever
+                  found again by the release it was filed under.
+
+                  Expects the project's `sentry_dart_plugin` and its `sentry`
+                  section in `pubspec.yaml` — which organisation and project to
+                  upload to is the project's to say — and the token in the
+                  `SENTRY_AUTH_TOKEN` secret
+                '';
 
                 buildArgs = lib.mkOption {
                   description = ''
@@ -124,15 +154,26 @@
                 };
               };
 
-              config.web.buildCommand = lib.concatStringsSep " " (
-                [
-                  "flutter build web"
-                  "--release"
-                ]
-                ++ lib.optional config.web.wasm "--wasm"
-                ++ lib.optional (!config.web.webResourcesCdn) "--no-web-resources-cdn"
-                ++ config.web.buildArgs
-              );
+              config.web = {
+                version.enable = lib.mkDefault config.web.sentry.enable;
+
+                buildCommand = lib.concatStringsSep " " (
+                  [
+                    "flutter build web"
+                    "--release"
+                  ]
+                  ++ lib.optional config.web.wasm "--wasm"
+                  ++ lib.optional (!config.web.webResourcesCdn) "--no-web-resources-cdn"
+                  ++ lib.optionals config.web.version.enable [
+                    ''--dart-define=version="${identity.version}"''
+                    ''--dart-define=commit="${identity.commit}"''
+                  ]
+                  # The compiler drops the maps unless asked, and the plugin has
+                  # nothing to upload without them.
+                  ++ lib.optional config.web.sentry.enable "--source-maps"
+                  ++ config.web.buildArgs
+                );
+              };
             }
           )
         );
