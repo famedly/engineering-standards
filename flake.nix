@@ -63,6 +63,22 @@
         };
 
         imports = [ default ];
+
+        # The toolchain every repository pinning these standards resolves
+        # against, built here so that none of them has to.
+        #
+        # Only for the system CI runs on. Laptops are `aarch64-darwin`, and
+        # building for them costs ten times the minutes, but the SDKs are
+        # archives someone else already built — handing a laptop the same three
+        # gigabytes from a different host saves it nothing. What is left is
+        # vodozemac, and that is half a minute.
+        famedly.standards.ci.binaryCache.populate.x86_64-linux = [
+          ".#devShells.x86_64-linux.standards"
+          ".#packages.x86_64-linux.famedly-dart-sdk"
+          ".#packages.x86_64-linux.famedly-flutter-sdk"
+          ".#packages.x86_64-linux.famedly-rust-toolchain"
+          ".#packages.x86_64-linux.famedly-vodozemac"
+        ];
       }
     );
 }
