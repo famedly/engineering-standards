@@ -7,7 +7,7 @@ importingFlake: {
       # again rather than read off `self'`: reaching into the flake's own
       # packages from inside an option declaration would make the projects
       # depend on config that is derived from the projects.
-      vodozemac = pkgs.callPackage ./packages/vodozemac.nix { };
+      vodozemac = pkgs.callPackage ./native.nix { };
     in
     {
       options.famedly.standards.dart.projects = lib.mkOption {
@@ -16,13 +16,18 @@ importingFlake: {
             { config, ... }:
             {
               options.vodozemac.enable = lib.mkEnableOption ''
-                the native vodozemac bindings for this project.
+                the vodozemac bindings for this project.
 
                 Points `flutter_rust_bridge`'s library lookup at the nix-built
                 library, so `vod.init` finds it without the project having to
                 check a copy into the repository or build one first. Needs no
                 change to the Dart code: the loader prefers this over the
-                `libraryPath` it was called with
+                `libraryPath` it was called with.
+
+                A project that also builds for the web gets the WebAssembly
+                module placed in `web/pkg/`, where `vod.init` looks by default —
+                an application that passes a `wasmPath` of its own has to drop
+                it
               '';
 
               config.runtime.env = lib.mkIf config.vodozemac.enable {
@@ -52,7 +57,8 @@ importingFlake: {
     in
     lib.mkMerge [
       (lib.mkIf (config.famedly.standards.dart.projects != { }) {
-        packages.famedly-vodozemac = pkgs.callPackage ./packages/vodozemac.nix { };
+        packages.famedly-vodozemac = pkgs.callPackage ./native.nix { };
+        packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { };
       })
 
       # The lookup itself goes through `runtime.env`; this only makes entering

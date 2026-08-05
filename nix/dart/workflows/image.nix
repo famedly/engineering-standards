@@ -91,9 +91,16 @@ in
                   };
 
                   arm64 = lib.mkOption {
-                    description = "Runner that builds the arm64 image.";
+                    description = ''
+                      Runner that builds the arm64 image.
+
+                      The eight-core alternative costs 2.8 times as much per
+                      minute and measured 1.16 times faster here, since half
+                      the wait is fetching and unpacking. Name it here for a
+                      project whose build really is compilation throughout.
+                    '';
                     type = lib.types.str;
-                    default = "arm-ubuntu-latest-8core";
+                    default = "ubuntu-24.04-arm";
                   };
 
                   arm64Release = lib.mkOption {
@@ -150,6 +157,9 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
+          # The floor for every job here; the job that publishes raises it.
+          permissions.contents = "read";
+
           on.pullRequest.branches = [ "**" ];
           on.push = {
             branches = [ "main" ];
@@ -174,6 +184,8 @@ in
               };
 
               runsOn = "\${{ matrix.architecture == 'arm64' && ${arm64Runner} || '${cfg.runners.amd64}' }}";
+
+              timeoutMinutes = 30;
 
               steps =
                 steps.setup
@@ -267,7 +279,21 @@ in
               needs = gated;
               runsOn = "ubuntu-latest";
 
-              steps = steps.setup ++ steps.publishImages { inherit architectures reference tag; };
+              timeoutMinutes = 20;
+
+              # `id-token`, because cosign signs with this workflow's identity
+              # rather than with a key.
+              permissions = {
+                contents = "read";
+                id-token = "write";
+              };
+
+              steps =
+                steps.setup
+                ++ steps.publishImages {
+                  inherit architectures reference tag;
+                  lockfile = "${directory project}pubspec.lock";
+                };
             };
           }
           // lib.optionalAttrs (cfg.gate != null) {

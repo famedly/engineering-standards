@@ -7,7 +7,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) suffix;
+  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   script = import ../../../lib/compose-script.nix { inherit lib; };
@@ -82,9 +82,15 @@ in
                 };
 
                 arm64 = lib.mkOption {
-                  description = "Runner that assembles the arm64 image.";
+                  description = ''
+                    Runner that assembles the arm64 image.
+
+                    The standard one, for the reasons given at
+                    `image.runners.arm64`. Less to weigh here, since only the
+                    server in this image is architecture-specific.
+                  '';
                   type = lib.types.str;
-                  default = "arm-ubuntu-latest-8core";
+                  default = "ubuntu-24.04-arm";
                 };
               };
             };
@@ -129,6 +135,8 @@ in
 
             runsOn = "\${{ matrix.architecture == 'arm64' && '${cfg.runners.arm64}' || '${cfg.runners.amd64}' }}";
 
+            timeoutMinutes = 30;
+
             steps = steps.setup ++ [
               {
                 uses = allowed-actions."actions/download-artifact".uses;
@@ -154,6 +162,10 @@ in
                       images = builtins.getAttr builtins.currentSystem flake.dartWebImages;
                     in images."${project}" {
                       site = ./site;
+
+                      source = "''${{ github.server_url }}/''${{ github.repository }}";
+                      revision = "''${{ github.sha }}";
+                      version = "''${{ github.ref_name }}";
                     }
                   ')"
 
@@ -198,8 +210,25 @@ in
                       # Again, so that a server which never came up fails the
                       # step rather than only the loop.
                       curl -fsS -o /dev/null "$base/index.html"
+
+                      # What Kubernetes asks before it sends anyone here.
+                      curl -fsS -o /dev/null "$base/health"
+
+                      # Read once for the comparisons below. Names come back
+                      # lower-cased, so the patterns are folded, not the file.
+                      curl -fsSI "$base/index.html" | tr -d '\r' >headers
                     ''
                   ]
+                  ++ lib.mapAttrsToList (header: expected: ''
+                    sent="$(sed -n 's/^${lib.toLower header}: *//p' headers)"
+
+                    if test "$sent" != ${lib.escapeShellArg expected}; then
+                      echo "::error::${header} is sent as '$sent', expected '${expected}'"
+                      exit 1
+                    fi
+
+                    echo "${header}: $sent"
+                  '') cfg.sentHeaders
                   ++ lib.mapAttrsToList (extension: expected: ''
                     file="$(cd site && find . -type f -name '*.${extension}' -print -quit)"
 
@@ -246,11 +275,21 @@ in
             needs = [ "image" ];
             runsOn = "ubuntu-latest";
 
+            timeoutMinutes = 20;
+
+            # `id-token`, because cosign signs with this workflow's identity
+            # rather than with a key.
+            permissions = {
+              contents = "read";
+              id-token = "write";
+            };
+
             steps =
               steps.setup
               ++ steps.publishImages {
                 inherit architectures tag;
                 reference = "${registry}/${cfg.name}";
+                lockfile = "${directory project}pubspec.lock";
               };
           };
         };

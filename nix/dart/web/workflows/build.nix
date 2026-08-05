@@ -2,7 +2,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject;
+  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   # The directory `flutter build web` writes to. Not an option: it is the
@@ -15,6 +15,9 @@ in
     let
       projects = lib.filterAttrs (_: project: project.web.enable) config.famedly.standards.dart.projects;
 
+      # `assets.nix` builds one of these only for a project that needs it.
+      assets = project: "dart-web-assets${suffix project}";
+
       mkWorkflow =
         project: projectConfig:
         assert lib.assertMsg projectConfig.flutter ''
@@ -24,6 +27,9 @@ in
           name = "Build and deploy the web target${
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
+
+          # The floor for every job here; the ones that publish raise it.
+          permissions.contents = "read";
 
           on.pullRequest.branches = [ "**" ];
           on.push = {
@@ -44,9 +50,18 @@ in
           jobs.build = {
             runsOn = "ubuntu-latest";
 
+            # To catch a hung build: a runner waiting for what never comes
+            # holds the queue for six hours otherwise.
+            timeoutMinutes = 45;
+
             steps =
               steps.setup
               ++ lib.optionals projectConfig.checks.privateDependencies steps.privateDependencies
+              ++ lib.optional (config.packages ? ${assets project}) {
+                name = "Assemble the assets the web target needs";
+                shell = steps.devshell;
+                run = assets project;
+              }
               ++ [
                 {
                   name = "Build the web target";
