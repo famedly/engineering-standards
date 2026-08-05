@@ -9,6 +9,7 @@
 { flake-parts-lib, ... }:
 {
   imports = [
+    ./assets.nix
     ./image.nix
 
     ./workflows/build.nix

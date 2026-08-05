@@ -2,8 +2,31 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
+
+  script = import ../../lib/compose-script.nix { inherit lib; };
 in
 {
+  options.famedly.standards.ci.advisories.failOn = lib.mkOption {
+    description = ''
+      Severity at which a known vulnerability in a published image stops the
+      run, or `null` to only report what was found.
+
+      Null until the reports have been read: a gate nobody has calibrated
+      either blocks every release or gets ignored.
+    '';
+
+    type = lib.types.nullOr (
+      lib.types.enum [
+        "low"
+        "medium"
+        "high"
+        "critical"
+      ]
+    );
+
+    default = null;
+  };
+
   options.famedly.standards.ci.steps = lib.mkOption {
     description = ''
       Workflow steps shared between our GitHub workflows.
@@ -107,12 +130,17 @@ in
             holding an `image-<architecture>.tar`, and credentials in the
             `REGISTRY_USER` variable and the `registry_password` secret.
 
+            Each image is described in an SPDX document before it is pushed.
+            `lockfile` adds one for the packages the application was built
+            from, which a compiled bundle no longer names.
+
             E.g.:
 
             ```nix
             steps.publishImages {
               reference = "registry.famedly.net/docker-releases/foo";
               tag = "latest";
+              lockfile = "pubspec.lock";
             }
             ```
           '';
@@ -124,7 +152,16 @@ in
   };
 
   config.famedly.standards.ci.steps = {
-    checkout = [ { uses = allowed-actions."actions/checkout".uses; } ];
+    checkout = [
+      {
+        uses = allowed-actions."actions/checkout".uses;
+
+        # Otherwise the token stays in `.git/config` for every later step to
+        # read, package scripts included. What needs the API takes it as an
+        # environment variable instead.
+        with_.persist-credentials = false;
+      }
+    ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
     freeDiskSpace = [
@@ -172,6 +209,7 @@ in
       {
         reference,
         tag,
+        lockfile ? null,
         architectures ? [
           "amd64"
           "arm64"
@@ -186,6 +224,86 @@ in
             path = "images";
             merge-multiple = true;
           };
+        }
+
+        {
+          # From the archives rather than the recipe, so it describes what is
+          # pushed.
+          name = "Describe what the images hold";
+
+          shell = "nix shell --inputs-from . nixpkgs#syft --command bash -e {0}";
+
+          env = {
+            IMAGE = reference;
+            TAG = tag;
+          };
+
+          run = script (
+            [
+              ''
+                mkdir -p sboms
+              ''
+            ]
+            ++ map (architecture: ''
+              syft scan docker-archive:images/image-${architecture}.tar \
+              	--source-name "$IMAGE" --source-version "$TAG-${architecture}" \
+              	--output spdx-json=sboms/image-${architecture}.spdx.json
+            '') architectures
+            ++ lib.optional (lockfile != null) ''
+              # A compiled bundle no longer names its packages; this does.
+              syft scan file:${lockfile} \
+              	--source-name "$IMAGE" --source-version "$TAG" \
+              	--output spdx-json=sboms/source.spdx.json
+            ''
+          );
+        }
+
+        {
+          uses = allowed-actions."actions/upload-artifact".uses;
+
+          with_ = {
+            name = "sbom";
+            path = "sboms";
+            if-no-files-found = "error";
+          };
+        }
+
+        {
+          # Against the documents just written, so the report covers the
+          # packages that ship.
+          name = "Look for known vulnerabilities";
+
+          shell = "nix shell --inputs-from . nixpkgs#grype --command bash -e {0}";
+
+          run =
+            let
+              inherit (config.famedly.standards.ci.advisories) failOn;
+            in
+            ''
+              mkdir -p reports
+
+              echo '### Known vulnerabilities' >>"$GITHUB_STEP_SUMMARY"
+
+              status=0
+
+              for sbom in sboms/*.spdx.json; do
+              	name="$(basename "$sbom" .spdx.json)"
+
+              	# Into a file, so the summary is written even when the report
+              	# is what fails this step.
+              	grype "sbom:$sbom" --output table --file "reports/$name.txt" \
+              		${lib.optionalString (failOn != null) "--fail-on ${failOn} "}|| status=$?
+
+              	{
+              		echo "#### $name"
+              		echo '```'
+              		cat "reports/$name.txt"
+              		echo '```'
+              	} >>"$GITHUB_STEP_SUMMARY"
+              done
+
+              exit "$status"
+            '';
         }
 
         {
@@ -204,8 +322,11 @@ in
           };
 
           run = ''
+            mkdir -p digests
+
             ${lib.concatMapStringsSep "\n" (architecture: ''
               skopeo copy --dest-creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+              	--digestfile digests/${architecture} \
               	docker-archive:images/image-${architecture}.tar \
               	"docker://$IMAGE:$TAG-${architecture}"
             '') architectures}
@@ -214,7 +335,63 @@ in
             	--platforms ${lib.concatMapStringsSep "," (architecture: "linux/${architecture}") architectures} \
             	--template "$IMAGE:$TAG-ARCH" \
             	--target "$IMAGE:$TAG"
+
+            # The one thing pushed here without a digest of its own. Read back
+            # rather than parsed out of the push, so what is signed below is
+            # what the registry serves.
+            skopeo inspect --creds "$REGISTRY_USER:$REGISTRY_PASSWORD" \
+            	--raw "docker://$IMAGE:$TAG" >digests/list.json
+
+            skopeo manifest-digest digests/list.json >digests/list
           '';
+        }
+
+        {
+          name = "Sign the images and attest what they hold";
+
+          shell = "nix shell --inputs-from . nixpkgs#cosign --command bash -e {0}";
+
+          env = {
+            REGISTRY_USER = "\${{ vars.REGISTRY_USER }}";
+            REGISTRY_PASSWORD = "\${{ secrets.registry_password }}";
+
+            IMAGE = reference;
+          };
+
+          run = script (
+            [
+              ''
+                # Keyless: no key of ours to hold or rotate, at the price of a
+                # public record in the transparency log naming every image
+                # signed here.
+                printf '%s' "$REGISTRY_PASSWORD" \
+                	| cosign login "''${IMAGE%%/*}" \
+                		--username "$REGISTRY_USER" --password-stdin
+              ''
+            ]
+            ++ map (architecture: ''
+              digest="$(cat digests/${architecture})"
+
+              cosign sign --yes "$IMAGE@$digest"
+
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/image-${architecture}.spdx.json \
+              	"$IMAGE@$digest"
+            '') architectures
+            ++ [
+              ''
+                # What anyone pulls by tag, and so what a policy checks.
+                list="$(cat digests/list)"
+
+                cosign sign --yes "$IMAGE@$list"
+              ''
+            ]
+            ++ lib.optional (lockfile != null) ''
+              cosign attest --yes --type spdxjson \
+              	--predicate sboms/source.spdx.json \
+              	"$IMAGE@$list"
+            ''
+          );
         }
       ];
   };

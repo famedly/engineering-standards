@@ -133,6 +133,8 @@ in
             needs = [ "build" ];
             runsOn = "ubuntu-latest";
 
+            timeoutMinutes = 15;
+
             environment = {
               name = cfg.environment;
               url = "https://${reviewAppName}.${cfg.server}";
@@ -162,6 +164,8 @@ in
             if_ = "github.event_name == 'push' && contains(github.ref_name, 'rc')";
             needs = [ "build" ];
             runsOn = "ubuntu-latest";
+
+            timeoutMinutes = 15;
 
             environment = {
               name = cfg.environment;
@@ -193,6 +197,8 @@ in
             # them.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
             runsOn = "ubuntu-latest";
+
+            timeoutMinutes = 15;
 
             # The default token may read a repository and nothing else, and
             # retiring a deployment is a write.
