@@ -51,9 +51,11 @@ importingFlake: {
       );
     in
     lib.mkMerge [
-      (lib.mkIf (config.famedly.standards.dart.projects != { }) {
-        packages.famedly-vodozemac = pkgs.callPackage ./packages/vodozemac.nix { };
-      })
+      # Exposed whether or not a project here asks for it, like the SDKs beside
+      # it: the library is the same one for every repository that pins these
+      # standards, so it is worth building once where nothing depends on it yet
+      # and handing it to the binary cache from there.
+      { packages.famedly-vodozemac = pkgs.callPackage ./packages/vodozemac.nix { }; }
 
       # The lookup itself goes through `runtime.env`; this only makes entering
       # the shell build the library.

@@ -46,10 +46,41 @@ in
           readOnly = true;
         };
 
+        binaryCache = lib.mkOption {
+          description = ''
+            Substitute from our shared binary cache, and push back what the run
+            built.
+
+            Expects a token in the `CACHIX_AUTH_TOKEN_FAMEDLY` secret, since the
+            cache is private and even reading it needs one, and a signing key in
+            `CACHIX_SIGNING_KEY_FAMEDLY` to push.
+
+            Only a run on `main` or a tag writes. What a pull request builds is
+            decided by its branch, and so is what a merge queue builds — an
+            entry that is dequeued was never on `main` at all. A run there that
+            could write would let any branch put a store path in front of every
+            other repository's builds. The ref decides this rather than the
+            event, so that a workflow started by hand fills the cache when it
+            was started on `main` and reads only when it was started on a
+            branch.
+
+            Takes `{ required }`, which says whether the cache is allowed to
+            take the workflow down with it. False for a run that reads: a cache
+            out of reach should cost the run its time and not its result, since
+            everything it holds can be built again. True for a run whose purpose
+            is to fill it, where failing quietly would leave every other
+            repository building from source and nobody any the wiser.
+
+            E.g. `steps.binaryCache { required = true; }`.
+          '';
+          type = lib.types.functionTo (lib.types.listOf lib.types.attrs);
+          readOnly = true;
+        };
+
         setup = lib.mkOption {
           description = ''
             The steps every workflow of ours starts with: check out the
-            repository and install nix.
+            repository, install nix, and point it at the binary cache.
 
             Since the toolchain comes from the devshell, there is deliberately
             no language-specific setup action here.
@@ -112,7 +143,29 @@ in
     checkout = [ { uses = allowed-actions."actions/checkout".uses; } ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
-    setup = steps.checkout ++ steps.installNix;
+    binaryCache =
+      {
+        required ? false,
+      }:
+      [
+        (
+          {
+            uses = allowed-actions."cachix/cachix-action".uses;
+
+            with_ = {
+              name = "famedly";
+
+              authToken = "\${{ secrets.CACHIX_AUTH_TOKEN_FAMEDLY }}";
+              signingKey = "\${{ secrets.CACHIX_SIGNING_KEY_FAMEDLY }}";
+
+              skipPush = "\${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}";
+            };
+          }
+          // lib.optionalAttrs (!required) { continueOnError = true; }
+        )
+      ];
+
+    setup = steps.checkout ++ steps.installNix ++ steps.binaryCache { };
 
     privateDependencies = [
       {

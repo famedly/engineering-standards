@@ -13,6 +13,7 @@ excludes = [
     "LICENSE",
     ".pre-commit-config.yaml",
     ".github/workflows/check-pre-commit-hooks.yml",
+    ".github/workflows/populate-binary-cache.yml",
     ".gitattributes",
     ".editorconfig",
     "treefmt.toml",

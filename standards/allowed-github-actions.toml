@@ -22,6 +22,10 @@ rev = "v4.6.2"
 ref = "fc324d3547104276b827a68afc52ff2a11cc49c9"
 rev = "v5.0.0"
 
+["cachix/cachix-action"]
+ref = "5f2d7c5294214f71b873db4b969586b980625e71"
+rev = "v17"
+
 ["cachix/install-nix-action"]
 ref = "8aa03977d8d733052d78f4e008a241fd1dbf36b3"
 rev = "v31.10.6"
