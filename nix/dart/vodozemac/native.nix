@@ -1,14 +1,11 @@
 {
-  callPackage,
   fixDarwinDylibNames,
   lib,
   rustPlatform,
+  source,
   stdenv,
 }:
 
-let
-  source = callPackage ./source.nix { };
-in
 rustPlatform.buildRustPackage {
   pname = "famedly-vodozemac";
 
