@@ -96,6 +96,21 @@ in
           readOnly = true;
         };
 
+        withHistory = lib.mkOption {
+          description = ''
+            Deepen the checkout in a list of steps, for a job that reads the
+            repository's history rather than only the files at its head.
+
+            A shallow clone carries neither the tags nor the commits leading up
+            to them, and the checkout takes the token with it when it leaves, so
+            a job that needs the history has to ask for it there and then.
+
+            E.g. `steps.withHistory steps.setup`.
+          '';
+          type = lib.types.functionTo (lib.types.listOf lib.types.attrs);
+          readOnly = true;
+        };
+
         privateDependencies = lib.mkOption {
           description = ''
             Grant the runner read access to our private repositories, for
@@ -176,6 +191,14 @@ in
     ];
 
     setup = steps.freeDiskSpace ++ steps.checkout ++ steps.installNix;
+
+    withHistory = map (
+      step:
+      if (step.uses or null) == allowed-actions."actions/checkout".uses then
+        lib.recursiveUpdate step { with_.fetch-depth = 0; }
+      else
+        step
+    );
 
     privateDependencies = [
       {
