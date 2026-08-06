@@ -12,3 +12,4 @@
 .editorconfig linguist-generated
 treefmt.toml linguist-generated
 .taplo.toml linguist-generated
+.github/workflows/check-pre-commit-hooks.yml.license linguist-generated
