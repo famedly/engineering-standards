@@ -83,3 +83,13 @@ repos:
     pass_filenames: false
     stages: []
   repo: local
+- hooks:
+  - args:
+    - lint-file
+    description: Ensure compliance with REUSE recommendations
+    entry: reuse
+    id: reuse
+    language: system
+    name: reuse
+    stages: []
+  repo: local

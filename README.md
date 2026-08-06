@@ -1,4 +1,4 @@
-<!--
+?!--
 SPDX-FileCopyrightText: 2026 Famedly GmbH
 
 SPDX-License-Identifier: Apache-2.0
@@ -151,6 +151,21 @@ Currently, this may introduce breaking changes. We will provide
 migrations and generally a better update process in the future, but
 while we are iterating on the initial standards large changes are to
 be expected.
+
+### REUSE
+
+Engineering Standards sets up the [REUSE](https://reuse.software/) lint by default.
+For non-FOSS repositories, you must create a custom "All rights reserved" license like so:
+```bash
+echo "All rights reserved" > LICENSES/LicenseRef-private.txt
+```
+
+You can then use the SPDX header
+```
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: LicenseRef-private
+```
 
 ## Contributing
 

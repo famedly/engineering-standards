@@ -14,6 +14,7 @@ importingFlake: {
     ./editorconfig.nix
     ./formatting.nix
     (importApply ./pre-commit-hooks.nix args)
+    ./reuse.nix
 
     ./workflows/ci-steps.nix
     ./workflows/check-commit-messages.nix

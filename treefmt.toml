@@ -21,6 +21,7 @@ excludes = [
     ".editorconfig",
     "treefmt.toml",
     ".taplo.toml",
+    ".github/workflows/check-pre-commit-hooks.yml.license",
 ]
 walk = "git"
 
