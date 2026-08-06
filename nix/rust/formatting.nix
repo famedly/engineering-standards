@@ -1,3 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 { flake-parts-lib, lib, ... }:
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (

@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # An image here is a function, not a derivation: the artefact it wraps — a
 # compiled binary, a built site — exists only once CI has produced it, because
 # resolving our private dependencies needs credentials a build sandbox does not

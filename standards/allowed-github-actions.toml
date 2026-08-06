@@ -1,3 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 ["actions/checkout"]
 ref = "df4cb1c069e1874edd31b4311f1884172cec0e10"
 rev = "v6.0.3"

@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # The devshell and the formatter both need a Dart SDK, and it has to be the same
 # one: `dart format` output depends on the SDK version, so a formatter that
 # differs from the `dart` on `PATH` would have the two rewrite each other's

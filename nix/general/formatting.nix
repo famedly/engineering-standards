@@ -1,6 +1,9 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 {
   perSystem =
-    { config, ... }:
+    { config, pkgs, ... }:
     {
       treefmt = {
         # `prek` is in charge of running these kinds of checks, we don't
@@ -37,7 +40,15 @@
         {
           type = "copy";
           target = "treefmt.toml";
-          source = config.treefmt.build.configFile;
+          source = import ../lib/add-header.nix {
+            inherit pkgs;
+            header = ''
+              ## SPDX-FileCopyrightText: 2026 Famedly GmbH
+              ##
+              ## SPDX-License-Identifier: Apache-2.0
+            '';
+            file = config.treefmt.build.configFile;
+          };
         }
         {
           type = "copy";

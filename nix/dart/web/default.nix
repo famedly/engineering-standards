@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # A Flutter project's web target: built once, then handed to every destination
 # that is enabled for it — a container image, GitHub Pages, a review app.
 #

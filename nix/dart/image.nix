@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # Images are assembled from nixpkgs rather than from a distro base image.
 # Artefacts compiled in the devshell carry nix store paths — `dart compile exe`
 # copies the SDK's `dartaotruntime`, so the binary inherits the loader nixpkgs

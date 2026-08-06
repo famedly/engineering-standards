@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # `dependency_validator` holds a project's manifest against what its code
 # actually imports: a dependency nobody imports, and an import nobody declared.
 #

@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # The bindings compiled for the browser, a different artefact from the native
 # library rather than a variant of it.
 #

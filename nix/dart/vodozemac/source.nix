@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # The source the bindings are built from, named once for both targets: the
 # native library and the WebAssembly module are the same crate compiled twice,
 # and a version that drifted between them fails at the first call and not
