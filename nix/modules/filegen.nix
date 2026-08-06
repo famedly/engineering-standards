@@ -1,3 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 { flake-parts-lib, lib, ... }:
 let
   inherit (lib) types;
@@ -135,10 +138,23 @@ in
           target = ".gitattributes";
           source = pkgs.writeTextFile {
             name = ".gitattributes";
-            text = lib.pipe cfg.generatedFiles [
-              (map (target: "${target} linguist-generated"))
-              lib.concatLines
-            ];
+            text =
+              let
+                ignore-lines = lib.pipe cfg.generatedFiles [
+                  (map (target: "${target} linguist-generated"))
+                  lib.concatLines
+                ];
+              in
+              ''
+                ## SPDX-FileCopyrightText: 2026 Famedly GmbH
+                ##
+                ## SPDX-License-Identifier: Apache-2.0
+
+                # managed-by: engineering-standards — do not edit manually.
+                #
+                # Regenerate with `nix run .#filegen-activate`.
+
+                ${ignore-lines}'';
           };
         }
       ];

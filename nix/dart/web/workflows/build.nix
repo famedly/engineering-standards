@@ -1,3 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;

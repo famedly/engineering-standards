@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Famedly GmbH
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Famedly engineering standards
 
 This repository serves as the central definition for all developer

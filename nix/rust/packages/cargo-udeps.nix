@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # cargo-udeps requires nightly rustc to work, but our usual toolchain
 # is stable.
 #

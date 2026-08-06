@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # Images are assembled from nixpkgs rather than from a distro base image, so
 # that everything in them is derivable from the repository's lockfile.
 #

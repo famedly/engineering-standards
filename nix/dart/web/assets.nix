@@ -1,3 +1,7 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
 # The files a web build needs in `web/` before it starts: the vodozemac
 # WebAssembly module, and the worker that encrypts media frames. Both are
 # compiled artefacts of dependencies, so a checked-in copy would silently age.

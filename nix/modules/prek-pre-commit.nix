@@ -1,3 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
 { filegen, wrappers, ... }:
 { flake-parts-lib, lib, ... }:
 let
@@ -114,7 +117,19 @@ in
         type = "copy";
 
         target = "${workspace}/.pre-commit-config.yaml";
-        source = settingsFormat.generate "pre-commit-config.yaml" config;
+        source =
+          let
+            configFile = settingsFormat.generate "pre-commit-config.yaml" config;
+          in
+          import ../lib/add-header.nix {
+            inherit pkgs;
+            header = ''
+              ## SPDX-FileCopyrightText: 2026 Famedly GmbH
+              ##
+              ## SPDX-License-Identifier: Apache-2.0
+            '';
+            file = configFile;
+          };
       }) config.prek-pre-commit.workspaces;
     };
 }
