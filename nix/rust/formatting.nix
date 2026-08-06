@@ -70,7 +70,15 @@
         {
           type = "copy";
           target = "${name}/rustfmt.toml";
-          source = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
+          source = import ../lib/add-header.nix {
+            inherit pkgs;
+            header = ''
+              ## SPDX-FileCopyrightText: 2026 Famedly GmbH
+              ##
+              ## SPDX-License-Identifier: Apache-2.0
+            '';
+            file = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
+          };
         }
       ) (lib.attrsToList config.famedly.standards.rust.projects);
     };

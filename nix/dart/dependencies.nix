@@ -80,6 +80,10 @@
           settings.ignore = lib.unique (linters ++ projectConfig.checks.dependencies.ignore);
 
           header = pkgs.writeText "dart_dependency_validator.yaml.header" ''
+            ## SPDX-FileCopyrightText: 2026 Famedly GmbH
+            ##
+            ## SPDX-License-Identifier: Apache-2.0
+
             # managed-by: engineering-standards — do not edit manually.
             #
             # Regenerate with `nix run .#filegen-activate`. Further entries belong in
