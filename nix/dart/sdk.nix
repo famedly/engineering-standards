@@ -1,5 +1,4 @@
-{ ... }:
-importingFlake: {
+{ ... }: importingFlake: {
   perSystem =
     {
       lib,

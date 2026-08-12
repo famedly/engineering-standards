@@ -3,8 +3,7 @@
 # copies the SDK's `dartaotruntime`, so the binary inherits the loader nixpkgs
 # patched into it — and no distro base image can resolve those. Building the
 # image from the same nixpkgs is what keeps the two from drifting apart.
-{ lib, flake-parts-lib, ... }:
-{
+{ lib, flake-parts-lib, ... }: {
   imports = [
     (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
       name = "dartImages";
@@ -17,13 +16,11 @@
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }:
-            {
+            { config, ... }: {
               options.image = {
                 files = lib.mkOption {
                   description = ''

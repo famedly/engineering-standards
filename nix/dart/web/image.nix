@@ -7,8 +7,7 @@
 # build depends on right on its own, `.mjs` as `application/javascript` and
 # `.wasm` as `application/wasm`. The nginx image this replaces had to patch the
 # former in by hand, and the workflow asserts both rather than trusting them.
-{ lib, flake-parts-lib, ... }:
-{
+{ lib, flake-parts-lib, ... }: {
   imports = [
     (import ../../lib/image-output.nix { inherit lib flake-parts-lib; } {
       name = "dartWebImages";
@@ -21,13 +20,11 @@
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }:
-            {
+            { config, ... }: {
               options.web.image = {
                 port = lib.mkOption {
                   description = "Port the server listens on.";

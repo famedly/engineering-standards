@@ -2,8 +2,7 @@
 # one: `dart format` output depends on the SDK version, so a formatter that
 # differs from the `dart` on `PATH` would have the two rewrite each other's
 # output. Naming the package in one place is what keeps them from drifting.
-{ lib, flake-parts-lib, ... }:
-{
+{ lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart = {
       toolchain = lib.mkOption {

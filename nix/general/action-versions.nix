@@ -6,8 +6,7 @@ in
   options.famedly.standards.allowed-action-versions = lib.mkOption {
     type = types.attrsOf (
       types.submodule (
-        { name, config, ... }:
-        {
+        { name, config, ... }: {
           options = {
             rev = lib.mkOption {
               description = ''

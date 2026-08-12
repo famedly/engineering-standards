@@ -14,8 +14,7 @@ in
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (
         lib.types.submodule (
-          { config, ... }:
-          {
+          { config, ... }: {
             options.checks = {
               analyze = lib.mkOption {
                 description = ''

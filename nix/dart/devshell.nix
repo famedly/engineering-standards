@@ -1,5 +1,4 @@
-{ lib, ... }:
-importingFlake: {
+{ lib, ... }: importingFlake: {
   config.perSystem =
     { config, pkgs, ... }:
     let

@@ -4,8 +4,7 @@ let
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { pkgs, ... }:
-    {
+    { pkgs, ... }: {
       options.filegen = {
         settings = {
           files = lib.mkOption {
@@ -35,8 +34,7 @@ in
 
             type = types.listOf (
               types.submodule (
-                { config, ... }:
-                {
+                { config, ... }: {
                   options = {
                     type = lib.mkOption {
                       description = ''

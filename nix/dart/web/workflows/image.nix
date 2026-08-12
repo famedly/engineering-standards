@@ -19,8 +19,7 @@ let
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {

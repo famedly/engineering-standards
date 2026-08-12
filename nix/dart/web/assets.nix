@@ -4,11 +4,9 @@
 #
 # CI and a developer's shell run the same script, so an asset that misbehaves
 # in the browser can be reproduced outside CI.
-{ lib, flake-parts-lib, ... }:
-{
+{ lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {

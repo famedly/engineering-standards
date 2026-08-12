@@ -1,8 +1,7 @@
 # Helpers for the keys of the `famedly.standards.*.projects` options, which are
 # paths relative to the repository root: `.` for a repository that is one
 # project, `./packages/foo` for one that holds several.
-{ lib }:
-{
+{ lib }: {
   # Prefix for file names inside the project, empty at the repository root.
   directory = project: if project == "." then "" else "${lib.removePrefix "./" project}/";
 

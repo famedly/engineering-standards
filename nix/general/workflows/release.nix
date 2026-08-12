@@ -9,8 +9,7 @@ let
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.release = {
         enable = lib.mkEnableOption ''
           publishing a GitHub release for every version tag

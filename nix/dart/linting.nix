@@ -1,5 +1,4 @@
-{ lib, flake-parts-lib, ... }:
-importingFlake: {
+{ lib, flake-parts-lib, ... }: importingFlake: {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (

@@ -1,5 +1,4 @@
-{ lib, ... }:
-importingFlake: {
+{ lib, ... }: importingFlake: {
   config.perSystem =
     { config, ... }:
     # The Dart SDK is a hefty download, so only pull it in for repositories

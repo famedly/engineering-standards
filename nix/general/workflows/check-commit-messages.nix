@@ -9,8 +9,7 @@ let
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.commitMessages = {
         enable = lib.mkEnableOption ''
           checking that every commit in a pull request describes itself in the

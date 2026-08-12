@@ -6,8 +6,7 @@
 # is built are each stated once. The destinations are jobs of one workflow
 # because artefacts are shared within a run and not across them, which is what
 # makes all three ship the very bytes that were built and tested.
-{ flake-parts-lib, ... }:
-{
+{ flake-parts-lib, ... }: {
   imports = [
     ./assets.nix
     ./image.nix
@@ -19,13 +18,11 @@
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }:
-            {
+            { config, ... }: {
               options.web = {
                 enable = lib.mkEnableOption ''
                   building this project's web target and shipping it

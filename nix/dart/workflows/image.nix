@@ -20,13 +20,11 @@ let
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }:
-            {
+            { config, ... }: {
               options.image = {
                 enable = lib.mkEnableOption "building and pushing a container image for this project";
 

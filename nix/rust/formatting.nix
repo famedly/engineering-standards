@@ -1,8 +1,6 @@
-{ flake-parts-lib, lib, ... }:
-{
+{ flake-parts-lib, lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { pkgs, ... }:
-    {
+    { pkgs, ... }: {
       options.famedly.standards.rust.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {
@@ -62,13 +60,10 @@
         settings.formatter.rustfmt.command = "rustfmt";
       };
 
-      filegen.settings.files = map (
-        { name, value }:
-        {
-          type = "copy";
-          target = "${name}/rustfmt.toml";
-          source = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
-        }
-      ) (lib.attrsToList config.famedly.standards.rust.projects);
+      filegen.settings.files = map ({ name, value }: {
+        type = "copy";
+        target = "${name}/rustfmt.toml";
+        source = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
+      }) (lib.attrsToList config.famedly.standards.rust.projects);
     };
 }

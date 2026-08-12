@@ -6,11 +6,9 @@
 # than from Dart code, so the tool sees it declared and never used — and which
 # linters a project declares is the standards' decision. Leaving that list to
 # every repository means each one rediscovers it by reading a failing CI run.
-{ lib, flake-parts-lib, ... }:
-{
+{ lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }:
-    {
+    { lib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule {

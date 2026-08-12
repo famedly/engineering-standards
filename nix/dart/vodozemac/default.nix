@@ -1,5 +1,4 @@
-{ lib, flake-parts-lib, ... }:
-importingFlake: {
+{ lib, flake-parts-lib, ... }: importingFlake: {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { pkgs, ... }:
     let
@@ -13,8 +12,7 @@ importingFlake: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }:
-            {
+            { config, ... }: {
               options.vodozemac.enable = lib.mkEnableOption ''
                 the vodozemac bindings for this project.
 
