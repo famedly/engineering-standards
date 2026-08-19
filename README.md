@@ -1,4 +1,4 @@
-?!--
+<!--
 SPDX-FileCopyrightText: 2026 Famedly GmbH
 
 SPDX-License-Identifier: Apache-2.0
@@ -161,11 +161,13 @@ echo "All rights reserved" > LICENSES/LicenseRef-private.txt
 ```
 
 You can then use the SPDX header
+<!-- REUSE-IgnoreStart -->
 ```
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: LicenseRef-private
 ```
+<!-- REUSE-IgnoreEnd -->
 
 ## Contributing
 
