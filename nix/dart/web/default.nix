@@ -82,6 +82,46 @@
                   type = lib.types.str;
                   readOnly = true;
                 };
+
+                outputPath = lib.mkOption {
+                  description = ''
+                    Where `flutter build web` writes the site, relative to the
+                    project. Not an option to set: it is the framework's
+                    choice, exposed only so `extraSteps` reads the same path
+                    the build and the upload step do.
+                  '';
+                  type = lib.types.str;
+                  readOnly = true;
+                  default = "build/web";
+                };
+
+                extraSteps = lib.mkOption {
+                  description = ''
+                    Further GitHub Actions steps to run after the web target is
+                    built, and before it is uploaded as the artefact that every
+                    downstream job — the image, GitHub Pages, review apps —
+                    reads from.
+
+                    For steps a project needs that the standards do not know
+                    about: stamping a build identifier into the bundle,
+                    uploading source maps to an error tracker, or anything else
+                    that has to see the built output on disk before it ships.
+                    Runs in the same job as the build, working directory
+                    unchanged, so a step here reads and writes `outputPath` the
+                    same way the build step just did.
+                  '';
+                  type = lib.types.listOf lib.types.attrs;
+                  default = [ ];
+                  example = lib.literalExpression ''
+                    [
+                      {
+                        name = "Upload source maps to Sentry";
+                        env.SENTRY_AUTH_TOKEN = "\''${{ secrets.SENTRY_AUTH_TOKEN }}";
+                        run = "dart run sentry_dart_plugin";
+                      }
+                    ]
+                  '';
+                };
               };
 
               config.web.buildCommand = lib.concatStringsSep " " (
