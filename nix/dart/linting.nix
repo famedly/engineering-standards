@@ -77,6 +77,21 @@
               example = [ "member-ordering" ];
             };
           };
+
+          options.linting.riverpodLint.enable = lib.mkOption {
+            description = ''
+              Whether to load the `riverpod_lint` analyzer plugin for a
+              Flutter project.
+
+              On by default, since every Flutter project this pins the
+              toolchain for is expected to reach Riverpod 3 eventually. Turn
+              it off for one that has not: the plugin's current release
+              requires it, and an analyzer plugin that cannot resolve fails
+              every analysis, not just the findings it would have reported.
+            '';
+            type = lib.types.bool;
+            default = true;
+          };
         }
       );
     };
@@ -188,7 +203,7 @@
           }
           // lib.optionalAttrs dartCodeLinter { plugins = [ "dart_code_linter" ]; };
         }
-        // lib.optionalAttrs flutter {
+        // lib.optionalAttrs (flutter && projectConfig.linting.riverpodLint.enable) {
           # Riverpod ships a modern analyzer plugin, which the analyzer resolves
           # from this top-level key rather than through `analyzer.plugins`.
           plugins.riverpod_lint = riverpodLint;
@@ -223,10 +238,8 @@
           dependencies =
             (
               if projectConfig.flutter then
-                [
-                  "flutter_lints: ^6.0.0"
-                  "riverpod_lint: ${riverpodLint}"
-                ]
+                [ "flutter_lints: ^6.0.0" ]
+                ++ lib.optional projectConfig.linting.riverpodLint.enable "riverpod_lint: ${riverpodLint}"
               else
                 [ "lints: ^6.1.0" ]
             )
