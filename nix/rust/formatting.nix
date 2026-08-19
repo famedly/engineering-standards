@@ -72,6 +72,10 @@
             ## SPDX-FileCopyrightText: 2026 Famedly GmbH
             ##
             ## SPDX-License-Identifier: Apache-2.0
+
+            # managed-by: engineering-standards — do not edit manually.
+            #
+            # Regenerate with `nix run .#filegen-activate`.
           '';
           file = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
         };
