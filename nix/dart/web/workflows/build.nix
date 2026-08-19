@@ -7,10 +7,6 @@ let
   inherit (config.famedly.standards.ci) steps;
   inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
-
-  # The directory `flutter build web` writes to. Not an option: it is the
-  # framework's choice, not ours.
-  output = "build/web";
 in
 {
   config.perSystem =
@@ -71,7 +67,9 @@ in
                   shell = steps.devshell;
                   run = inProject project projectConfig.web.buildCommand;
                 }
-
+              ]
+              ++ projectConfig.web.extraSteps
+              ++ [
                 {
                   uses = allowed-actions."actions/upload-artifact".uses;
 
@@ -80,7 +78,7 @@ in
 
                     # A single directory is uploaded without its own prefix, so
                     # the artefact holds the site at its root.
-                    path = "${directory project}${output}";
+                    path = "${directory project}${projectConfig.web.outputPath}";
 
                     # A build that produced nothing would otherwise pass this
                     # step and reach the deployments, which replace what they

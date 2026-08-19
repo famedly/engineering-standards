@@ -66,10 +66,7 @@
           # or the excuse outlives it.
           linters =
             if projectConfig.flutter then
-              [
-                "flutter_lints"
-                "riverpod_lint"
-              ]
+              [ "flutter_lints" ] ++ lib.optional projectConfig.linting.riverpodLint.enable "riverpod_lint"
             else
               [ "lints" ];
 
