@@ -2,6 +2,10 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
+# managed-by: engineering-standards — do not edit manually.
+#
+# Regenerate with `nix run .#filegen-activate`.
+
 exclude = ["target-analyzer/**", "target/**"]
 
 [formatting]

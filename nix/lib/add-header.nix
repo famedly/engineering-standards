@@ -8,8 +8,7 @@
   header,
   file,
 }:
-pkgs.runCommand "get-treefmt-toml" { } ''
-  cat <<EOF | cat - ${file} > $out
-  ${header}
-  EOF
-''
+let
+  headerFile = pkgs.writeText "headerFile" header;
+in
+pkgs.runCommand "get-treefmt-toml" { } "cat ${headerFile} ${file} > $out"
