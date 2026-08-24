@@ -24,6 +24,7 @@ importingFlake: {
 
     ./workflows/checks.nix
     ./workflows/image.nix
+    ./workflows/pre-commit.nix
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
