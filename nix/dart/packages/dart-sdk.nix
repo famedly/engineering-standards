@@ -9,7 +9,7 @@
 }:
 
 let
-  version = "3.12.2";
+  version = "3.13.1";
 
   platforms = {
     x86_64-linux = "linux-x64";
@@ -18,9 +18,9 @@ let
   };
 
   hashes = {
-    aarch64-darwin = "sha256-zYdTko53trZlvXDc4OZLTsbS4v3hQdZAm7cWyKwfHAo=";
-    aarch64-linux = "sha256-+CyD7OfRaAR1UN/UpmTkBxrHxIi923LcQxAsItfgtRg=";
-    x86_64-linux = "sha256-KOR7RM8HXzZ3EEbAaLsNF0IBz5x2CHRK7RzCMgQpnC0=";
+    aarch64-darwin = "sha256-NnmElB2NFMZTeJ9veHMS5xXlxUb26fXTDYZhXGkpB6k=";
+    aarch64-linux = "sha256-UUHVrGLav88NPdj79cTRQ9AJLvQvrQ8l9s9lh+XPw78=";
+    x86_64-linux = "sha256-klHEYG67MUgMRfQwvmn84ml+O4iKCoKLnhbn0jQD1yo=";
   };
 
   archiveName =
