@@ -8,7 +8,7 @@
   ...
 }:
 let
-  allowed-actions = config.famedly.standards.allowed-action-versions;
+  inherit (config.famedly.standards.ci) steps;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -81,47 +81,42 @@ in
         jobs.commit-messages = {
           runsOn = "ubuntu-latest";
 
-          steps = [
-            {
-              uses = allowed-actions."actions/checkout".uses;
+          steps =
+            # The base commit has to be there for the range below to resolve,
+            # and a shallow clone does not carry it.
+            steps.withHistory steps.checkout ++ [
+              {
+                name = "Check the commit messages";
 
-              # The base commit has to be there for the range below to resolve,
-              # and a shallow clone does not carry it.
-              with_.fetch-depth = 0;
-            }
+                env = {
+                  PATTERN = "^(${lib.concatStringsSep "|" cfg.types})(\\([^)]+\\))?!?: .+";
+                  BASE = "\${{ github.event.pull_request.base.sha }}";
+                  HEAD = "\${{ github.event.pull_request.head.sha }}";
+                };
 
-            {
-              name = "Check the commit messages";
+                # One commit per line, and every line read. The workflow this
+                # replaces pulled the whole log into a single string and matched
+                # it once, which anchored the pattern to the first subject and
+                # let every later commit through unexamined.
+                #
+                # Merges are exempt: their subjects are written by whoever
+                # pressed the button, not by us.
+                run = ''
+                  failed=0
 
-              env = {
-                PATTERN = "^(${lib.concatStringsSep "|" cfg.types})(\\([^)]+\\))?!?: .+";
-                BASE = "\${{ github.event.pull_request.base.sha }}";
-                HEAD = "\${{ github.event.pull_request.head.sha }}";
-              };
+                  while IFS= read -r subject; do
+                    if [[ $subject =~ $PATTERN ]]; then
+                      echo "ok:  $subject"
+                    else
+                      echo "::error::not a conventional commit subject: $subject"
+                      failed=1
+                    fi
+                  done < <(git log --no-merges --format=%s "$BASE..$HEAD")
 
-              # One commit per line, and every line read. The workflow this
-              # replaces pulled the whole log into a single string and matched
-              # it once, which anchored the pattern to the first subject and
-              # let every later commit through unexamined.
-              #
-              # Merges are exempt: their subjects are written by whoever
-              # pressed the button, not by us.
-              run = ''
-                failed=0
-
-                while IFS= read -r subject; do
-                  if [[ $subject =~ $PATTERN ]]; then
-                    echo "ok:  $subject"
-                  else
-                    echo "::error::not a conventional commit subject: $subject"
-                    failed=1
-                  fi
-                done < <(git log --no-merges --format=%s "$BASE..$HEAD")
-
-                exit "$failed"
-              '';
-            }
-          ];
+                  exit "$failed"
+                '';
+              }
+            ];
         };
       };
     };
