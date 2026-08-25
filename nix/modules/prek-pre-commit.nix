@@ -117,23 +117,14 @@ in
         type = "copy";
 
         target = "${workspace}/.pre-commit-config.yaml";
-        source =
-          let
-            configFile = settingsFormat.generate "pre-commit-config.yaml" config;
-          in
-          import ../lib/add-header.nix {
-            inherit pkgs;
-            header = ''
-              ## SPDX-FileCopyrightText: 2026 Famedly GmbH
-              ##
-              ## SPDX-License-Identifier: Apache-2.0
 
-              # managed-by: engineering-standards — do not edit manually.
-              #
-              # Regenerate with `nix run .#filegen-activate`.
-            '';
-            file = configFile;
-          };
+        # Imported rather than taken from `standardsLib`, since this module is
+        # exported on its own and a flake may import only it.
+        source = import ../lib/managed-file.nix { inherit lib; } {
+          inherit pkgs;
+          name = "pre-commit-config.yaml";
+          file = settingsFormat.generate "pre-commit-config.yaml" config;
+        };
       }) config.prek-pre-commit.workspaces;
     };
 }

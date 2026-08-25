@@ -15,4 +15,6 @@
   inherit (import ./project-paths.nix { inherit lib; }) directory inProject suffix;
 
   script = import ./compose-script.nix { inherit lib; };
+
+  managedFile = import ./managed-file.nix { inherit lib; };
 }

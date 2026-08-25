@@ -78,22 +78,15 @@
           # `dart_code_linter` is deliberately absent: it ships an executable,
           # which the tool takes as evidence enough of use.
           settings.ignore = lib.unique (linters ++ projectConfig.checks.dependencies.ignore);
-
-          header = pkgs.writeText "dart_dependency_validator.yaml.header" ''
-            ## SPDX-FileCopyrightText: 2026 Famedly GmbH
-            ##
-            ## SPDX-License-Identifier: Apache-2.0
-
-            # managed-by: engineering-standards — do not edit manually.
-            #
-            # Regenerate with `nix run .#filegen-activate`. Further entries belong in
-            # the flake, under checks.dependencies.ignore.
-          '';
         in
-        pkgs.runCommand "dart_dependency_validator.yaml" { } ''
-          cat ${header} >$out
-          cat ${(pkgs.formats.yaml { }).generate "dart_dependency_validator.yaml" settings} >>$out
-        '';
+        standardsLib.managedFile {
+          inherit pkgs;
+
+          name = "dart_dependency_validator.yaml";
+          file = (pkgs.formats.yaml { }).generate "dart_dependency_validator.yaml" settings;
+
+          note = "Further entries belong in the flake, under `checks.dependencies.ignore`.";
+        };
     in
     lib.mkIf (projects != { }) {
       filegen.settings.files = lib.mapAttrsToList (project: projectConfig: {

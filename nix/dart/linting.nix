@@ -237,8 +237,6 @@
             ++ projectConfig.linting.dartCodeLinter.extraRules;
         };
 
-      # `builtins.readFile` on the generated file would force it at evaluation
-      # time, so the header is prepended in a derivation instead.
       mkOptionsFile =
         projectConfig:
         let
@@ -251,28 +249,22 @@
                 [ "lints: ^6.1.0" ]
             )
             ++ lib.optional projectConfig.linting.dartCodeLinter.enable "dart_code_linter: ^4.1.2";
-
-          header = pkgs.writeText "analysis_options.standards.yaml.header" (
-            ''
-              ## SPDX-FileCopyrightText: 2026 Famedly GmbH
-              ##
-              ## SPDX-License-Identifier: Apache-2.0
-
-              # managed-by: engineering-standards — do not edit manually.
-              #
-              # Regenerate with `nix run .#filegen-activate`. Put repository-specific
-              # overrides in `analysis_options.yaml`, which includes this file.
-              #
-              # Requires these dev dependencies:
-              #
-            ''
-            + lib.concatLines (map (dependency: "#   ${dependency}") dependencies)
-          );
         in
-        pkgs.runCommand "analysis_options.standards.yaml" { } ''
-          cat ${header} >$out
-          cat ${(pkgs.formats.yaml { }).generate "analysis_options.yaml" (mkOptions projectConfig)} >>$out
-        '';
+        standardsLib.managedFile {
+          inherit pkgs;
+
+          name = "analysis_options.standards.yaml";
+          file = (pkgs.formats.yaml { }).generate "analysis_options.yaml" (mkOptions projectConfig);
+
+          note = ''
+            Put repository-specific overrides in `analysis_options.yaml`, which
+            includes this file.
+
+            Requires these dev dependencies:
+
+            ${lib.concatStringsSep "\n" (map (dependency: "  ${dependency}") dependencies)}
+          '';
+        };
 
       # Only the managed file is placed. The project's own
       # `analysis_options.yaml` has to include it — see the `dart-lints-included`

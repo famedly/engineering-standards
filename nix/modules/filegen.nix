@@ -143,25 +143,18 @@ in
           # The real place to review these files is in the Nix that generates them.
           type = "copy";
           target = ".gitattributes";
-          source = pkgs.writeTextFile {
-            name = ".gitattributes";
-            text =
-              let
-                ignore-lines = lib.pipe cfg.generatedFiles [
-                  (map (target: "${target} linguist-generated"))
-                  lib.concatLines
-                ];
-              in
-              ''
-                ## SPDX-FileCopyrightText: 2026 Famedly GmbH
-                ##
-                ## SPDX-License-Identifier: Apache-2.0
 
-                # managed-by: engineering-standards — do not edit manually.
-                #
-                # Regenerate with `nix run .#filegen-activate`.
-
-                ${ignore-lines}'';
+          # Imported rather than taken from `standardsLib`, since this module is
+          # exported on its own and a flake may import only it.
+          source = import ../lib/managed-file.nix { inherit lib; } {
+            inherit pkgs;
+            name = "gitattributes";
+            file = pkgs.writeText "gitattributes-entries" (
+              lib.pipe cfg.generatedFiles [
+                (map (target: "${target} linguist-generated"))
+                lib.concatLines
+              ]
+            );
           };
         }
       ];
