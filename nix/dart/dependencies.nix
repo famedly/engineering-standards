@@ -33,13 +33,15 @@
 
             version = lib.mkOption {
               description = ''
-                Constraint the `dependency_validator` tool is installed under.
+                Version of the `dependency_validator` tool CI installs.
 
                 Installed globally rather than carried as a dev dependency,
-                since a tool that judges the manifest should not appear in it.
+                since a tool that judges the manifest should not appear in it —
+                which also means no lockfile holds it, so the version is stated
+                exactly here.
               '';
               type = lib.types.str;
-              default = "^5.0.5";
+              default = "5.0.5";
             };
           };
         }

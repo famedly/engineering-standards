@@ -97,7 +97,7 @@ in
 
                 version = lib.mkOption {
                   description = ''
-                    Constraint the `license_checker` tool is installed under.
+                    Version of the `license_checker` tool CI installs.
 
                     Installed globally rather than carried as a dev dependency,
                     because it resolves the whole of `pana` and would then get a
@@ -105,7 +105,7 @@ in
                     vetoing the linters it is supposed to audit alongside.
                   '';
                   type = lib.types.str;
-                  default = "^1.6.2";
+                  default = "1.6.2";
                 };
               };
 
@@ -163,10 +163,10 @@ in
 
                 version = lib.mkOption {
                   description = ''
-                    Constraint the `sweeper` tool is installed under.
+                    Version of the `sweeper` tool CI installs.
                   '';
                   type = lib.types.str;
-                  default = "^0.4.2";
+                  default = "0.4.2";
                 };
               };
 
@@ -232,6 +232,13 @@ in
             unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
               " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
             );
+
+            # These three tools appear in no lockfile — that is the point of
+            # installing them globally — so the version is resolved afresh on
+            # every run. Stated exactly, so a release on a Tuesday cannot fail
+            # every repository's checks on that Tuesday, and so a rerun of an
+            # old commit checks it the way it was checked then.
+            activate = tool: version: "dart pub global activate ${tool} '${version}'";
           in
           lib.nameValuePair "checks${suffix project}" {
             runsOn = "ubuntu-latest";
@@ -318,7 +325,7 @@ in
                 shell = steps.devshell;
 
                 run = inProject project ''
-                  dart pub global activate dependency_validator '${cfg.dependencies.version}'
+                  ${activate "dependency_validator" cfg.dependencies.version}
 
                   dart pub global run dependency_validator
                 '';
@@ -332,7 +339,7 @@ in
                 # no check-only mode, so the sort runs and the question is
                 # whether it changed anything.
                 run = inProject project ''
-                  dart pub global activate sweeper '${cfg.translations.version}'
+                  ${activate "sweeper" cfg.translations.version}
 
                   dart pub global run sweeper check
 
@@ -354,7 +361,7 @@ in
                 shell = steps.devshell;
 
                 run = inProject project ''
-                  dart pub global activate license_checker '${cfg.licenses.version}'
+                  ${activate "license_checker" cfg.licenses.version}
 
                   dart pub global run license_checker \
                   	-c ${cfg.licenses.config} check-licenses --problematic
