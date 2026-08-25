@@ -79,9 +79,18 @@ in
 
           identity = "~/.ssh/review-app";
 
-          reviewAppName = "${cfg.projectName}-pr-\${{ github.event.number }}";
+          # A review app's name has to be agreed on in three places: the host
+          # it is deployed under, its directory on the server, and the pattern
+          # the cleanup below reads a request number back out of. Only one of
+          # the three would fail visibly if they drifted apart — the cleanup
+          # would quietly stop matching and the directories would pile up.
+          appName = pullRequest: "${cfg.projectName}-pr-${pullRequest}";
+
+          reviewAppName = appName "\${{ github.event.number }}";
 
           qaAppName = "qa-${cfg.projectName}";
+
+          url = name: "https://${name}.${cfg.server}";
 
           # We use no ssh-agent, since it wouldn't survive the step that
           # starts it, and no `StrictHostKeyChecking no`, which would hand the
@@ -120,68 +129,68 @@ in
           announce = ''
             echo "$NAME: $URL" >>"$GITHUB_STEP_SUMMARY"
           '';
+
+          # The two deployments differ in when they run, what they are called
+          # and which name they land under. Putting a build on the review
+          # server is the same job for both.
+          deployJob =
+            {
+              if_,
+              step,
+              label,
+              app,
+            }:
+            {
+              inherit if_;
+
+              needs = [ "build" ];
+              runsOn = "ubuntu-latest";
+
+              timeoutMinutes = 15;
+
+              environment = {
+                name = cfg.environment;
+                url = url app;
+              };
+
+              steps = download ++ [
+                {
+                  name = step;
+
+                  # The address is announced from the environment rather than
+                  # interpolated into the script, so the summary and the
+                  # deployment record cannot disagree about where it went.
+                  env = key // {
+                    NAME = label;
+                    URL = url app;
+                  };
+
+                  run = script [
+                    authorise
+                    (deploy app)
+                    announce
+                  ];
+                }
+              ];
+            };
         in
         {
-          review-app = {
+          review-app = deployJob {
             # Dependabot's pull requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
-            needs = [ "build" ];
-            runsOn = "ubuntu-latest";
 
-            timeoutMinutes = 15;
-
-            environment = {
-              name = cfg.environment;
-              url = "https://${reviewAppName}.${cfg.server}";
-            };
-
-            steps = download ++ [
-              {
-                name = "Deploy the review app";
-
-                env = key // {
-                  NAME = "Review app";
-                  URL = "https://${reviewAppName}.${cfg.server}";
-                };
-
-                run = script [
-                  authorise
-                  (deploy reviewAppName)
-                  announce
-                ];
-              }
-            ];
+            step = "Deploy the review app";
+            label = "Review app";
+            app = reviewAppName;
           };
 
-          qa-app = {
+          qa-app = deployJob {
             # A single shared slot for QA, so it follows release candidates.
             if_ = "github.event_name == 'push' && contains(github.ref_name, 'rc')";
-            needs = [ "build" ];
-            runsOn = "ubuntu-latest";
 
-            timeoutMinutes = 15;
-
-            environment = {
-              name = cfg.environment;
-              url = "https://${qaAppName}.${cfg.server}";
-            };
-
-            steps = download ++ [
-              {
-                name = "Deploy the QA app";
-
-                env = key // {
-                  NAME = "QA app";
-                  URL = "https://${qaAppName}.${cfg.server}";
-                };
-
-                run = script [
-                  authorise
-                  (deploy qaAppName)
-                  announce
-                ];
-              }
-            ];
+            step = "Deploy the QA app";
+            label = "QA app";
+            app = qaAppName;
           };
 
           cleanup-review-apps = {
@@ -226,7 +235,12 @@ in
                     		--jq 'map(.environment_url | select(. != null and . != "")) | .[0] // empty')"
 
                     	pr="$(printf '%s\n' "$url" \
-                    		| sed -n 's|^https://${cfg.projectName}-pr-\([0-9][0-9]*\)\..*|\1|p')"
+                    		| sed -n 's|^${
+                        # The address is a pattern here, so the dots in the
+                        # server's name have to stop being wildcards. The
+                        # name itself carries none.
+                        lib.replaceStrings [ "." ] [ "\\." ] (url (appName ''\([0-9][0-9]*\)''))
+                      }.*|\1|p')"
 
                     	# The QA app, deployed from a tag, answers to no request.
                     	test -n "$pr" || continue
@@ -241,7 +255,7 @@ in
                     	echo "Removing the review app of pull request $pr"
 
                     	${ssh} -n ${lib.escapeShellArg "${cfg.user}@${cfg.server}"} \
-                    		rm -rf "${cfg.root}/${cfg.projectName}-pr-$pr"
+                    		rm -rf "${cfg.root}/${appName "$pr"}"
 
                     	# The deployment goes too, or the next run looks at it
                     	# again, and it can't be deleted while it is active.
