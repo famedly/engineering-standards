@@ -1,10 +1,15 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  standardsLib,
+  ...
+}:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../lib/project-paths.nix { inherit lib; }) inProject;
+  inherit (standardsLib) inProject;
 in
 {
   config.perSystem =

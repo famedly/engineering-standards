@@ -50,9 +50,14 @@
   );
 
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      standardsLib,
+      ...
+    }:
     let
-      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
+      inherit (standardsLib) directory;
 
       projects = lib.filterAttrs (
         _: project: project.checks.dependencies.enable

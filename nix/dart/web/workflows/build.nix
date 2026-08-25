@@ -1,11 +1,16 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  standardsLib,
+  ...
+}:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
+  inherit (standardsLib) directory inProject suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   identity = import ../identity.nix;

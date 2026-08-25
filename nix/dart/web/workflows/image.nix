@@ -5,15 +5,14 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../../lib/project-paths.nix { inherit lib; }) directory suffix;
+  inherit (standardsLib) directory script suffix;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
-
-  script = import ../../../lib/compose-script.nix { inherit lib; };
 
   architectures = [
     "amd64"

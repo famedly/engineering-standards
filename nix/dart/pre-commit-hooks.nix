@@ -7,14 +7,15 @@
       config,
       pkgs,
       self',
+      standardsLib,
       ...
     }:
     let
+      inherit (standardsLib) directory;
+
       projects = config.famedly.standards.dart.projects;
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
-
-      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
 
       # Forgetting the `include` is silent: `dart analyze` then simply analyzes
       # with the default rule set and reports nothing about it.

@@ -5,13 +5,13 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
+  inherit (standardsLib) script;
   inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
-
-  script = import ../../../lib/compose-script.nix { inherit lib; };
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (

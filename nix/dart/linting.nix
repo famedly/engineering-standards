@@ -98,8 +98,15 @@
   });
 
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      standardsLib,
+      ...
+    }:
     let
+      inherit (standardsLib) directory;
+
       projects = config.famedly.standards.dart.projects;
 
       # Pinned here rather than only in the header below, so the version the
@@ -275,8 +282,6 @@
       # "create once" mode — `clobber = false` still overwrites and merely
       # leaves a numbered backup behind — so we would trample the very
       # overrides it is meant to hold.
-      inherit (import ../lib/project-paths.nix { inherit lib; }) directory;
-
       mkProjectFiles = project: projectConfig: [
         {
           type = "copy";

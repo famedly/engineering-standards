@@ -36,12 +36,11 @@
       config,
       pkgs,
       self',
+      standardsLib,
       ...
     }:
     let
-      inherit (import ../../lib/project-paths.nix { inherit lib; }) directory suffix;
-
-      script = import ../../lib/compose-script.nix { inherit lib; };
+      inherit (standardsLib) directory script suffix;
 
       projects = lib.filterAttrs (
         _: project: project.web.enable && (project.vodozemac.enable || project.web.livekitE2eeWorker.enable)

@@ -5,12 +5,13 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (import ../../lib/project-paths.nix { inherit lib; }) directory inProject suffix;
+  inherit (standardsLib) directory inProject suffix;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
