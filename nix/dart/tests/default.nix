@@ -69,8 +69,18 @@
       #
       # Only on Linux: an image holds a glibc, which nixpkgs refuses to evaluate
       # for a darwin host. CI builds them on Linux runners either way.
+      #
+      # One is given what CI knows about the commit and the other is not, so
+      # that both shapes an image is called with are covered.
       images = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
-        (config.dartImages."." { server = ./files/config.yaml; })
+        (config.dartImages."." {
+          server = ./files/config.yaml;
+
+          source = "https://github.com/famedly/fixture";
+          revision = "0000000000000000000000000000000000000000";
+          version = "v1.0.0";
+        })
+
         (config.dartWebImages."./app" { site = ./files; })
       ];
     in

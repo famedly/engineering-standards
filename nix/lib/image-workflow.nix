@@ -73,8 +73,9 @@ rec {
       timeoutMinutes = 30;
     };
 
-  # `arguments` is what the image function takes, as Nix source: the artefact
-  # CI just produced, and whatever else the image is stamped with.
+  # `arguments` is the artefact CI just produced, as Nix source. What the run
+  # knows about where the image came from is added here rather than asked of
+  # every caller, so that no image of ours ships unlabelled.
   buildStep =
     {
       name,
@@ -104,7 +105,13 @@ rec {
         ++ map (line: lib.optionalString (line != "") "    ${line}") (
           lib.splitString "\n" (lib.removeSuffix "\n" arguments)
         )
-        ++ [ "  }" ]
+        ++ [
+          ""
+          "    source = \"\${{ github.server_url }}/\${{ github.repository }}\";"
+          "    revision = \"\${{ github.sha }}\";"
+          "    version = \"\${{ github.ref_name }}\";"
+          "  }"
+        ]
       )
       + ''
         ')"

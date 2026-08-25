@@ -221,7 +221,12 @@
   );
 
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      standardsLib,
+      ...
+    }:
     let
       projects = lib.filterAttrs (
         _: project: project.web.enable && project.web.image.enable
@@ -261,13 +266,9 @@
             ];
           };
 
-          # No `created`: a timestamp would make two builds of the same commit
-          # differ.
-          labels = lib.filterAttrs (_: value: value != null) {
-            "org.opencontainers.image.title" = cfg.name;
-            "org.opencontainers.image.source" = source;
-            "org.opencontainers.image.revision" = revision;
-            "org.opencontainers.image.version" = version;
+          labels = standardsLib.ociLabels {
+            inherit source revision version;
+            title = cfg.name;
           };
         in
         pkgs.dockerTools.streamLayeredImage {

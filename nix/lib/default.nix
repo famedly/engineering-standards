@@ -19,4 +19,6 @@
   managedFile = import ./managed-file.nix { inherit lib; };
 
   imageWorkflow = import ./image-workflow.nix { inherit lib; };
+
+  ociLabels = import ./oci-labels.nix { inherit lib; };
 }

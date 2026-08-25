@@ -54,14 +54,7 @@ in
 
                 name = "Assemble the image";
                 output = "dartWebImages";
-
-                arguments = ''
-                  site = ./site;
-
-                  source = "''${{ github.server_url }}/''${{ github.repository }}";
-                  revision = "''${{ github.sha }}";
-                  version = "''${{ github.ref_name }}";
-                '';
+                arguments = "site = ./site;";
               })
 
               {

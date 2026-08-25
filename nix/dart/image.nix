@@ -195,7 +195,12 @@
   );
 
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      standardsLib,
+      ...
+    }:
     let
       projects = lib.filterAttrs (
         _: project: project.image.enable
@@ -209,7 +214,14 @@
         # Kept a function so the compiled binary can be handed in from CI:
         # `dart pub get` needs credentials for our private repositories, which
         # rules out resolving dependencies inside a build sandbox.
-        { server }:
+        #
+        # The rest is optional: a build by hand has no commit to name.
+        {
+          server,
+          source ? null,
+          revision ? null,
+          version ? null,
+        }:
         let
           cfg = projectConfig.image;
 
@@ -306,6 +318,11 @@
             Cmd = [ "${binary}/bin/${cfg.binary}" ];
             WorkingDir = cfg.workdir;
             User = "${toString user.uid}:${toString user.gid}";
+
+            Labels = standardsLib.ociLabels {
+              inherit source revision version;
+              title = cfg.name;
+            };
 
             ExposedPorts."${toString cfg.port}/tcp" = { };
 
