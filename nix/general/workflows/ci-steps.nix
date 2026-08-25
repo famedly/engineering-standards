@@ -152,6 +152,12 @@ in
             `lockfile` adds one for the packages the application was built
             from, which a compiled bundle no longer names.
 
+            `release` attaches those documents to the GitHub release for a
+            version tag as well, named after the image they describe, for
+            whoever asks what a released version shipped without holding
+            credentials for the registry. Requires `contents: write` on the
+            job.
+
             E.g.:
 
             ```nix
@@ -236,6 +242,7 @@ in
         reference,
         tag,
         lockfile ? null,
+        release ? false,
         architectures ? [
           "amd64"
           "arm64"
@@ -419,6 +426,50 @@ in
             ''
           );
         }
-      ];
+      ]
+      ++ lib.optional release {
+        # The registry holds the authoritative copy, attached to the digest it
+        # describes. This one is for the reader who has no credentials for it
+        # and no run left to download: an artefact expires, a nightly image is
+        # collected, and the question of what a released version shipped
+        # outlives both.
+        name = "Attach the documents to the release";
+
+        if_ = "startsWith(github.ref, 'refs/tags/')";
+
+        env = {
+          GH_TOKEN = "\${{ github.token }}";
+          TAG = "\${{ github.ref_name }}";
+        };
+
+        run = ''
+          # Another workflow publishes the release for this tag, and no
+          # `needs` reaches across workflows. It takes seconds where this job
+          # takes minutes, so waiting is precaution rather than expectation.
+          for _ in $(seq 15); do
+          	gh release view "$TAG" >/dev/null 2>&1 && break
+          	sleep 2
+          done
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+          	# A release holds one asset per file name, and a repository can
+          	# publish more than one image for a tag — a second project, or a
+          	# server image beside a web one. Named after the image they
+          	# describe, they cannot replace each other, which would leave a
+          	# document that reads as though it covered both.
+          	mkdir -p assets
+
+          	for sbom in sboms/*.spdx.json; do
+          		cp "$sbom" "assets/${baseNameOf reference}-$(basename "$sbom")"
+          	done
+
+          	gh release upload "$TAG" assets/*.spdx.json --clobber
+          else
+          	# The images are pushed and signed by the time this runs, and the
+          	# documents are attached to them. Worth saying, not worth failing.
+          	echo "::warning::No release for $TAG, so its SBOM is only in the registry and this run"
+          fi
+        '';
+      };
   };
 }
