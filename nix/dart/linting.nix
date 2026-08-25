@@ -1,88 +1,159 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ lib, flake-parts-lib, ... }: {
+{ lib, flake-parts-lib, ... }:
+let
+  # Kept next to each other, since which linters we mandate and which versions
+  # of them we generate configuration for is one decision.
+  constraints = {
+    lints = "^6.1.0";
+    flutter_lints = "^6.0.0";
+    riverpod_lint = "^3.1.3";
+    dart_code_linter = "^4.1.2";
+  };
+in
+{
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (
-        lib.types.submodule {
-          options.linting.exclude = lib.mkOption {
-            description = ''
-              Extra paths the analyzer should not look at, on top of the
-              generated localisations. Use this for generated code, where a
-              finding isn't something anybody can act on.
-            '';
-
-            type = lib.types.listOf lib.types.str;
-            default = [ ];
-            example = [ "lib/shared/l10n/*.dart" ];
-          };
-
-          options.linting.dartCodeLinter = {
-            enable = lib.mkEnableOption ''
-              the `dart_code_linter` rule set for this project.
-
-              These rules come from an analyzer plugin that `dart analyze`
-              ignores, so they need a separate step, which the checks workflow
-              adds when this is enabled. The project has to carry the
-              `dart_code_linter` dev dependency for that step to resolve
-            '';
-
-            extraRules = lib.mkOption {
+        lib.types.submodule (
+          { config, ... }: {
+            options.linting.exclude = lib.mkOption {
               description = ''
-                Extra rules for this project, on top of the standard set. A
-                rule that takes configuration is a one-entry attribute set.
-
-                These belong here and not in the project's own
-                `analysis_options.yaml`, since the analyzer replaces the rule
-                list of an included file instead of merging it, and rules
-                spelled out there would silently drop ours.
-              '';
-
-              type = lib.types.listOf (lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything));
-              default = [ ];
-
-              example = lib.literalExpression ''
-                [
-                  {
-                    avoid-banned-imports.entries = [
-                      {
-                        paths = [ "features/.*\\.dart" ];
-                        deny = [ "services/implementations.*\\.dart" ];
-                        message = "Use the service API instead.";
-                      }
-                    ];
-                  }
-                ]
-              '';
-            };
-
-            disabledRules = lib.mkOption {
-              description = ''
-                Standard rules this project doesn't follow yet. We keep them in
-                one place instead of as overrides that read like decisions.
+                Extra paths the analyzer should not look at, on top of the
+                generated localisations. Use this for generated code, where a
+                finding isn't something anybody can act on.
               '';
 
               type = lib.types.listOf lib.types.str;
               default = [ ];
-              example = [ "member-ordering" ];
+              example = [ "lib/shared/l10n/*.dart" ];
             };
-          };
 
-          options.linting.riverpodLint.enable = lib.mkOption {
-            description = ''
-              Whether to load the `riverpod_lint` analyzer plugin for a Flutter
-              project.
+            options.linting.dartCodeLinter = {
+              enable = lib.mkEnableOption ''
+                the `dart_code_linter` rule set for this project.
 
-              We expect every Flutter project to reach Riverpod 3 eventually,
-              so this is on by default. Turn it off for a project that hasn't,
-              since the plugin's current release requires it and a plugin that
-              can't resolve fails every analysis.
-            '';
-            type = lib.types.bool;
-            default = true;
-          };
-        }
+                These rules come from an analyzer plugin that `dart analyze`
+                ignores, so they need a separate step, which the checks workflow
+                adds when this is enabled. The project has to carry the
+                `dart_code_linter` dev dependency for that step to resolve
+              '';
+
+              extraRules = lib.mkOption {
+                description = ''
+                  Extra rules for this project, on top of the standard set. A
+                  rule that takes configuration is a one-entry attribute set.
+
+                  These belong here and not in the project's own
+                  `analysis_options.yaml`, since the analyzer replaces the rule
+                  list of an included file instead of merging it, and rules
+                  spelled out there would silently drop ours.
+                '';
+
+                type = lib.types.listOf (lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything));
+                default = [ ];
+
+                example = lib.literalExpression ''
+                  [
+                    {
+                      avoid-banned-imports.entries = [
+                        {
+                          paths = [ "features/.*\\.dart" ];
+                          deny = [ "services/implementations.*\\.dart" ];
+                          message = "Use the service API instead.";
+                        }
+                      ];
+                    }
+                  ]
+                '';
+              };
+
+              disabledRules = lib.mkOption {
+                description = ''
+                  Standard rules this project doesn't follow yet. We keep them in
+                  one place instead of as overrides that read like decisions.
+                '';
+
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                example = [ "member-ordering" ];
+              };
+            };
+
+            options.linting.riverpodLint.enable = lib.mkOption {
+              description = ''
+                Whether to load the `riverpod_lint` analyzer plugin for a Flutter
+                project.
+
+                We expect every Flutter project to reach Riverpod 3 eventually,
+                so this is on by default. Turn it off for a project that hasn't,
+                since the plugin's current release requires it and a plugin that
+                can't resolve fails every analysis.
+              '';
+              type = lib.types.bool;
+              default = true;
+            };
+
+            options.linting.packages = lib.mkOption {
+              description = ''
+                The dev dependencies the generated lint configuration needs, as
+                version constraints keyed by package.
+
+                Derived, because three things have to agree on it and used to
+                each carry their own copy: the note that tells the project what
+                to depend on, the `dependency_validator` ignore list, and the
+                hook that holds the project's manifest against this.
+              '';
+
+              readOnly = true;
+
+              type = lib.types.attrsOf (
+                lib.types.submodule {
+                  options = {
+                    constraint = lib.mkOption {
+                      description = "Version constraint the project has to declare.";
+                      type = lib.types.str;
+                    };
+
+                    excused = lib.mkOption {
+                      description = ''
+                        Whether `dependency_validator` has to be told this
+                        package is used.
+
+                        A linter is referenced from `analysis_options.yaml`
+                        rather than from Dart code, so the tool sees it declared
+                        and never imported — unless it ships an executable,
+                        which the tool takes as evidence enough.
+                      '';
+                      type = lib.types.bool;
+                      default = true;
+                    };
+                  };
+                }
+              );
+            };
+
+            config.linting.packages =
+              (
+                if config.flutter then
+                  {
+                    flutter_lints.constraint = constraints.flutter_lints;
+                  }
+                  // lib.optionalAttrs config.linting.riverpodLint.enable {
+                    riverpod_lint.constraint = constraints.riverpod_lint;
+                  }
+                else
+                  { lints.constraint = constraints.lints; }
+              )
+              // lib.optionalAttrs config.linting.dartCodeLinter.enable {
+                dart_code_linter = {
+                  constraint = constraints.dart_code_linter;
+                  excused = false;
+                };
+              };
+          }
+        )
       );
     };
   });
@@ -98,10 +169,6 @@
       inherit (standardsLib) directory;
 
       inherit (config.famedly.standards.dart) projects;
-
-      # Kept in one place, so that the version the analyzer loads and the one
-      # projects are told to depend on can't drift apart.
-      riverpodLint = "^3.1.3";
 
       # Taken from `famedly_dart_lints` and `famedly_flutter_lints` in
       # famedly/frontend-ci-templates, which kept the two sets in sync by hand.
@@ -210,23 +277,19 @@
         }
         // lib.optionalAttrs (flutter && projectConfig.linting.riverpodLint.enable) {
           # A modern plugin, so it is resolved here rather than through
-          # `analyzer.plugins`.
-          plugins.riverpod_lint = riverpodLint;
+          # `analyzer.plugins`. Read from the same place the project is told
+          # to depend on, so the analyzer can't load a version the manifest
+          # doesn't allow.
+          plugins.riverpod_lint = projectConfig.linting.packages.riverpod_lint.constraint;
         }
         // lib.optionalAttrs cfg.enable { dart_code_linter.rules = pluginRules; };
 
       mkOptionsFile =
         projectConfig:
         let
-          dependencies =
-            (
-              if projectConfig.flutter then
-                [ "flutter_lints: ^6.0.0" ]
-                ++ lib.optional projectConfig.linting.riverpodLint.enable "riverpod_lint: ${riverpodLint}"
-              else
-                [ "lints: ^6.1.0" ]
-            )
-            ++ lib.optional projectConfig.linting.dartCodeLinter.enable "dart_code_linter: ^4.1.2";
+          dependencies = lib.mapAttrsToList (
+            package: settings: "${package}: ${settings.constraint}"
+          ) projectConfig.linting.packages;
         in
         standardsLib.managedFile {
           inherit pkgs;

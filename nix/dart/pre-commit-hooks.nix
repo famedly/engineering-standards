@@ -51,6 +51,57 @@
         '';
       };
 
+      # The managed lint configuration references packages the project has to
+      # resolve itself. A constraint that is missing or too old surfaces as an
+      # analysis error about a plugin, which reads as the analyzer's problem
+      # rather than the manifest's — and a rule set that fails to load is
+      # silently no rule set at all.
+      lint-packages = pkgs.writeShellApplication {
+        name = "dart-lint-packages";
+        runtimeInputs = [ pkgs.yq-go ];
+
+        text = ''
+          status=0
+
+          check() {
+            pubspec="$1"
+            package="$2"
+            wanted="$3"
+
+            # A manifest is YAML, so a YAML parser reads it. A regex would
+            # answer for a package named in a comment or under the wrong
+            # section.
+            found="$(PACKAGE="$package" yq -r '.dev_dependencies[strenv(PACKAGE)] // ""' "$pubspec")"
+
+            if [ -z "$found" ]; then
+              printf 'error: %s declares no dev dependency on %s.\n' "$pubspec" "$package"
+            elif [ "$found" != "$wanted" ]; then
+              printf 'error: %s constrains %s to %s, but the managed lints need %s.\n' \
+                "$pubspec" "$package" "$found" "$wanted"
+            else
+              return 0
+            fi
+
+            printf '       analysis_options.standards.yaml is generated against that version.\n'
+            printf '       Either declare it, or change what the flake asks of this project.\n\n'
+            status=1
+          }
+
+          ${lib.concatLines (
+            lib.concatLists (
+              lib.mapAttrsToList (
+                project: projectConfig:
+                lib.mapAttrsToList (
+                  package: settings:
+                  "check ${lib.escapeShellArg "${directory project}pubspec.yaml"} ${package} ${lib.escapeShellArg settings.constraint}"
+                ) projectConfig.linting.packages
+              ) projects
+            )
+          )}
+          exit "$status"
+        '';
+      };
+
       # Code behind `//` stops being compiled, so it stops being updated and
       # turns into a claim that isn't true anymore. Git still has it if
       # anyone wants it back.
@@ -130,6 +181,7 @@
       prek-pre-commit = {
         package.runtimePkgs = [
           commented-out-code
+          lint-packages
           lints-included
         ]
         ++ lib.optional usesVodozemac vodozemac-version;
@@ -140,6 +192,8 @@
 
             hooks = [
               (hook lints-included "Ensure the managed Dart lints are actually included")
+
+              (hook lint-packages "Ensure the projects declare the lint packages the managed configuration needs")
 
               # This one gets the commit's files, which keeps it cheap on a
               # large repository.

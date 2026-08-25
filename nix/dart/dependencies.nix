@@ -62,16 +62,13 @@
       mkConfigFile =
         projectConfig:
         let
-          # This mirrors linting.nix. A linter we stop mandating has to stop
-          # being excused here too, or the excuse outlives it.
-          linters =
-            if projectConfig.flutter then
-              [ "flutter_lints" ] ++ lib.optional projectConfig.linting.riverpodLint.enable "riverpod_lint"
-            else
-              [ "lints" ];
+          # Every linter we mandate that the tool cannot see being used. The
+          # set is declared in linting.nix, so a linter we stop mandating
+          # stops being excused here without anyone having to remember.
+          linters = lib.attrNames (
+            lib.filterAttrs (_: settings: settings.excused) projectConfig.linting.packages
+          );
 
-          # We leave out `dart_code_linter` on purpose, since it ships an
-          # executable and the tool takes that as evidence enough of use.
           settings.ignore = lib.unique (linters ++ projectConfig.checks.dependencies.ignore);
         in
         standardsLib.managedFile {
