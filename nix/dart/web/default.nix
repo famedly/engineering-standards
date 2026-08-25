@@ -162,7 +162,7 @@
                   so a step here reads and writes `outputPath` as the build
                   did.
                 '';
-                type = lib.types.listOf lib.types.attrs;
+                type = lib.types.listOf (lib.types.attrsOf lib.types.anything);
                 default = [ ];
                 example = lib.literalExpression ''
                   [

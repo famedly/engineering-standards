@@ -20,8 +20,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-in
-rec {
+
   architectures = [
     "amd64"
     "arm64"
@@ -30,7 +29,8 @@ rec {
   # What `docker/metadata-action` derived for us before: `pr-<number>` for pull
   # requests, the branch or tag name otherwise.
   tag = "\${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}";
-
+in
+{
   # Where an image goes, given its options: a build off a pull request is a
   # nightly, one off `main` or a version tag a release.
   reference =

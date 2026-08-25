@@ -2,6 +2,10 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 { flake-parts-lib, lib, ... }: {
+  # These are flake modules. Saying so turns importing them into, say, a NixOS
+  # configuration into an error that names the mistake.
+  _class = "flake";
+
   imports = [
     ./dependencies.nix
     ./devshell.nix

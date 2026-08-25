@@ -39,7 +39,7 @@
                 spelled out there would silently drop ours.
               '';
 
-              type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
+              type = lib.types.listOf (lib.types.either lib.types.str (lib.types.attrsOf lib.types.anything));
               default = [ ];
 
               example = lib.literalExpression ''
