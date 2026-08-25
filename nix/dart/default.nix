@@ -3,16 +3,15 @@
 ## SPDX-License-Identifier: Apache-2.0
 { flake-parts-lib, lib, ... }: {
   imports = [
+    ./dependencies.nix
     ./devshell.nix
     ./formatting.nix
-    ./linting.nix
-    ./vodozemac
-
-    ./dependencies.nix
     ./image.nix
+    ./linting.nix
     ./pre-commit-hooks.nix
     ./runtime.nix
     ./toolchain.nix
+    ./vodozemac
     ./web
 
     ./workflows/checks.nix
