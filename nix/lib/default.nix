@@ -17,4 +17,6 @@
   script = import ./compose-script.nix { inherit lib; };
 
   managedFile = import ./managed-file.nix { inherit lib; };
+
+  imageWorkflow = import ./image-workflow.nix { inherit lib; };
 }

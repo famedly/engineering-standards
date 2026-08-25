@@ -8,18 +8,14 @@
   ...
 }:
 let
-  allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
   inherit (standardsLib) directory inProject suffix;
+
+  imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
   # One workflow per project, so anything that has to distinguish them keys off
   # this. `github.workflow` cannot: it holds the display name.
   workflowId = project: "dart-image${suffix project}";
-
-  architectures = [
-    "amd64"
-    "arm64"
-  ];
 in
 {
   perSystem =
@@ -29,29 +25,10 @@ in
         _: project: project.image.enable
       ) config.famedly.standards.dart.projects;
 
-      # Building the image from nixpkgs means the artefacts and their libraries
-      # share a glibc, so the arch-specific jobs run natively rather than
-      # cross-compiling.
       mkWorkflow =
         project: projectConfig:
         let
           cfg = projectConfig.image;
-
-          gated = [ "build" ] ++ lib.optional (cfg.gate != null) "gate";
-
-          registry = "\${{ github.event_name == 'pull_request' && '${cfg.nightlyRegistry}' || '${cfg.releaseRegistry}' }}";
-
-          # What `docker/metadata-action` derived for us before: `pr-<number>`
-          # for pull requests, the branch or tag name otherwise.
-          tag = "\${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}";
-
-          reference = "${registry}/${cfg.name}";
-
-          arm64Runner =
-            if cfg.runners.arm64Release == cfg.runners.arm64 then
-              "'${cfg.runners.arm64}'"
-            else
-              "(github.event_name == 'push' && '${cfg.runners.arm64Release}' || '${cfg.runners.arm64}')";
         in
         {
           name = "Build and push the container image${
@@ -78,15 +55,8 @@ in
           };
 
           jobs = {
-            build = {
-              strategy = {
-                failFast = false;
-                matrix.architecture = architectures;
-              };
-
-              runsOn = "\${{ matrix.architecture == 'arm64' && ${arm64Runner} || '${cfg.runners.amd64}' }}";
-
-              timeoutMinutes = 30;
+            build = imageWorkflow.buildJob {
+              inherit (cfg) runners;
 
               steps =
                 steps.setup
@@ -101,29 +71,13 @@ in
                     '';
                   }
 
-                  {
-                    name = "Build the image";
-                    # `getAttr` rather than a dynamic attribute, so the
-                    # expression carries nothing that looks like a shell
-                    # variable to shellcheck.
-                    #
-                    # `--print-build-logs`, because without it a failure prints
-                    # only the path of a log that `nix log` would read — and the
-                    # runner that holds it is gone by the time anyone reads the
-                    # step.
-                    run = ''
-                      image="$(nix build --impure --no-link --print-build-logs --print-out-paths --expr '
-                        let
-                          flake = builtins.getFlake (toString ./.);
-                          images = builtins.getAttr builtins.currentSystem flake.dartImages;
-                        in images."${project}" {
-                          server = ./${directory project}${cfg.binary};
-                        }
-                      ')"
+                  (imageWorkflow.buildStep {
+                    inherit project;
 
-                      "$image" >image-''${{ matrix.architecture }}.tar
-                    '';
-                  }
+                    name = "Build the image";
+                    output = "dartImages";
+                    arguments = "server = ./${directory project}${cfg.binary};";
+                  })
                 ]
                 ++ lib.optional (cfg.healthPath != null) {
                   # The image is what ships, so it is what gets tested. A binary
@@ -156,47 +110,14 @@ in
                     test "$health" = healthy
                   '';
                 }
-                ++ [
-                  {
-                    uses = allowed-actions."actions/upload-artifact".uses;
-
-                    with_ = {
-                      name = "image-\${{ matrix.architecture }}";
-                      path = "image-\${{ matrix.architecture }}.tar";
-
-                      # The publishing job reads the archive out of this
-                      # artefact, and would push whatever it finds. Nothing is
-                      # not an image.
-                      if-no-files-found = "error";
-
-                      retention-days = 1;
-                    };
-                  }
-                ];
+                ++ [ imageWorkflow.uploadStep ];
             };
 
-            publish = {
-              if_ = "github.event_name != 'merge_group'";
-              needs = gated;
-              runsOn = "ubuntu-latest";
-
-              timeoutMinutes = 20;
-
-              # `id-token`, because cosign signs with this workflow's identity
-              # rather than with a key. `contents`, only where there is a
-              # release to attach the documents to.
-              permissions = {
-                contents = if config.famedly.standards.release.enable then "write" else "read";
-                id-token = "write";
-              };
-
-              steps =
-                steps.setup
-                ++ steps.publishImages {
-                  inherit architectures reference tag;
-                  lockfile = "${directory project}pubspec.lock";
-                  release = config.famedly.standards.release.enable;
-                };
+            publish = imageWorkflow.publishJob {
+              needs = [ "build" ] ++ lib.optional (cfg.gate != null) "gate";
+              reference = imageWorkflow.reference cfg;
+              lockfile = "${directory project}pubspec.lock";
+              release = config.famedly.standards.release.enable;
             };
           }
           // lib.optionalAttrs (cfg.gate != null) {

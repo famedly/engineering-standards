@@ -12,10 +12,7 @@ let
   inherit (config.famedly.standards.ci) steps;
   inherit (standardsLib) directory script suffix;
 
-  architectures = [
-    "amd64"
-    "arm64"
-  ];
+  imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 in
 {
   perSystem =
@@ -31,29 +28,16 @@ in
           cfg = projectConfig.web.image;
 
           container = "smoke-web${suffix project}";
-
-          registry = "\${{ github.event_name == 'pull_request' && '${cfg.nightlyRegistry}' || '${cfg.releaseRegistry}' }}";
-
-          # What `docker/metadata-action` derived for us before: `pr-<number>`
-          # for pull requests, the branch or tag name otherwise.
-          tag = "\${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}";
         in
         {
           # Only the server in the image is architecture-specific — the site
           # itself is bytes either way, and was built once in `build`. So these
           # jobs assemble rather than build, and run natively only because the
           # server they wrap has to match the platform it is pushed as.
-          image = {
+          image = imageWorkflow.buildJob {
+            inherit (cfg) runners;
+
             needs = [ "build" ];
-
-            strategy = {
-              failFast = false;
-              matrix.architecture = architectures;
-            };
-
-            runsOn = "\${{ matrix.architecture == 'arm64' && '${cfg.runners.arm64}' || '${cfg.runners.amd64}' }}";
-
-            timeoutMinutes = 30;
 
             steps = steps.setup ++ [
               {
@@ -65,31 +49,20 @@ in
                 };
               }
 
-              {
+              (imageWorkflow.buildStep {
+                inherit project;
+
                 name = "Assemble the image";
-                # `getAttr` rather than a dynamic attribute, so the expression
-                # carries nothing that looks like a shell variable.
-                #
-                # `--print-build-logs`, because without it a failure prints only
-                # the path of a log that `nix log` would read — and the runner
-                # that holds it is gone by the time anyone reads the step.
-                run = ''
-                  image="$(nix build --impure --no-link --print-build-logs --print-out-paths --expr '
-                    let
-                      flake = builtins.getFlake (toString ./.);
-                      images = builtins.getAttr builtins.currentSystem flake.dartWebImages;
-                    in images."${project}" {
-                      site = ./site;
+                output = "dartWebImages";
 
-                      source = "''${{ github.server_url }}/''${{ github.repository }}";
-                      revision = "''${{ github.sha }}";
-                      version = "''${{ github.ref_name }}";
-                    }
-                  ')"
+                arguments = ''
+                  site = ./site;
 
-                  "$image" >image-''${{ matrix.architecture }}.tar
+                  source = "''${{ github.server_url }}/''${{ github.repository }}";
+                  revision = "''${{ github.sha }}";
+                  version = "''${{ github.ref_name }}";
                 '';
-              }
+              })
 
               {
                 # The image is what ships, so it is what gets tested — a server
@@ -171,46 +144,15 @@ in
                 );
               }
 
-              {
-                uses = allowed-actions."actions/upload-artifact".uses;
-
-                with_ = {
-                  name = "image-\${{ matrix.architecture }}";
-                  path = "image-\${{ matrix.architecture }}.tar";
-
-                  # The publishing job reads the archive out of this artefact,
-                  # and would push whatever it finds. Nothing is not an image.
-                  if-no-files-found = "error";
-
-                  retention-days = 1;
-                };
-              }
+              imageWorkflow.uploadStep
             ];
           };
 
-          publish = {
-            if_ = "github.event_name != 'merge_group'";
+          publish = imageWorkflow.publishJob {
             needs = [ "image" ];
-            runsOn = "ubuntu-latest";
-
-            timeoutMinutes = 20;
-
-            # `id-token`, because cosign signs with this workflow's identity
-            # rather than with a key. `contents`, only where there is a
-            # release to attach the documents to.
-            permissions = {
-              contents = if config.famedly.standards.release.enable then "write" else "read";
-              id-token = "write";
-            };
-
-            steps =
-              steps.setup
-              ++ steps.publishImages {
-                inherit architectures tag;
-                reference = "${registry}/${cfg.name}";
-                lockfile = "${directory project}pubspec.lock";
-                release = config.famedly.standards.release.enable;
-              };
+            reference = imageWorkflow.reference cfg;
+            lockfile = "${directory project}pubspec.lock";
+            release = config.famedly.standards.release.enable;
           };
         };
     in
