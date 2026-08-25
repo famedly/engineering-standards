@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  flake-parts-lib,
   standardsLib,
   ...
 }:
@@ -23,107 +22,7 @@ let
   ];
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule (
-            { config, ... }: {
-              options.image = {
-                enable = lib.mkEnableOption "building and pushing a container image for this project";
-
-                entrypoint = lib.mkOption {
-                  description = ''
-                    The Dart entrypoint to compile into the image.
-                  '';
-                  type = lib.types.str;
-                  default = "bin/server.dart";
-                };
-
-                binary = lib.mkOption {
-                  description = ''
-                    Name the entrypoint is compiled to, and the name it gets
-                    inside the image.
-                  '';
-                  type = lib.types.str;
-                  default = "server";
-                };
-
-                name = lib.mkOption {
-                  description = ''
-                    Name of the image to push, without the registry.
-                  '';
-                  type = lib.types.str;
-                  example = "famedly-headless";
-                };
-
-                nightlyRegistry = lib.mkOption {
-                  description = ''
-                    Registry that images built from pull requests are pushed to.
-                  '';
-                  type = lib.types.str;
-                  default = "registry.famedly.net/docker-nightly";
-                };
-
-                releaseRegistry = lib.mkOption {
-                  description = ''
-                    Registry that images built from `main` and version tags are
-                    pushed to.
-                  '';
-                  type = lib.types.str;
-                  default = "registry.famedly.net/docker-releases";
-                };
-
-                gate = lib.mkOption {
-                  description = ''
-                    A workflow that has to pass before the image is pushed, for
-                    test suites that are too project-specific to live in the
-                    standards. Called with `secrets: inherit`.
-                  '';
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  example = "./.github/workflows/test.yaml";
-                };
-
-                runners = {
-                  amd64 = lib.mkOption {
-                    description = "Runner that builds the amd64 image.";
-                    type = lib.types.str;
-                    default = "ubuntu-latest";
-                  };
-
-                  arm64 = lib.mkOption {
-                    description = ''
-                      Runner that builds the arm64 image.
-
-                      The eight-core alternative costs 2.8 times as much per
-                      minute and measured 1.16 times faster here, since half
-                      the wait is fetching and unpacking. Name it here for a
-                      project whose build really is compilation throughout.
-                    '';
-                    type = lib.types.str;
-                    default = "ubuntu-24.04-arm";
-                  };
-
-                  arm64Release = lib.mkOption {
-                    description = ''
-                      Runner that builds the arm64 release image, for projects
-                      that want to spend more on it than on nightlies.
-                    '';
-                    type = lib.types.str;
-                    default = config.image.runners.arm64;
-                    defaultText = "config.image.runners.arm64";
-                  };
-                };
-              };
-            }
-          )
-        );
-      };
-    }
-  );
-
-  config.perSystem =
+  perSystem =
     { config, ... }:
     let
       projects = lib.filterAttrs (

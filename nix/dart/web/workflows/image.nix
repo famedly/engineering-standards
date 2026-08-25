@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  flake-parts-lib,
   standardsLib,
   ...
 }:
@@ -19,88 +18,7 @@ let
   ];
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.image = {
-              enable = lib.mkEnableOption "building and pushing a container image that serves this web target";
-
-              name = lib.mkOption {
-                description = ''
-                  Name of the image to push, without the registry.
-                '';
-                type = lib.types.str;
-                example = "famedly-control-client";
-              };
-
-              nightlyRegistry = lib.mkOption {
-                description = ''
-                  Registry that images built from pull requests are pushed to.
-                '';
-                type = lib.types.str;
-                default = "registry.famedly.net/docker-nightly";
-              };
-
-              releaseRegistry = lib.mkOption {
-                description = ''
-                  Registry that images built from `main` and version tags are
-                  pushed to.
-                '';
-                type = lib.types.str;
-                default = "registry.famedly.net/docker-releases";
-              };
-
-              contentTypes = lib.mkOption {
-                description = ''
-                  Content types the image is expected to serve, keyed by file
-                  extension.
-
-                  Checked against the site's own files, because these are the
-                  headers a browser refuses to work with rather than merely
-                  renders differently: it will not execute a module script that
-                  is not typed as JavaScript, nor instantiate a WebAssembly
-                  module that is not typed as such. Serving them wrong takes the
-                  whole application down, and does so only in the browser, where
-                  no build step is watching.
-
-                  Extensions the site has no file for are skipped.
-                '';
-                type = lib.types.attrsOf lib.types.str;
-                default = {
-                  mjs = "application/javascript";
-                  wasm = "application/wasm";
-                };
-              };
-
-              runners = {
-                amd64 = lib.mkOption {
-                  description = "Runner that assembles the amd64 image.";
-                  type = lib.types.str;
-                  default = "ubuntu-latest";
-                };
-
-                arm64 = lib.mkOption {
-                  description = ''
-                    Runner that assembles the arm64 image.
-
-                    The standard one, for the reasons given at
-                    `image.runners.arm64`. Less to weigh here, since only the
-                    server in this image is architecture-specific.
-                  '';
-                  type = lib.types.str;
-                  default = "ubuntu-24.04-arm";
-                };
-              };
-            };
-          }
-        );
-      };
-    }
-  );
-
-  config.perSystem =
+  perSystem =
     { config, ... }:
     let
       projects = lib.filterAttrs (
