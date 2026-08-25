@@ -58,5 +58,14 @@
 
         inherit (rust-bin.stable.latest.default) passthru;
       };
+
+      # For CI, you do not want to use the `famedly-rust-toolchain`, since
+      # it contains a lot of rust documentation and other stuff which isn't
+      # strictly necessary for building your project, and which inflates
+      # the size of your closure.
+      #
+      # Having too large a project closure results in your CI slowing down.
+      packages.famedly-rust-build-toolchain = rust-bin.stable.latest.minimal;
+
     };
 }
