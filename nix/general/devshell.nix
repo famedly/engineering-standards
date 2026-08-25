@@ -8,7 +8,7 @@
   ...
 }:
 importingFlake: {
-  config.perSystem = { config, pkgs, ... }: {
+  perSystem = { config, pkgs, ... }: {
     # Plain `nix develop` should land in the standards shell; repositories that
     # want something else can still define their own default.
     devShells.default = lib.mkDefault config.devShells.standards;

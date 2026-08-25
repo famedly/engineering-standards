@@ -13,61 +13,59 @@ let
   inherit (standardsLib) script;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.reviewApp = {
-              enable = lib.mkEnableOption "deploying this site for review while a pull request is open";
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.reviewApp = {
+            enable = lib.mkEnableOption "deploying this site for review while a pull request is open";
 
-              projectName = lib.mkOption {
-                description = ''
-                  Name the review app is addressed by, used both in its
-                  hostname and in its directory on the review server.
-                '';
-                type = lib.types.str;
-                example = "famedly-control";
-              };
-
-              environment = lib.mkOption {
-                description = ''
-                  GitHub environment the deployments are recorded in.
-
-                  Cleaning up after closed pull requests keys off this, so a
-                  repository that shares a server with others still only ever
-                  removes its own review apps.
-                '';
-                type = lib.types.str;
-                default = "review";
-              };
-
-              server = lib.mkOption {
-                description = ''
-                  Host that serves the review apps, and the domain their
-                  hostnames are formed under.
-                '';
-                type = lib.types.str;
-                default = "web-review.famedly.de";
-              };
-
-              user = lib.mkOption {
-                description = "User to reach the review server as.";
-                type = lib.types.str;
-                default = "web-review";
-              };
-
-              root = lib.mkOption {
-                description = "Directory the review server serves from.";
-                type = lib.types.strMatching "/.+";
-                default = "/opt/web-review/web";
-              };
+            projectName = lib.mkOption {
+              description = ''
+                Name the review app is addressed by, used both in its
+                hostname and in its directory on the review server.
+              '';
+              type = lib.types.str;
+              example = "famedly-control";
             };
-          }
-        );
-      };
-    }
-  );
+
+            environment = lib.mkOption {
+              description = ''
+                GitHub environment the deployments are recorded in.
+
+                Cleaning up after closed pull requests keys off this, so a
+                repository that shares a server with others still only ever
+                removes its own review apps.
+              '';
+              type = lib.types.str;
+              default = "review";
+            };
+
+            server = lib.mkOption {
+              description = ''
+                Host that serves the review apps, and the domain their
+                hostnames are formed under.
+              '';
+              type = lib.types.str;
+              default = "web-review.famedly.de";
+            };
+
+            user = lib.mkOption {
+              description = "User to reach the review server as.";
+              type = lib.types.str;
+              default = "web-review";
+            };
+
+            root = lib.mkOption {
+              description = "Directory the review server serves from.";
+              type = lib.types.strMatching "/.+";
+              default = "/opt/web-review/web";
+            };
+          };
+        }
+      );
+    };
+  });
 
   config.perSystem =
     { config, ... }:

@@ -9,27 +9,25 @@
 # CI and a developer's shell run the same script, so an asset that misbehaves
 # in the browser can be reproduced outside CI.
 { lib, flake-parts-lib, ... }: {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.livekitE2eeWorker.enable = lib.mkEnableOption ''
-              compiling LiveKit's end-to-end encryption worker into `web/`.
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.livekitE2eeWorker.enable = lib.mkEnableOption ''
+            compiling LiveKit's end-to-end encryption worker into `web/`.
 
-              `dart_webrtc` starts it by name from the site root, and without
-              it a call joins but carries no media. Compiled from the
-              `livekit_client` the project already resolved, so it needs no pin
-              of its own.
+            `dart_webrtc` starts it by name from the site root, and without
+            it a call joins but carries no media. Compiled from the
+            `livekit_client` the project already resolved, so it needs no pin
+            of its own.
 
-              Leaves `web/e2ee.worker.dart.js`, which the project's
-              `.gitignore` has to cover
-            '';
-          }
-        );
-      };
-    }
-  );
+            Leaves `web/e2ee.worker.dart.js`, which the project's
+            `.gitignore` has to cover
+          '';
+        }
+      );
+    };
+  });
 
   config.perSystem =
     {

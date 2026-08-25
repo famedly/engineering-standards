@@ -12,7 +12,7 @@ let
   inherit (standardsLib) inProject;
 in
 {
-  config.perSystem =
+  perSystem =
     { config, ... }:
     let
       projects = config.famedly.standards.dart.projects;

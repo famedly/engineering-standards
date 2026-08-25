@@ -2,7 +2,7 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 {
-  config.perSystem =
+  perSystem =
     { config, lib, ... }:
     # The Dart SDK is a hefty download, so only pull it in for repositories
     # that actually contain Dart code.

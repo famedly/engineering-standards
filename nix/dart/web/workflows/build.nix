@@ -13,7 +13,7 @@ let
   inherit (standardsLib) directory inProject suffix;
 in
 {
-  config.perSystem =
+  perSystem =
     { config, ... }:
     let
       projects = lib.filterAttrs (_: project: project.web.enable) config.famedly.standards.dart.projects;

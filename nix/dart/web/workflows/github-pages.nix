@@ -11,35 +11,33 @@ let
   allowed-actions = config.famedly.standards.allowed-action-versions;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.githubPages = {
-              enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.githubPages = {
+            enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
 
-              baseHref = lib.mkOption {
-                description = ''
-                  Path the site is served under on Pages, or `null` to leave the
-                  entry document alone.
+            baseHref = lib.mkOption {
+              description = ''
+                Path the site is served under on Pages, or `null` to leave the
+                entry document alone.
 
-                  A project site lives under the repository's name rather than
-                  at the domain root, so a site built for the root resolves all
-                  of its own assets one directory too high. Rewriting the base
-                  here rather than building a second time is what keeps Pages
-                  serving the same bytes as every other destination.
-                '';
-                type = lib.types.nullOr (lib.types.strMatching "/.*/");
-                default = null;
-                example = "/famedly-control/";
-              };
+                A project site lives under the repository's name rather than
+                at the domain root, so a site built for the root resolves all
+                of its own assets one directory too high. Rewriting the base
+                here rather than building a second time is what keeps Pages
+                serving the same bytes as every other destination.
+              '';
+              type = lib.types.nullOr (lib.types.strMatching "/.*/");
+              default = null;
+              example = "/famedly-control/";
             };
-          }
-        );
-      };
-    }
-  );
+          };
+        }
+      );
+    };
+  });
 
   config.perSystem =
     { config, ... }:

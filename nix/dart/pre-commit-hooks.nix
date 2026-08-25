@@ -2,7 +2,7 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 { lib, ... }: {
-  config.perSystem =
+  perSystem =
     {
       config,
       pkgs,

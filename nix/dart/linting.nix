@@ -283,7 +283,7 @@
         }
       ];
     in
-    lib.mkIf (projects != { }) {
+    {
       filegen.settings.files = lib.concatLists (lib.mapAttrsToList mkProjectFiles projects);
     };
 }

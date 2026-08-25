@@ -2,7 +2,7 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 {
-  config.perSystem = { config, pkgs, ... }: {
+  perSystem = { config, pkgs, ... }: {
     prek-pre-commit = {
       package.runtimePkgs = [ pkgs.reuse ];
       workspaces.".".repos = [

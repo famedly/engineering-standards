@@ -12,31 +12,29 @@ let
   inherit (config.famedly.standards.ci) steps;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.release = {
-        enable = lib.mkEnableOption ''
-          publishing a GitHub release for every version tag
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.release = {
+      enable = lib.mkEnableOption ''
+        publishing a GitHub release for every version tag
 
-          A tag says a version exists; the release says what changed in it
+        A tag says a version exists; the release says what changed in it
+      '';
+
+      changelog = lib.mkOption {
+        description = ''
+          File the release notes are taken from.
+
+          The section whose heading names the version is used, whichever
+          heading level it is written at. A file that is missing or says
+          nothing about this version falls back to GitHub's summary of the
+          commits, since by then the tag is already pushed.
         '';
 
-        changelog = lib.mkOption {
-          description = ''
-            File the release notes are taken from.
-
-            The section whose heading names the version is used, whichever
-            heading level it is written at. A file that is missing or says
-            nothing about this version falls back to GitHub's summary of the
-            commits, since by then the tag is already pushed.
-          '';
-
-          type = lib.types.str;
-          default = "CHANGELOG.md";
-        };
+        type = lib.types.str;
+        default = "CHANGELOG.md";
       };
-    }
-  );
+    };
+  });
 
   config.perSystem =
     { config, ... }:
