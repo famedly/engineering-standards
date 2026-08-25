@@ -1,0 +1,6 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
+# Stands in for whatever a project asks the image to carry.
+fixture: true
