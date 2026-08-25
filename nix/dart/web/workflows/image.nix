@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory script suffix;
+  inherit (standardsLib) directory suffix;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 in
@@ -30,20 +30,6 @@ in
           container = "smoke-web${suffix project}";
 
           serve = ''
-            docker load <image-''${{ matrix.architecture }}.tar
-
-            # Runners are reused and a container outlives a cancelled job, so
-            # one cancellation would fail every later run.
-            docker rm --force ${container} 2>/dev/null || true
-
-            # An ephemeral port, so that concurrent jobs can't collide.
-            docker run --detach --name ${container} \
-            	--publish 127.0.0.1::${toString cfg.port} \
-            	${cfg.name}:latest
-
-            # This keeps a failure below diagnosable however the step ends.
-            trap 'docker logs ${container}; docker rm --force ${container} >/dev/null' EXIT
-
             base="http://$(docker port ${container} ${toString cfg.port}/tcp | head -1)"
 
             for _ in $(seq 30); do
@@ -116,21 +102,30 @@ in
 
                 name = "Assemble the image";
                 output = "dartWebImages";
-                arguments = "site = ./site;";
+
+                artefact = {
+                  name = "site";
+                  path = "site";
+                };
               })
 
-              {
-                # The image is what ships, so it is what we test. It fetches
-                # the site's real files, so a missing entry document fails
-                # here too.
+              (imageWorkflow.smokeTest {
+                # It fetches the site's real files, so a missing entry
+                # document fails here too.
                 name = "Smoke test the image";
 
-                run = script (
-                  [ serve ]
-                  ++ lib.mapAttrsToList checkHeader cfg.sentHeaders
-                  ++ lib.mapAttrsToList checkContentType cfg.contentTypes
-                );
-              }
+                inherit container;
+                image = cfg.name;
+
+                # An ephemeral port, so that concurrent jobs can't collide.
+                options = [ "--publish 127.0.0.1::${toString cfg.port}" ];
+
+                checks = [
+                  serve
+                ]
+                ++ lib.mapAttrsToList checkHeader cfg.sentHeaders
+                ++ lib.mapAttrsToList checkContentType cfg.contentTypes;
+              })
 
               imageWorkflow.uploadStep
             ];

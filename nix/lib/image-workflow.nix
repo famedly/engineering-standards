@@ -4,8 +4,8 @@
 
 # What every workflow of ours that ships a container image does the same way:
 # which architectures it publishes for, where an image goes depending on what
-# triggered the run, how one is built out of the flake, and the job that pushes
-# what was built.
+# triggered the run, how one is built out of the flake, how it is run and asked
+# whether it came up, and the job that pushes what was built.
 #
 # The two Dart image workflows each carried their own copy of all of it, down
 # to the comments — and the copies had begun to differ in wording where they did
@@ -21,6 +21,8 @@ let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
 
+  script = import ./compose-script.nix { inherit lib; };
+
   architectures = [
     "amd64"
     "arm64"
@@ -29,8 +31,21 @@ let
   # What `docker/metadata-action` derived for us before: `pr-<number>` for pull
   # requests, the branch or tag name otherwise.
   tag = "\${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || github.ref_name }}";
+
+  # The expression the build step evaluates. It is generated into the
+  # repository rather than assembled into the step, so that it is a Nix file
+  # nixfmt formats and a reader can open, instead of Nix source built up line
+  # by line inside a shell string inside a YAML document.
+  #
+  # `nix/dart/workflows/build-image.nix` is what puts it there.
+  buildImage = {
+    target = ".github/build-image.nix";
+    source = ./files/build-image.nix;
+  };
 in
 {
+  inherit buildImage;
+
   # Where an image goes, given its options: a build off a pull request is a
   # nightly, one off `main` or a version tag a release.
   reference =
@@ -73,51 +88,83 @@ in
       timeoutMinutes = 30;
     };
 
-  # `arguments` is the artefact CI just produced, as Nix source. What the run
-  # knows about where the image came from is added here rather than asked of
-  # every caller, so that no image of ours ships unlabelled.
+  # `artefact` is what the run just produced: `name` is the argument the image
+  # takes it as, `path` where in the checkout it was left.
   buildStep =
     {
       name,
       output,
       project,
-      arguments,
+      artefact,
     }:
     {
       inherit name;
 
-      # `getAttr` rather than a dynamic attribute, so the expression carries
-      # nothing that looks like a shell variable to shellcheck.
-      #
+      # The expression reads these rather than being written around them,
+      # which is why it can be a file instead of a string.
+      env = {
+        IMAGE_OUTPUT = output;
+        IMAGE_PROJECT = project;
+
+        IMAGE_ARTEFACT = artefact.name;
+        IMAGE_PATH = artefact.path;
+
+        IMAGE_SOURCE = "\${{ github.server_url }}/\${{ github.repository }}";
+        IMAGE_REVISION = "\${{ github.sha }}";
+        IMAGE_VERSION = "\${{ github.ref_name }}";
+      };
+
       # `--print-build-logs`, because without it a failure prints only the path
       # of a log that `nix log` would read — and the runner that holds it is
       # gone by the time anyone reads the step.
       run = ''
-        image="$(nix build --impure --no-link --print-build-logs --print-out-paths --expr '
-      ''
-      + lib.concatLines (
-        [
-          "  let"
-          "    flake = builtins.getFlake (toString ./.);"
-          "    images = builtins.getAttr builtins.currentSystem flake.${output};"
-          "  in images.\"${project}\" {"
-        ]
-        ++ map (line: lib.optionalString (line != "") "    ${line}") (
-          lib.splitString "\n" (lib.removeSuffix "\n" arguments)
-        )
-        ++ [
-          ""
-          "    source = \"\${{ github.server_url }}/\${{ github.repository }}\";"
-          "    revision = \"\${{ github.sha }}\";"
-          "    version = \"\${{ github.ref_name }}\";"
-          "  }"
-        ]
-      )
-      + ''
-        ')"
+        image="$(nix build --impure --no-link --print-build-logs --print-out-paths \
+        	--file ${buildImage.target})"
 
         "$image" >image-''${{ matrix.architecture }}.tar
       '';
+    };
+
+  # The image is what ships, so it is what we test: something that runs on the
+  # runner but not in the image used to ship unnoticed.
+  #
+  # What the two image workflows ask of a running container differs — one polls
+  # the healthcheck, the other fetches pages — but the lifecycle around the
+  # question does not, and it is the part that is easy to get subtly wrong.
+  #
+  # `container` has to name the project. A repository with two of them
+  # generates two of these workflows, which can be on the same runner at the
+  # same time, and a shared name would have each tear down the other's run.
+  smokeTest =
+    {
+      name,
+      container,
+      image,
+      options ? [ ],
+      checks,
+    }:
+    {
+      inherit name;
+
+      run = script (
+        [
+          ''
+            docker load <image-''${{ matrix.architecture }}.tar
+
+            # Runners are reused and a container outlives a cancelled job, so
+            # one cancellation would fail every later run.
+            docker rm --force ${container} 2>/dev/null || true
+
+            docker run --detach --name ${container} \
+            	${lib.concatStringsSep " \\\n\t" (options ++ [ "${image}:latest" ])}
+
+            # Set before the first check, so that a failure is diagnosable and
+            # the container is gone however the step ends.
+            trap 'docker logs ${container}; docker rm --force ${container} >/dev/null' EXIT
+          ''
+        ]
+        ++ checks
+      );
     };
 
   uploadStep = {

@@ -28,6 +28,8 @@ in
         project: projectConfig:
         let
           cfg = projectConfig.image;
+
+          container = "smoke${suffix project}";
         in
         {
           name = "Build and push the container image${
@@ -74,36 +76,37 @@ in
 
                     name = "Build the image";
                     output = "dartImages";
-                    arguments = "server = ./${directory project}${cfg.binary};";
+
+                    artefact = {
+                      name = "server";
+                      path = "${directory project}${cfg.binary}";
+                    };
                   })
                 ]
-                ++ lib.optional (cfg.healthPath != null) {
-                  # The image is what ships, so it is what we test. A binary
-                  # that runs on the runner but not in the image used to ship
-                  # unnoticed. We poll the image's own healthcheck rather than
-                  # the endpoint, which verifies the healthcheck too.
-                  name = "Smoke test the image";
-                  run = ''
-                    docker load <image-''${{ matrix.architecture }}.tar
+                ++ lib.optional (cfg.healthPath != null) (
+                  imageWorkflow.smokeTest {
+                    name = "Smoke test the image";
 
-                    # Runners are reused and a container outlives a cancelled
-                    # job, so one cancellation would fail every later run.
-                    docker rm --force smoke 2>/dev/null || true
+                    inherit container;
+                    image = cfg.name;
 
-                    docker run --detach --name smoke --health-interval 2s ${cfg.name}:latest
+                    # We poll the image's own healthcheck rather than the
+                    # endpoint, which verifies the healthcheck too.
+                    options = [ "--health-interval 2s" ];
 
-                    for _ in $(seq 30); do
-                      health="$(docker inspect --format '{{.State.Health.Status}}' smoke)"
-                      test "$health" = starting || break
-                      sleep 2
-                    done
+                    checks = [
+                      ''
+                        for _ in $(seq 30); do
+                          health="$(docker inspect --format '{{.State.Health.Status}}' ${container})"
+                          test "$health" = starting || break
+                          sleep 2
+                        done
 
-                    docker logs smoke
-                    docker rm --force smoke
-
-                    test "$health" = healthy
-                  '';
-                }
+                        test "$health" = healthy
+                      ''
+                    ];
+                  }
+                )
                 ++ [ imageWorkflow.uploadStep ];
             };
 

@@ -18,6 +18,7 @@
     ./vodozemac
     ./web
 
+    ./workflows/build-image.nix
     ./workflows/checks.nix
     ./workflows/image.nix
     ./workflows/pre-commit.nix
