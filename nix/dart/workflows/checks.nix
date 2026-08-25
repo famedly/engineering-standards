@@ -212,6 +212,66 @@ in
             # otherwise a release changes what CI checks between two runs of
             # the same commit.
             activate = tool: version: "dart pub global activate ${tool} '${version}'";
+
+            # What every step below is: a command run in the project's
+            # directory, with the toolchain of the devshell.
+            check = name: run: {
+              inherit name;
+              shell = steps.devshell;
+              run = inProject project run;
+            };
+
+            # The two that need no toolchain, and so no devshell.
+            lockfile = {
+              # Resolution just ran, so a lockfile that moved means the
+              # committed one was not what the manifest asks for.
+              name = "Check that the lockfile is up to date";
+
+              run = inProject project ''
+                # A library leaves its lockfile untracked on purpose: it
+                # resolves against whatever the application above it picks.
+                if git check-ignore -q pubspec.lock; then
+                  exit 0
+                fi
+
+                # Nothing to compare against, and resolution just wrote one.
+                if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
+                  echo '::error::pubspec.lock is not committed — run `${cli} pub get` and commit it.'
+                  exit 1
+                fi
+
+                if ! git diff --quiet -- pubspec.lock; then
+                  git diff -- pubspec.lock
+
+                  echo '::error::pubspec.lock is out of date — run `${cli} pub get` and commit it.'
+                  exit 1
+                fi
+              '';
+            };
+
+            coverageReport = {
+              # Codecov's own error says little about why the file is missing.
+              name = "Check that the tests produced a coverage report";
+
+              run = inProject project ''
+                if ! test -s ${cfg.coverage.file}; then
+                  echo '::error::${cfg.coverage.file} is missing or empty — does the test command ask for coverage?'
+                  exit 1
+                fi
+              '';
+            };
+
+            codecov = {
+              name = "Upload the coverage to Codecov";
+              uses = allowed-actions."codecov/codecov-action".uses;
+
+              with_ = {
+                files = "${directory project}${cfg.coverage.file}";
+                fail_ci_if_error = true;
+                token = "\${{ secrets.CODECOV_TOKEN }}";
+              }
+              // lib.optionalAttrs (cfg.coverage.flags != null) { inherit (cfg.coverage) flags; };
+            };
           in
           lib.nameValuePair "checks${suffix project}" {
             runsOn = "ubuntu-latest";
@@ -222,86 +282,41 @@ in
               steps.setup
               ++ lib.optionals cfg.privateDependencies steps.privateDependencies
               ++ [
-                {
-                  name = "Resolve dependencies";
-                  shell = steps.devshell;
-                  # `--no-example`: a bundled example app needs whatever it
-                  # needs, and nothing here looks at it.
-                  run = inProject project "${cli} pub get --no-example";
-                }
-
-                {
-                  # Resolution just ran, so a lockfile that moved means the
-                  # committed one was not what the manifest asks for.
-                  name = "Check that the lockfile is up to date";
-
-                  run = inProject project ''
-                    # A library leaves its lockfile untracked on purpose: it
-                    # resolves against whatever the application above it picks.
-                    if git check-ignore -q pubspec.lock; then
-                      exit 0
-                    fi
-
-                    # Nothing to compare against, and resolution just wrote one.
-                    if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
-                      echo '::error::pubspec.lock is not committed — run `${cli} pub get` and commit it.'
-                      exit 1
-                    fi
-
-                    if ! git diff --quiet -- pubspec.lock; then
-                      git diff -- pubspec.lock
-
-                      echo '::error::pubspec.lock is out of date — run `${cli} pub get` and commit it.'
-                      exit 1
-                    fi
-                  '';
-                }
+                # `--no-example`: a bundled example app needs whatever it
+                # needs, and nothing here looks at it.
+                (check "Resolve dependencies" "${cli} pub get --no-example")
+                lockfile
               ]
-              ++ lib.optional cfg.analyze {
-                name = "Analyze";
-                shell = steps.devshell;
-                run = inProject project "${cli} analyze";
-              }
-              ++ lib.optional projectConfig.linting.dartCodeLinter.enable {
-                # `dart analyze` does not see the plugin's findings, so without
-                # this step the rules only ever apply in an editor. `lib`,
-                # because the repository root drags in vendored code.
-                name = "Lint";
-                shell = steps.devshell;
-                run = inProject project "dart run dart_code_linter:metrics analyze lib --reporter=github";
-              }
-              ++ lib.optional cfg.unused.files {
-                # Dead, or meant to be wired up and never was. `dart analyze`
-                # reports neither.
-                name = "Check for unused files";
-                shell = steps.devshell;
+              ++ lib.optional cfg.analyze (check "Analyze" "${cli} analyze")
 
-                run = inProject project "dart run dart_code_linter:metrics check-unused-files lib${unusedExclude}";
-              }
-              ++ lib.optional cfg.unused.code {
-                name = "Check for unused code";
-                shell = steps.devshell;
+              # `dart analyze` does not see the plugin's findings, so without
+              # this step the rules only ever apply in an editor. `lib`,
+              # because the repository root drags in vendored code.
+              ++ lib.optional projectConfig.linting.dartCodeLinter.enable (
+                check "Lint" "dart run dart_code_linter:metrics analyze lib --reporter=github"
+              )
 
-                run = inProject project "dart run dart_code_linter:metrics check-unused-code lib${unusedExclude}";
-              }
-              ++ lib.optional cfg.dependencies.enable {
-                name = "Check the declared dependencies";
-                shell = steps.devshell;
-
-                run = inProject project ''
+              # Dead, or meant to be wired up and never was. `dart analyze`
+              # reports neither.
+              ++ lib.optional cfg.unused.files (
+                check "Check for unused files" "dart run dart_code_linter:metrics check-unused-files lib${unusedExclude}"
+              )
+              ++ lib.optional cfg.unused.code (
+                check "Check for unused code" "dart run dart_code_linter:metrics check-unused-code lib${unusedExclude}"
+              )
+              ++ lib.optional cfg.dependencies.enable (
+                check "Check the declared dependencies" ''
                   ${activate "dependency_validator" cfg.dependencies.version}
 
                   dart pub global run dependency_validator
-                '';
-              }
-              ++ lib.optional cfg.translations.enable {
-                name = "Check the translations";
-                shell = steps.devshell;
+                ''
+              )
 
-                # Sorting keeps two branches from appending a key at the same
-                # place and conflicting. There is no check-only mode, so the
-                # sort runs and the question is whether it changed anything.
-                run = inProject project ''
+              # Sorting keeps two branches from appending a key at the same
+              # place and conflicting. There is no check-only mode, so the sort
+              # runs and the question is whether it changed anything.
+              ++ lib.optional cfg.translations.enable (
+                check "Check the translations" ''
                   ${activate "sweeper" cfg.translations.version}
 
                   dart pub global run sweeper check
@@ -314,50 +329,23 @@ in
                     echo '::error::ARB files are not sorted — run `dart pub global run sweeper sort` and commit the result.'
                     exit 1
                   fi
-                '';
-              }
-              ++ lib.optional cfg.licenses.enable {
-                # `--problematic`: a licence the policy neither allows nor
-                # rejects is unreviewed, not fine.
-                name = "Check the dependency licences";
-                shell = steps.devshell;
+                ''
+              )
 
-                run = inProject project ''
+              # `--problematic`: a licence the policy neither allows nor
+              # rejects is unreviewed, not fine.
+              ++ lib.optional cfg.licenses.enable (
+                check "Check the dependency licences" ''
                   ${activate "license_checker" cfg.licenses.version}
 
                   dart pub global run license_checker \
                   	-c ${cfg.licenses.config} check-licenses --problematic
-                '';
-              }
-              ++ lib.optional (cfg.testCommand != null) {
-                name = "Test";
-                shell = steps.devshell;
-                run = inProject project cfg.testCommand;
-              }
+                ''
+              )
+              ++ lib.optional (cfg.testCommand != null) (check "Test" cfg.testCommand)
               ++ lib.optionals cfg.coverage.enable [
-                {
-                  # Codecov's own error says little about why the file is
-                  # missing.
-                  name = "Check that the tests produced a coverage report";
-                  run = inProject project ''
-                    if ! test -s ${cfg.coverage.file}; then
-                      echo '::error::${cfg.coverage.file} is missing or empty — does the test command ask for coverage?'
-                      exit 1
-                    fi
-                  '';
-                }
-
-                {
-                  name = "Upload the coverage to Codecov";
-                  uses = allowed-actions."codecov/codecov-action".uses;
-
-                  with_ = {
-                    files = "${directory project}${cfg.coverage.file}";
-                    fail_ci_if_error = true;
-                    token = "\${{ secrets.CODECOV_TOKEN }}";
-                  }
-                  // lib.optionalAttrs (cfg.coverage.flags != null) { inherit (cfg.coverage) flags; };
-                }
+                coverageReport
+                codecov
               ];
           }
         ) projects;
