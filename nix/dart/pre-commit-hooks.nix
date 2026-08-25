@@ -13,7 +13,7 @@
     let
       inherit (standardsLib) directory;
 
-      projects = config.famedly.standards.dart.projects;
+      inherit (config.famedly.standards.dart) projects;
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
 

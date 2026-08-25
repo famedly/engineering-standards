@@ -15,7 +15,7 @@ in
   perSystem =
     { config, ... }:
     let
-      projects = config.famedly.standards.dart.projects;
+      inherit (config.famedly.standards.dart) projects;
     in
     lib.mkIf (projects != { }) {
       # `dart format` takes the language version from the resolved package

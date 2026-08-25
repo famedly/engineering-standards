@@ -42,7 +42,7 @@
 
       # There is one devshell per repository, so we merge the projects'
       # environments together.
-      environment = lib.foldl' (all: project: all // project.runtime.env) { } projects;
+      environment = lib.mergeAttrsList (map (project: project.runtime.env) projects);
     in
     lib.mkIf (projects != [ ]) {
       devshells.standards.env =

@@ -30,7 +30,7 @@
       '';
       default = { };
 
-      example = ''
+      example = lib.literalExpression ''
         {
           "." = { };
           "./app" = { flutter = true; };

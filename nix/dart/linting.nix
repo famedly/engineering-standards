@@ -97,7 +97,7 @@
     let
       inherit (standardsLib) directory;
 
-      projects = config.famedly.standards.dart.projects;
+      inherit (config.famedly.standards.dart) projects;
 
       # Kept in one place, so that the version the analyzer loads and the one
       # projects are told to depend on can't drift apart.
@@ -172,7 +172,24 @@
         projectConfig:
         let
           inherit (projectConfig) flutter;
-          dartCodeLinter = projectConfig.linting.dartCodeLinter.enable;
+          cfg = projectConfig.linting.dartCodeLinter;
+
+          # The standard set for this kind of project, minus the rules it
+          # doesn't follow yet, plus its own.
+          pluginRules =
+            let
+              standard =
+                dartCodeLinterRules ++ (if flutter then dartCodeLinterFlutterRules else dartCodeLinterDartRules);
+
+              stale = lib.subtractLists (map ruleName standard) cfg.disabledRules;
+            in
+            assert lib.assertMsg (stale == [ ]) ''
+              famedly.standards.dart.projects: disabledRules names ${lib.concatStringsSep ", " stale}, which the standard rule set does not contain.
+            '';
+            # We remove a disabled rule instead of restating it as
+            # `rule: false`, which would list it twice and leave the outcome
+            # to reading order.
+            lib.filter (rule: !lib.elem (ruleName rule) cfg.disabledRules) standard ++ cfg.extraRules;
         in
         {
           # `flutter_lints` includes `lints/recommended.yaml` itself.
@@ -189,32 +206,14 @@
 
             exclude = [ "lib/l10n/*.dart" ] ++ projectConfig.linting.exclude;
           }
-          // lib.optionalAttrs dartCodeLinter { plugins = [ "dart_code_linter" ]; };
+          // lib.optionalAttrs cfg.enable { plugins = [ "dart_code_linter" ]; };
         }
         // lib.optionalAttrs (flutter && projectConfig.linting.riverpodLint.enable) {
           # A modern plugin, so it is resolved here rather than through
           # `analyzer.plugins`.
           plugins.riverpod_lint = riverpodLint;
         }
-        // lib.optionalAttrs dartCodeLinter {
-          dart_code_linter.rules =
-            let
-              disabled = projectConfig.linting.dartCodeLinter.disabledRules;
-
-              standard =
-                dartCodeLinterRules ++ (if flutter then dartCodeLinterFlutterRules else dartCodeLinterDartRules);
-
-              stale = lib.subtractLists (map ruleName standard) disabled;
-            in
-            assert lib.assertMsg (stale == [ ]) ''
-              famedly.standards.dart.projects: disabledRules names ${lib.concatStringsSep ", " stale}, which the standard rule set does not contain.
-            '';
-            # We remove the rule instead of restating it as `rule: false`,
-            # which would list it twice and leave the outcome to reading
-            # order.
-            lib.filter (rule: !lib.elem (ruleName rule) disabled) standard
-            ++ projectConfig.linting.dartCodeLinter.extraRules;
-        };
+        // lib.optionalAttrs cfg.enable { dart_code_linter.rules = pluginRules; };
 
       mkOptionsFile =
         projectConfig:

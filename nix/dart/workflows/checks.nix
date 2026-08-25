@@ -171,7 +171,7 @@ in
   config.perSystem =
     { config, ... }:
     let
-      projects = config.famedly.standards.dart.projects;
+      inherit (config.famedly.standards.dart) projects;
     in
     lib.mkIf (projects != { }) {
       githubActions.workflows.dart-checks = {
