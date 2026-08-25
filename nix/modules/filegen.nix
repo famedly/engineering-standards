@@ -35,6 +35,13 @@ in
             '';
             default = [ ];
 
+            # The list is merged from every module that contributes a file, so
+            # its order is the order the modules happened to be imported in.
+            # Sorting it means a module being moved, or an import being written
+            # differently, no longer rewrites `.gitattributes` and the
+            # formatter's exclude list in every repository downstream.
+            apply = lib.sortOn (file: file.target);
+
             type = types.listOf (
               types.submodule (
                 { config, ... }: {
