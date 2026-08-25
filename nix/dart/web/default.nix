@@ -10,11 +10,7 @@
 # is built are each stated once. The destinations are jobs of one workflow
 # because artefacts are shared within a run and not across them, which is what
 # makes all three ship the very bytes that were built and tested.
-{ flake-parts-lib, ... }:
-let
-  identity = import ./identity.nix;
-in
-{
+{ flake-parts-lib, ... }: {
   imports = [
     ./assets.nix
     ./image.nix
@@ -26,11 +22,11 @@ in
   ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
+    { lib, standardsLib, ... }: {
       options.famedly.standards.dart.projects = lib.mkOption {
         type = lib.types.attrsOf (
           lib.types.submodule (
-            { config, ... }: {
+            { config, name, ... }: {
               options.web = {
                 enable = lib.mkEnableOption ''
                   building this project's web target and shipping it
@@ -113,6 +109,43 @@ in
                   readOnly = true;
                 };
 
+                workflowId = lib.mkOption {
+                  description = ''
+                    Id of the workflow that builds this web target and ships
+                    it. Not an option to set: the build job and every
+                    destination job have to agree on it, and a rename would
+                    break the wiring silently.
+                  '';
+                  type = lib.types.str;
+                  readOnly = true;
+                };
+
+                artifact = lib.mkOption {
+                  description = ''
+                    Name of the artefact the build job leaves the site in, and
+                    that every destination job reads it back from. Derived for
+                    the same reason as `workflowId`.
+                  '';
+                  type = lib.types.str;
+                  readOnly = true;
+                };
+
+                identity = lib.mkOption {
+                  description = ''
+                    What a build calls itself. The same two values reach the
+                    application, as dart-defines, and Sentry, as the release
+                    and the distribution it files reports under — a report can
+                    only be read against the sources it came from if both agree
+                    on which build that was.
+
+                    Command substitutions rather than a step that exports them,
+                    so that the build command the flake prints reproduces a CI
+                    build by hand.
+                  '';
+                  type = lib.types.attrsOf lib.types.str;
+                  readOnly = true;
+                };
+
                 outputPath = lib.mkOption {
                   description = ''
                     Where `flutter build web` writes the site, relative to the
@@ -157,6 +190,19 @@ in
               config.web = {
                 version.enable = lib.mkDefault config.web.sentry.enable;
 
+                workflowId = "dart-web${standardsLib.suffix name}";
+                artifact = "web${standardsLib.suffix name}";
+
+                identity = {
+                  # `--long` even on a tag, so that every build reads the same
+                  # way and a version in a bug report can be compared to
+                  # another without knowing which of the two happened to be a
+                  # release.
+                  version = "$(git describe --tags --long --always)";
+
+                  commit = "$(git rev-parse HEAD)";
+                };
+
                 buildCommand = lib.concatStringsSep " " (
                   [
                     "flutter build web"
@@ -165,8 +211,8 @@ in
                   ++ lib.optional config.web.wasm "--wasm"
                   ++ lib.optional (!config.web.webResourcesCdn) "--no-web-resources-cdn"
                   ++ lib.optionals config.web.version.enable [
-                    ''--dart-define=version="${identity.version}"''
-                    ''--dart-define=commit="${identity.commit}"''
+                    ''--dart-define=version="${config.web.identity.version}"''
+                    ''--dart-define=commit="${config.web.identity.commit}"''
                   ]
                   # The compiler drops the maps unless asked, and the plugin has
                   # nothing to upload without them.

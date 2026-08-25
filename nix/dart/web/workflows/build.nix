@@ -11,9 +11,6 @@ let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
   inherit (standardsLib) directory inProject suffix;
-  inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
-
-  identity = import ../identity.nix;
 in
 {
   config.perSystem =
@@ -49,7 +46,7 @@ in
           on.mergeGroup = { };
 
           concurrency = {
-            group = "${workflowId project}-\${{ github.ref }}";
+            group = "${projectConfig.web.workflowId}-\${{ github.ref }}";
             cancelInProgress = true;
           };
 
@@ -96,8 +93,8 @@ in
                   # leaves everything else, command substitutions included, as
                   # the characters they are.
                   run = inProject project ''
-                    SENTRY_RELEASE="${identity.version}" \
-                    	SENTRY_DIST="${identity.commit}" \
+                    SENTRY_RELEASE="${projectConfig.web.identity.version}" \
+                    	SENTRY_DIST="${projectConfig.web.identity.commit}" \
                     	dart run sentry_dart_plugin
                   '';
                 }
@@ -123,7 +120,7 @@ in
                   uses = allowed-actions."actions/upload-artifact".uses;
 
                   with_ = {
-                    name = artifact project;
+                    name = projectConfig.web.artifact;
 
                     # A single directory is uploaded without its own prefix, so
                     # the artefact holds the site at its root.
@@ -143,7 +140,8 @@ in
     in
     {
       githubActions.workflows = lib.mapAttrs' (
-        project: projectConfig: lib.nameValuePair (workflowId project) (mkWorkflow project projectConfig)
+        project: projectConfig:
+        lib.nameValuePair projectConfig.web.workflowId (mkWorkflow project projectConfig)
       ) projects;
     };
 }

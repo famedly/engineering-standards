@@ -12,7 +12,6 @@ let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
   inherit (standardsLib) directory script suffix;
-  inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 
   architectures = [
     "amd64"
@@ -143,7 +142,7 @@ in
                 uses = allowed-actions."actions/download-artifact".uses;
 
                 with_ = {
-                  name = artifact project;
+                  name = projectConfig.web.artifact;
                   path = "site";
                 };
               }
@@ -300,7 +299,7 @@ in
     {
       githubActions.workflows = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair (workflowId project) { jobs = mkJobs project projectConfig; }
+        lib.nameValuePair projectConfig.web.workflowId { jobs = mkJobs project projectConfig; }
       ) projects;
     };
 }

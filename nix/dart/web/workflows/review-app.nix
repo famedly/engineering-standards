@@ -11,7 +11,6 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (standardsLib) script;
-  inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -115,7 +114,7 @@ in
               uses = allowed-actions."actions/download-artifact".uses;
 
               with_ = {
-                name = artifact project;
+                name = projectConfig.web.artifact;
                 path = "site";
               };
             }
@@ -278,7 +277,7 @@ in
     {
       githubActions.workflows = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair (workflowId project) { jobs = mkJobs project projectConfig; }
+        lib.nameValuePair projectConfig.web.workflowId { jobs = mkJobs project projectConfig; }
       ) projects;
     };
 }
