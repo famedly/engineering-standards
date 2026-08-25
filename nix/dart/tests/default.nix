@@ -3,7 +3,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 # The Dart standards evaluate almost entirely inside `config.perSystem`, and
-# this repository configures no Dart project of its own — so nothing here ever
+# this repository configures no Dart project of its own, so nothing here ever
 # ran any of it until a downstream repository did. This evaluates the standards
 # against a fixture repository the way a downstream flake would, and collects
 # everything they generate into one directory.
@@ -26,7 +26,7 @@
     let
       # The fixture is a flake in its own right, so that `self'` inside the
       # standards resolves to the fixture's packages rather than to this
-      # repository's — which is the whole difference between evaluating the
+      # repository's. That is the whole difference between evaluating the
       # modules and evaluating how a project uses them.
       evaluated =
         inputs.flake-parts.lib.evalFlakeModule
