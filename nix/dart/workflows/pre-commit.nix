@@ -21,7 +21,7 @@ in
       # `dart format` takes the language version from the resolved package
       # config, and formats to the newest version it knows when there is none
       # to read. The style differs between versions, so a job that formats
-      # without resolving first disagrees with every editor in the repository —
+      # without resolving first disagrees with every editor in the repository
       # and reports the difference as the developer's fault.
       famedly.standards.ci.preCommit.setupSteps =
         lib.optionals (lib.any (project: project.checks.privateDependencies) (
@@ -31,8 +31,8 @@ in
           name = "Resolve dependencies${lib.optionalString (project != ".") " in ${project}"}";
           shell = steps.devshell;
 
-          # `--no-example`, as in the checks workflow: a bundled example app
-          # needs whatever it needs, and no hook looks at it.
+          # We pass `--no-example` as in the checks workflow, since a bundled
+          # example app needs whatever it needs and no hook looks at it.
           run = inProject project "${
             if projectConfig.flutter then "flutter" else "dart"
           } pub get --no-example";

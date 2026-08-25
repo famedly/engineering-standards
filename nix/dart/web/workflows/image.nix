@@ -36,12 +36,12 @@ in
             # one cancellation would fail every later run.
             docker rm --force ${container} 2>/dev/null || true
 
-            # An ephemeral port, so concurrent jobs cannot collide.
+            # An ephemeral port, so that concurrent jobs can't collide.
             docker run --detach --name ${container} \
             	--publish 127.0.0.1::${toString cfg.port} \
             	${cfg.name}:latest
 
-            # Keeps a failure below diagnosable however this ends.
+            # This keeps a failure below diagnosable however the step ends.
             trap 'docker logs ${container}; docker rm --force ${container} >/dev/null' EXIT
 
             base="http://$(docker port ${container} ${toString cfg.port}/tcp | head -1)"
@@ -51,11 +51,11 @@ in
               sleep 1
             done
 
-            # Again, so a server that never came up fails the step rather than
-            # only the loop.
+            # Again, so that a server which never came up fails the step and
+            # not just the loop.
             curl -fsS -o /dev/null "$base/index.html"
 
-            # What Kubernetes asks before it sends anyone here.
+            # This is what Kubernetes asks before it sends anyone here.
             curl -fsS -o /dev/null "$base/health"
 
             # Read once for the comparisons below.
@@ -94,8 +94,8 @@ in
           '';
         in
         {
-          # The site was built once in `build` and is bytes either way; only
-          # the server in the image has to match the platform it is pushed as.
+          # The site was built once in `build` and is just bytes. Only the
+          # server in the image has to match the platform it is pushed as.
           image = imageWorkflow.buildJob {
             inherit (cfg) runners;
 
@@ -120,9 +120,9 @@ in
               })
 
               {
-                # The image is what ships, so it is what gets tested. It
-                # fetches the site's real files, so a missing entry document
-                # fails here too.
+                # The image is what ships, so it is what we test. It fetches
+                # the site's real files, so a missing entry document fails
+                # here too.
                 name = "Smoke test the image";
 
                 run = script (

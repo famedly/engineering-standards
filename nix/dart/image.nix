@@ -2,9 +2,9 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Assembled from nixpkgs rather than from a distro base image: `dart compile
-# exe` copies the SDK's `dartaotruntime` into the binary, so it carries a nix
-# store loader that no distro image can resolve.
+# We assemble these from nixpkgs rather than from a distro base image, since
+# `dart compile exe` copies the SDK's `dartaotruntime` into the binary and it
+# therefore carries a nix store loader that no distro image can resolve.
 { lib, flake-parts-lib, ... }: {
   imports = [
     (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
@@ -22,8 +22,8 @@
       type = lib.types.attrsOf (
         lib.types.submodule (
           { config, ... }: {
-            # Both what goes into the image and what CI does with it: the
-            # workflow reads half of these too.
+            # This covers both what goes into the image and what CI does with
+            # it, since the workflow reads half of these options too.
             options.image = {
               enable = lib.mkEnableOption "building and pushing a container image for this project";
 
@@ -87,9 +87,9 @@
 
               writableDirs = lib.mkOption {
                 description = ''
-                  Absolute paths of directories created up front and handed to
-                  the service user, for state written before a volume is
-                  mounted over it.
+                  Absolute paths of directories to create up front and hand to
+                  the service user. Use this for state that is written before a
+                  volume is mounted over it.
                 '';
                 type = lib.types.listOf (lib.types.strMatching "/.+");
                 default = [ ];
@@ -134,8 +134,8 @@
               gate = lib.mkOption {
                 description = ''
                   A workflow that has to pass before the image is pushed, for
-                  tests too project-specific to live in the standards. Called
-                  with `secrets: inherit`.
+                  tests that are too project-specific to live in the standards.
+                  We call it with `secrets: inherit`.
                 '';
                 type = lib.types.nullOr lib.types.str;
                 default = null;
@@ -154,9 +154,9 @@
                     Runner that builds the arm64 image.
 
                     The eight-core alternative costs 2.8 times as much per
-                    minute and measured 1.16 times faster, since half the wait
-                    is fetching and unpacking. Worth naming for a project whose
-                    build really is compilation throughout.
+                    minute and measured only 1.16 times faster, because half
+                    the wait is fetching and unpacking. It is worth naming for
+                    a project whose build really is compilation throughout.
                   '';
                   type = lib.types.str;
                   default = "ubuntu-24.04-arm";
@@ -196,9 +196,10 @@
 
       mkImage =
         projectConfig:
-        # A function, because `dart pub get` needs credentials for our private
-        # repositories and so cannot run in a build sandbox. Everything but the
-        # binary is optional: a build by hand has no commit to name.
+        # This is a function because `dart pub get` needs credentials for our
+        # private repositories and can't run in a build sandbox. Everything
+        # except the binary is optional, since a build by hand has no commit
+        # to name.
         {
           server,
           source ? null,
@@ -212,17 +213,17 @@
 
           libraries = [ pkgs.glibc ] ++ projectConfig.runtime.libraries;
 
-          # Do not patchelf this. `dart compile exe` appends the AOT snapshot
+          # Don't patchelf this. `dart compile exe` appends the AOT snapshot
           # behind the end of the `dartaotruntime` ELF, and rewriting the ELF
-          # moves it out of reach — the binary then starts as a bare VM
-          # printing its usage. It needs no fixing either: it carries the
-          # loader of this nixpkgs, which is why builds run natively.
+          # moves it out of reach, so the binary then starts as a bare VM
+          # printing its usage. It doesn't need fixing anyway, since it
+          # carries the loader of this nixpkgs. That is why we build natively.
           binary = pkgs.runCommand "${cfg.binary}-image-binary" { } ''
             install -Dm555 ${server} $out/bin/${cfg.binary}
           '';
 
           files = pkgs.runCommand "${cfg.name}-files" { } (
-            # A project that places no files must still leave an output.
+            # A project that places no files still has to leave an output.
             ''
               mkdir -p "$out"
             ''
@@ -234,8 +235,9 @@
             )
           );
 
-          # Not `fakeNss`: it is not overridable here and knows only root and
-          # nobody. Without nsswitch.conf glibc resolves no hostnames.
+          # We don't use `fakeNss`, since it isn't overridable here and only
+          # knows root and nobody. Without an nsswitch.conf glibc resolves no
+          # hostnames at all.
           nss = pkgs.runCommand "${cfg.name}-nss" { } ''
             mkdir -p $out/etc
             cat >$out/etc/passwd <<'EOF'
@@ -253,7 +255,7 @@
           environment = {
             PATH = "/bin";
 
-            # As in the devshell: the binary has no RUNPATH for `dlopen`.
+            # Same as in the devshell, the binary has no RUNPATH for `dlopen`.
             LD_LIBRARY_PATH = lib.makeLibraryPath libraries;
           }
           // projectConfig.runtime.env;
@@ -269,8 +271,9 @@
           ]
           ++ lib.optional (cfg.healthPath != null) pkgs.curl;
 
-          # Under fakeroot, so directories can be handed to a user that exists
-          # only inside the image. Paths are relative to the image root.
+          # This runs under fakeroot, so that we can hand directories to a
+          # user which only exists inside the image. Paths are relative to
+          # the image root.
           fakeRootCommands = ''
             mkdir -p tmp
             chmod 1777 tmp

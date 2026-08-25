@@ -13,7 +13,7 @@ let
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
-  # `github.workflow` cannot serve here: it holds the display name.
+  # We can't use `github.workflow` for this, it holds the display name.
   workflowId = project: "dart-image${suffix project}";
 in
 {
@@ -34,7 +34,7 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
-          # The floor for every job here; the job that publishes raises it.
+          # The floor for every job here, the job that publishes raises it.
           permissions.contents = "read";
 
           on.pullRequest.branches = [ "**" ];
@@ -44,7 +44,7 @@ in
           };
 
           # A queue needs to see the build and the gate. Publishing skips
-          # itself there: the queue's ref would make a nonsense tag.
+          # itself there, since the queue's ref would make a nonsense tag.
           on.mergeGroup = { };
 
           concurrency = {
@@ -78,10 +78,10 @@ in
                   })
                 ]
                 ++ lib.optional (cfg.healthPath != null) {
-                  # The image is what ships, so it is what gets tested: a
-                  # binary that runs on the runner but not in the image used to
-                  # ship unnoticed. Polling the image's own healthcheck rather
-                  # than the endpoint verifies that too.
+                  # The image is what ships, so it is what we test. A binary
+                  # that runs on the runner but not in the image used to ship
+                  # unnoticed. We poll the image's own healthcheck rather than
+                  # the endpoint, which verifies the healthcheck too.
                   name = "Smoke test the image";
                   run = ''
                     docker load <image-''${{ matrix.architecture }}.tar

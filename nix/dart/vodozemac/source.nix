@@ -2,9 +2,9 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Named once for both targets: the native library and the WebAssembly module
-# are the same crate compiled twice, and a version that drifted between them
-# fails at the first call and not before.
+# We name this once for both targets, since the native library and the
+# WebAssembly module are the same crate compiled twice and a version that
+# drifted between them would fail at the first call and not before.
 {
   fetchFromGitHub,
   version,
@@ -26,7 +26,7 @@ in
 {
   inherit version src cargoHash;
 
-  # Only the crate is interesting to us.
+  # We only care about the crate.
   sourceRoot = "${src.name}/rust";
 
   meta = {

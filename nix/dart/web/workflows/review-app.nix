@@ -83,9 +83,9 @@ in
 
           qaAppName = "qa-${cfg.projectName}";
 
-          # No ssh-agent, which would not survive the step that starts it, and
-          # no `StrictHostKeyChecking no`, which would hand the key to whoever
-          # answers on that name.
+          # We use no ssh-agent, since it wouldn't survive the step that
+          # starts it, and no `StrictHostKeyChecking no`, which would hand the
+          # key to whoever answers on that name.
           authorise = ''
             install -d -m 700 ~/.ssh
             printf '%s\n' "$SSH_PRIVATE_KEY" >${identity}
@@ -98,7 +98,8 @@ in
 
           target = directory: "${cfg.user}@${cfg.server}:${cfg.root}/${directory}";
 
-          # `--delete`, so a file a build stopped producing stops being served.
+          # We pass `--delete`, so that a file a build stopped producing stops
+          # being served.
           deploy = directory: ''
             rsync -av --delete --rsh='${ssh}' site/ ${lib.escapeShellArg (target directory)}
           '';
@@ -184,13 +185,13 @@ in
           };
 
           cleanup-review-apps = {
-            # As above: Dependabot's requests have no access to the key.
+            # As above, Dependabot's requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
             runsOn = "ubuntu-latest";
 
             timeoutMinutes = 15;
 
-            # Retiring a deployment is a write, which the default token is not.
+            # Retiring a deployment is a write, and the default token is not.
             permissions = {
               deployments = "write";
               pull-requests = "read";
@@ -198,10 +199,10 @@ in
 
             steps = [
               {
-                # The server has no idea when a request closes. Done on every
-                # run rather than on `pull_request: closed`, which would not
-                # fire for a request closed while CI was disabled — and the
-                # directory would then stay forever.
+                # The server has no idea when a request closes. We do this on
+                # every run rather than on `pull_request: closed`, which
+                # wouldn't fire for a request closed while CI was disabled,
+                # and the directory would then stay forever.
                 name = "Remove the review apps of closed pull requests";
 
                 env = key // {
@@ -217,9 +218,9 @@ in
                     	--jq '.[].id' >deployments
 
                     while read -r deployment; do
-                    	# Read out of the published address, not the branch: a
-                    	# branch can carry a second request after the first
-                    	# closed, and the closed one would answer for it.
+                    	# We read this out of the published address rather than
+                    	# the branch, since a branch can carry a second request
+                    	# after the first closed.
                     	url="$(gh api \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		--jq 'map(.environment_url | select(. != null and . != "")) | .[0] // empty')"
@@ -230,8 +231,8 @@ in
                     	# The QA app, deployed from a tag, answers to no request.
                     	test -n "$pr" || continue
 
-                    	# An empty state — a vanished request, a hiccup in the
-                    	# API — is not an invitation to delete anything.
+                    	# An empty state, from a vanished request or a hiccup in
+                    	# the API, is not an invitation to delete anything.
                     	state="$(gh api "/repos/$GITHUB_REPOSITORY/pulls/$pr" \
                     		--jq '.state // empty' 2>/dev/null || true)"
 
@@ -243,7 +244,7 @@ in
                     		rm -rf "${cfg.root}/${cfg.projectName}-pr-$pr"
 
                     	# The deployment goes too, or the next run looks at it
-                    	# again — and it cannot be deleted while it is active.
+                    	# again, and it can't be deleted while it is active.
                     	gh api --method POST \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		-f state=inactive >/dev/null

@@ -29,10 +29,9 @@ in
               testCommand = lib.mkOption {
                 description = ''
                   The command that runs this project's tests in CI, or `null`
-                  to run none.
-
-                  Not defaulted to `dart test`: a suite that needs external
-                  services has to be wired up by the project itself.
+                  to run none. We don't default this to `dart test`, since a
+                  suite that needs external services has to be wired up by the
+                  project itself.
                 '';
                 type = lib.types.nullOr lib.types.str;
                 default = null;
@@ -41,9 +40,10 @@ in
 
               browser = lib.mkOption {
                 description = ''
-                  Whether this project's tests run in a browser, and therefore
-                  need one on `PATH`. Only makes the browser Flutter launches
-                  a pinned one; starting them is `testCommand`'s business.
+                  Whether this project's tests run in a browser and therefore
+                  need one on `PATH`. This only makes the browser Flutter
+                  launches a pinned one, actually starting the tests is up to
+                  `testCommand`.
                 '';
                 type = lib.types.bool;
                 default = false;
@@ -58,9 +58,10 @@ in
                     to the project.
 
                     Producing it is up to `testCommand`, which for Flutter
-                    means `--coverage`. CI insists on finding it rather than
-                    skipping the upload: a report that quietly stops being
-                    written is how coverage stops being measured.
+                    means passing `--coverage`. CI fails when the file is
+                    missing instead of skipping the upload, since a report
+                    that quietly stops being written is how coverage stops
+                    being measured.
                   '';
                   type = lib.types.str;
                   default = "coverage/lcov.info";
@@ -87,11 +88,10 @@ in
 
                 version = lib.mkOption {
                   description = ''
-                    Version of the `license_checker` tool CI installs.
-
-                    Installed globally rather than as a dev dependency: it
-                    resolves the whole of `pana` and would otherwise get a say
-                    in which analyzer the project may use.
+                    Version of the `license_checker` tool that CI installs.
+                    We install it globally rather than as a dev dependency,
+                    since it resolves the whole of `pana` and would otherwise
+                    get a say in which analyzer the project may use.
                   '';
                   type = lib.types.str;
                   default = "1.6.2";
@@ -117,11 +117,10 @@ in
 
                 exclude = lib.mkOption {
                   description = ''
-                    Globs the two checks above should not report on.
-
-                    Generated code and whatever `linting.exclude` names: a
-                    generator writes what its template says whether anything
-                    imports it or not, so a finding there is not actionable.
+                    Globs the two checks above should not report on. This
+                    covers generated code and whatever `linting.exclude`
+                    names, since a generator writes what its template says
+                    whether anything imports it or not.
                   '';
                   type = lib.types.listOf lib.types.str;
 
@@ -178,10 +177,11 @@ in
       githubActions.workflows.dart-checks = {
         name = "Dart checks";
 
-        # The floor for every job here, including one added later.
+        # The floor for every job here, including ones added later.
         permissions.contents = "read";
 
-        # Not on `push`: there the bounds of the commit series are unclear.
+        # We don't run on `push`, where the bounds of the commit series are
+        # unclear.
         on.pullRequest = {
           branches = [ "**" ];
           types = [
@@ -204,35 +204,35 @@ in
             cfg = projectConfig.checks;
 
             # `flutter analyze` resolves the framework packages the project
-            # builds against; `dart analyze` does not.
+            # builds against, `dart analyze` doesn't.
             cli = if projectConfig.flutter then "flutter" else "dart";
 
-            # Quoted, so the shell leaves the braces to the linter.
+            # Quoted, so that the shell leaves the braces to the linter.
             unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
               " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
             );
 
-            # No lockfile holds these tools, so the version is stated exactly:
-            # otherwise a release changes what CI checks between two runs of
+            # No lockfile holds these tools, so we state the version exactly.
+            # Otherwise a release changes what CI checks between two runs of
             # the same commit.
             activate = tool: version: "dart pub global activate ${tool} '${version}'";
 
-            # What every step below is: a command run in the project's
-            # directory, with the toolchain of the devshell.
+            # Every step below is a command run in the project's directory,
+            # with the toolchain from the devshell.
             check = name: run: {
               inherit name;
               shell = steps.devshell;
               run = inProject project run;
             };
 
-            # The two that need no toolchain, and so no devshell.
+            # These two need no toolchain, and therefore no devshell.
             lockfile = {
               # Resolution just ran, so a lockfile that moved means the
-              # committed one was not what the manifest asks for.
+              # committed one wasn't what the manifest asks for.
               name = "Check that the lockfile is up to date";
 
               run = inProject project ''
-                # A library leaves its lockfile untracked on purpose: it
+                # A library leaves its lockfile untracked on purpose, since it
                 # resolves against whatever the application above it picks.
                 if git check-ignore -q pubspec.lock; then
                   exit 0
@@ -286,22 +286,23 @@ in
               steps.setup
               ++ lib.optionals cfg.privateDependencies steps.privateDependencies
               ++ [
-                # `--no-example`: a bundled example app needs whatever it
-                # needs, and nothing here looks at it.
+                # We pass `--no-example`, since a bundled example app needs
+                # whatever it needs and nothing here looks at it.
                 (check "Resolve dependencies" "${cli} pub get --no-example")
                 lockfile
               ]
               ++ lib.optional cfg.analyze (check "Analyze" "${cli} analyze")
 
-              # `dart analyze` does not see the plugin's findings, so without
-              # this step the rules only ever apply in an editor. `lib`,
-              # because the repository root drags in vendored code.
+              # `dart analyze` doesn't see the plugin's findings, so without
+              # this step the rules would only ever apply in an editor. We
+              # point it at `lib`, since the repository root drags in
+              # vendored code.
               ++ lib.optional projectConfig.linting.dartCodeLinter.enable (
                 check "Lint" "dart run dart_code_linter:metrics analyze lib --reporter=github"
               )
 
-              # Dead, or meant to be wired up and never was. `dart analyze`
-              # reports neither.
+              # These find code that is either dead or was meant to be wired
+              # up and never was. `dart analyze` reports neither.
               ++ lib.optional cfg.unused.files (
                 check "Check for unused files" "dart run dart_code_linter:metrics check-unused-files lib${unusedExclude}"
               )
@@ -316,9 +317,9 @@ in
                 ''
               )
 
-              # Sorting keeps two branches from appending a key at the same
-              # place and conflicting. There is no check-only mode, so the sort
-              # runs and the question is whether it changed anything.
+              # Sorting keeps two branches from appending a key in the same
+              # place and conflicting. There is no check-only mode, so we run
+              # the sort and ask whether it changed anything.
               ++ lib.optional cfg.translations.enable (
                 check "Check the translations" ''
                   ${activate "sweeper" cfg.translations.version}
@@ -336,8 +337,8 @@ in
                 ''
               )
 
-              # `--problematic`: a licence the policy neither allows nor
-              # rejects is unreviewed, not fine.
+              # We pass `--problematic`, since a licence the policy neither
+              # allows nor rejects is unreviewed rather than fine.
               ++ lib.optional cfg.licenses.enable (
                 check "Check the dependency licences" ''
                   ${activate "license_checker" cfg.licenses.version}

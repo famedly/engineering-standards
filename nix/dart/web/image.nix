@@ -2,13 +2,14 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Assembled from nixpkgs, so everything in the image follows from the
-# repository's lockfile.
+# We assemble this from nixpkgs, so that everything in the image follows from
+# the repository's lockfile.
 #
-# `static-web-server` is one static binary and no configuration language, which
-# is all a container behind an ingress needs — TLS, routing and redirects happen
-# there. It also types `.mjs` and `.wasm` correctly on its own, which a Flutter
-# web build depends on and the nginx image it replaces had to be taught.
+# `static-web-server` is one static binary and no configuration language,
+# which is all a container behind an ingress needs, since TLS, routing and
+# redirects happen there. It also types `.mjs` and `.wasm` correctly on its
+# own, which a Flutter web build depends on and which the nginx image it
+# replaces had to be taught.
 { lib, flake-parts-lib, ... }: {
   imports = [
     (import ../../lib/image-output.nix { inherit lib flake-parts-lib; } {
@@ -26,8 +27,8 @@
       type = lib.types.attrsOf (
         lib.types.submodule (
           { config, ... }: {
-            # Both what goes into the image and what CI does with it: the
-            # workflow reads half of these too.
+            # This covers both what goes into the image and what CI does with
+            # it, since the workflow reads half of these options too.
             options.web.image = {
               enable = lib.mkEnableOption "building and pushing a container image that serves this web target";
 
@@ -53,10 +54,10 @@
                 description = ''
                   Whether to let the server send `Cache-Control` headers.
 
-                  Off, because its heuristic caches every file for a day,
-                  including the entry document — a browser would sit on
-                  yesterday's build for a day after a deployment. Validators
-                  are sent either way.
+                  This is off by default, since the server's heuristic caches
+                  every file for a day, including the entry document, and a
+                  browser would then sit on yesterday's build for a day after
+                  a deployment. Validators are sent either way.
 
                   Turn it on for a site whose file names are content-hashed
                   throughout.
@@ -69,9 +70,9 @@
                 description = ''
                   Headers the server sends with every response.
 
-                  No `Content-Security-Policy`: a policy that fits one
-                  application forbids another one's inline bootstrap, so it
-                  belongs to the project.
+                  We don't set a `Content-Security-Policy` here, since a
+                  policy that fits one application forbids another one's
+                  inline bootstrap. That one belongs to the project.
                 '';
 
                 type = lib.types.attrsOf lib.types.str;
@@ -82,7 +83,7 @@
                   Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
                   X-Frame-Options = "DENY";
 
-                  # Sent by the ingress as well; a mistake there should not
+                  # The ingress sends this too, but a mistake there shouldn't
                   # leave the door open.
                   Strict-Transport-Security = "max-age=63072000; includeSubDomains";
                 };
@@ -90,10 +91,10 @@
 
               sentHeaders = lib.mkOption {
                 description = ''
-                  What the server is configured with: `headers`, plus the
-                  isolation pair when `crossOriginIsolation` asks for it.
-                  Derived, so the image and the test that fetches from it
-                  cannot disagree.
+                  What the server is actually configured with, which is
+                  `headers` plus the isolation pair when
+                  `crossOriginIsolation` asks for it. We derive it so that the
+                  image and the test which fetches from it can't disagree.
                 '';
 
                 type = lib.types.attrsOf lib.types.str;
@@ -113,8 +114,9 @@
                 description = ''
                   Whether to ask the browser for cross-origin isolation.
 
-                  Off, because `Cross-Origin-Embedder-Policy` blocks every
-                  cross-origin resource that does not opt in — fonts, images,
+                  This is off by default, since
+                  `Cross-Origin-Embedder-Policy` blocks every cross-origin
+                  resource that doesn't opt in, such as fonts, images and
                   frames.
 
                   Turn it on for a Flutter web build with the threaded
@@ -145,12 +147,12 @@
                   Content types the image is expected to serve, keyed by file
                   extension, and checked against the site's own files.
 
-                  A browser will not execute a module script that is not typed
-                  as JavaScript, nor instantiate a WebAssembly module that is
-                  not typed as such, so serving these wrong takes the whole
+                  A browser won't execute a module script that isn't typed as
+                  JavaScript, and won't instantiate a WebAssembly module that
+                  isn't typed as such, so serving these wrong takes the whole
                   application down where no build step is watching.
 
-                  Extensions the site has no file for are skipped.
+                  We skip extensions the site has no file for.
                 '';
                 type = lib.types.attrsOf lib.types.str;
                 default = {
@@ -182,8 +184,9 @@
 
                 arm64 = lib.mkOption {
                   description = ''
-                    Runner that assembles the arm64 image. The standard one:
-                    only the server in this image is architecture-specific.
+                    Runner that assembles the arm64 image. The standard one is
+                    enough, since only the server in this image is
+                    architecture-specific.
                   '';
                   type = lib.types.str;
                   default = "ubuntu-24.04-arm";
@@ -210,10 +213,10 @@
 
       mkImage =
         projectConfig:
-        # A function, because building the site needs network access and
-        # credentials for our private repositories, neither of which a build
-        # sandbox has. Everything but the site is optional: a build by hand has
-        # no commit to name.
+        # This is a function because building the site needs network access
+        # and credentials for our private repositories, neither of which a
+        # build sandbox has. Everything except the site is optional, since a
+        # build by hand has no commit to name.
         {
           site,
           source ? null,
@@ -225,7 +228,7 @@
 
           server = pkgs.static-web-server;
 
-          # Relative: the commands below run at the image root.
+          # Relative, since the commands below run at the image root.
           root = lib.escapeShellArg (lib.removePrefix "/" cfg.documentRoot);
 
           settingsPath = "/etc/static-web-server.toml";
@@ -249,12 +252,13 @@
           inherit (cfg) name;
           tag = "latest";
 
-          # Copied in rather than handed to `contents`, which would symlink the
-          # store at the document root — and the server refuses a path that
-          # resolves outside `--root`, so it would serve nothing but 404s.
+          # We copy the site in rather than handing it to `contents`, which
+          # would symlink the store at the document root. The server refuses a
+          # path that resolves outside `--root`, so it would serve nothing but
+          # 404s.
           #
-          # Nothing else is in the image: no `/etc/passwd`, no CA bundle, no
-          # shell. The server looks up no user and opens no connection.
+          # Nothing else goes into the image: no `/etc/passwd`, no CA bundle,
+          # no shell. The server looks up no user and opens no connection.
           extraCommands = ''
             mkdir -p ${root} etc
             cp -r ${site}/. ${root}/
@@ -272,8 +276,8 @@
               "--root"
               cfg.documentRoot
 
-              # Not the server's own `::`: a container without an IPv6 stack
-              # fails to bind it, and our pods are addressed over IPv4.
+              # Not the server's own `::`, since a container without an IPv6
+              # stack fails to bind it and our pods are addressed over IPv4.
               "--host"
               "0.0.0.0"
 

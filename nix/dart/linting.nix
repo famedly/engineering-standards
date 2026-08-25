@@ -8,9 +8,9 @@
         lib.types.submodule {
           options.linting.exclude = lib.mkOption {
             description = ''
-              Further paths the analyzer should not look at, on top of the
-              generated localisations. For code a generator writes, where a
-              finding is not something anybody can act on.
+              Extra paths the analyzer should not look at, on top of the
+              generated localisations. Use this for generated code, where a
+              finding isn't something anybody can act on.
             '';
 
             type = lib.types.listOf lib.types.str;
@@ -22,22 +22,21 @@
             enable = lib.mkEnableOption ''
               the `dart_code_linter` rule set for this project.
 
-              Off by default, because these rules come from an analyzer plugin
-              that `dart analyze` ignores: they need a separate step, which the
-              checks workflow adds when this is enabled. The project has to
-              carry the `dart_code_linter` dev dependency for that step to
-              resolve
+              These rules come from an analyzer plugin that `dart analyze`
+              ignores, so they need a separate step, which the checks workflow
+              adds when this is enabled. The project has to carry the
+              `dart_code_linter` dev dependency for that step to resolve
             '';
 
             extraRules = lib.mkOption {
               description = ''
-                Further rules for this project, on top of the standard set. A
+                Extra rules for this project, on top of the standard set. A
                 rule that takes configuration is a one-entry attribute set.
 
-                They belong here rather than in the project's own
-                `analysis_options.yaml`, because the analyzer replaces rather
-                than merges the rule list of a file it includes — rules spelled
-                out there would silently drop the standards' own.
+                These belong here and not in the project's own
+                `analysis_options.yaml`, since the analyzer replaces the rule
+                list of an included file instead of merging it, and rules
+                spelled out there would silently drop ours.
               '';
 
               type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
@@ -60,8 +59,8 @@
 
             disabledRules = lib.mkOption {
               description = ''
-                Standard rules this project does not follow yet, kept in one
-                place rather than as overrides that read like decisions.
+                Standard rules this project doesn't follow yet. We keep them in
+                one place instead of as overrides that read like decisions.
               '';
 
               type = lib.types.listOf lib.types.str;
@@ -72,13 +71,13 @@
 
           options.linting.riverpodLint.enable = lib.mkOption {
             description = ''
-              Whether to load the `riverpod_lint` analyzer plugin for a
-              Flutter project.
+              Whether to load the `riverpod_lint` analyzer plugin for a Flutter
+              project.
 
-              On, since every Flutter project here is expected to reach
-              Riverpod 3 eventually. Turn it off for one that has not: the
-              plugin's current release requires it, and a plugin that cannot
-              resolve fails every analysis.
+              We expect every Flutter project to reach Riverpod 3 eventually,
+              so this is on by default. Turn it off for a project that hasn't,
+              since the plugin's current release requires it and a plugin that
+              can't resolve fails every analysis.
             '';
             type = lib.types.bool;
             default = true;
@@ -100,11 +99,11 @@
 
       projects = config.famedly.standards.dart.projects;
 
-      # One place, so the version the analyzer loads and the one projects are
-      # told to depend on cannot drift apart.
+      # Kept in one place, so that the version the analyzer loads and the one
+      # projects are told to depend on can't drift apart.
       riverpodLint = "^3.1.3";
 
-      # From `famedly_dart_lints` and `famedly_flutter_lints` in
+      # Taken from `famedly_dart_lints` and `famedly_flutter_lints` in
       # famedly/frontend-ci-templates, which kept the two sets in sync by hand.
       rules = [
         "avoid_print"
@@ -154,7 +153,8 @@
         "avoid-global-state"
       ];
 
-      # `late` is how widget state is usually initialized.
+      # Only for plain Dart, since `late` is how widget state is usually
+      # initialized.
       dartCodeLinterDartRules = [ "avoid-late-keyword" ];
 
       dartCodeLinterFlutterRules = [
@@ -192,7 +192,8 @@
           // lib.optionalAttrs dartCodeLinter { plugins = [ "dart_code_linter" ]; };
         }
         // lib.optionalAttrs (flutter && projectConfig.linting.riverpodLint.enable) {
-          # A modern plugin: resolved here, not through `analyzer.plugins`.
+          # A modern plugin, so it is resolved here rather than through
+          # `analyzer.plugins`.
           plugins.riverpod_lint = riverpodLint;
         }
         // lib.optionalAttrs dartCodeLinter {
@@ -208,8 +209,9 @@
             assert lib.assertMsg (stale == [ ]) ''
               famedly.standards.dart.projects: disabledRules names ${lib.concatStringsSep ", " stale}, which the standard rule set does not contain.
             '';
-            # Removed rather than restated as `rule: false`, which would list
-            # the rule twice and leave the outcome to reading order.
+            # We remove the rule instead of restating it as `rule: false`,
+            # which would list it twice and leave the outcome to reading
+            # order.
             lib.filter (rule: !lib.elem (ruleName rule) disabled) standard
             ++ projectConfig.linting.dartCodeLinter.extraRules;
         };
@@ -243,10 +245,11 @@
           '';
         };
 
-      # Only the managed file. The project's own `analysis_options.yaml` has to
-      # include it, which the `dart-lints-included` hook checks — placing it
-      # ourselves would trample the overrides it is meant to hold, since
-      # `filegen` has no create-once mode.
+      # We only write the managed file. The project's own
+      # `analysis_options.yaml` has to include it, which the
+      # `dart-lints-included` hook checks. Writing that one ourselves would
+      # trample the overrides it is meant to hold, since `filegen` has no
+      # create-once mode.
       mkProjectFiles = project: projectConfig: [
         {
           type = "copy";

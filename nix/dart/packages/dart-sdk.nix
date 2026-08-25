@@ -9,12 +9,10 @@
 }:
 
 let
-  # The Dart SDK the pinned Flutter release carries, read out of the data that
-  # packages it rather than pinned a second time.
-  #
-  # A Flutter project runs the `dart` from its own SDK either way, so following
-  # the same release keeps a repository holding both from formatting its code
-  # two different ways.
+  # We read the Dart version out of the data that packages Flutter, rather
+  # than pinning it a second time. A Flutter project runs the `dart` from its
+  # own SDK anyway, so following the same release keeps a repository that
+  # holds both from formatting its code two different ways.
   data = lib.importJSON ./flutter-sdk-data.json;
 
   version = data.dartVersion;
@@ -44,8 +42,8 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    # `revision` has to stay: `dart compile exe --target-arch` resolves the
-    # matching target SDK from the Dart archive through it, and without it
+    # We have to keep `revision`, since `dart compile exe --target-arch` uses
+    # it to resolve the matching target SDK from the Dart archive. Without it
     # cross-compiling fails with 'Channel "stable" requires valid revision'.
     rm -f LICENSE README
     cp -R . $out

@@ -17,8 +17,8 @@
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
 
-      # Forgetting the `include` is silent: `dart analyze` then falls back to
-      # the default rule set without saying so.
+      # Forgetting the `include` is silent, `dart analyze` just falls back to
+      # the default rule set without telling anyone.
       lints-included = pkgs.writeShellApplication {
         name = "dart-lints-included";
         runtimeInputs = [ pkgs.gnugrep ];
@@ -51,8 +51,9 @@
         '';
       };
 
-      # A statement behind `//` stops being compiled, so it stops being updated
-      # and decays into a claim that is no longer true. Git remembers it.
+      # Code behind `//` stops being compiled, so it stops being updated and
+      # turns into a claim that isn't true anymore. Git still has it if
+      # anyone wants it back.
       commented-out-code = pkgs.writeShellApplication {
         name = "dart-no-commented-out-code";
         runtimeInputs = [ pkgs.gnugrep ];
@@ -63,7 +64,7 @@
             exit 0
           fi
 
-          # `//<` is left alone: that is how an editor's region markers start.
+          # We leave `//<` alone, that's how editor region markers start.
           if grep -nE '^[[:space:]]*//[^/<].*;[[:space:]]*$' "$@"; then
             printf '\nerror: the lines above are commented-out Dart code.\n'
             printf '       Delete them — git has them if you want them back.\n\n'
@@ -72,8 +73,8 @@
         '';
       };
 
-      # The bindings and the Dart package are released as a pair. A drifted
-      # constraint fails at the first call, not at build time.
+      # The bindings and the Dart package are released together. If the
+      # constraint drifts nothing fails at build time, only at the first call.
       vodozemac-version = pkgs.writeShellApplication {
         name = "dart-vodozemac-version";
         runtimeInputs = [
@@ -85,7 +86,7 @@
           status=0
           wanted="${self'.packages.famedly-vodozemac.version}"
 
-          # Either name will do: both are cut from the tag this checks.
+          # Either name will do, since both are cut from the tag we check.
           check() {
             pubspec="$1"
             found="$(sed -n 's/^[[:space:]]*\(flutter_\)\{0,1\}vodozemac:[[:space:]]*[^0-9]*\([0-9][0-9.]*\).*/\2/p' "$pubspec" | head -n1)"
@@ -140,8 +141,8 @@
             hooks = [
               (hook lints-included "Ensure the managed Dart lints are actually included")
 
-              # This one takes the commit's files, and stays cheap on a large
-              # repository.
+              # This one gets the commit's files, which keeps it cheap on a
+              # large repository.
               (
                 hook commented-out-code "Reject commented-out Dart code"
                 // {

@@ -14,20 +14,20 @@
 
       browser = lib.any (project: project.checks.browser) (lib.attrValues projects);
 
-      # Only where nixpkgs has one; elsewhere Flutter falls back to whatever
-      # browser the developer installed.
+      # Only where nixpkgs packages one. Elsewhere Flutter falls back to
+      # whatever browser the developer has installed.
       chromium = if browser && pkgs.chromium.meta.available then pkgs.chromium else null;
     in
-    # The Dart SDK is a hefty download, so only pull it in for repositories
-    # that actually contain Dart code.
+    # The Dart SDK is a large download, so we only pull it in for
+    # repositories that actually contain Dart code.
     lib.mkIf (projects != { }) {
       devshells.standards = {
         packages = [ toolchain ] ++ lib.optional (chromium != null) chromium;
 
         env =
-          # How `pub` resolves a `sdk: flutter` dependency. nixpkgs wraps only
-          # `flutter`, so without this every `dart pub` in a Flutter project
-          # stops at "the Flutter SDK is not available".
+          # This is how `pub` resolves a `sdk: flutter` dependency. nixpkgs
+          # only wraps `flutter`, so without this every `dart pub` in a
+          # Flutter project stops at "the Flutter SDK is not available".
           lib.optional config.famedly.standards.dart.flutter {
             name = "FLUTTER_ROOT";
             value = "${toolchain}";

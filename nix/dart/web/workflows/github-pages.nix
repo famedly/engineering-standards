@@ -25,8 +25,8 @@ in
 
                 A project site lives under the repository's name, so one built
                 for the domain root resolves its assets one directory too
-                high. Rewritten here rather than built a second time, so Pages
-                serves the same bytes as every other destination.
+                high. We rewrite it here instead of building a second time, so
+                that Pages serves the same bytes as every other destination.
               '';
               type = lib.types.nullOr (lib.types.strMatching "/.*/");
               default = null;
@@ -51,14 +51,16 @@ in
           cfg = projectConfig.web.githubPages;
         in
         {
-          # Pages has one live deployment, so it follows `main` and nothing else.
+          # Pages has one live deployment, so it follows `main` and nothing
+          # else.
           if_ = "github.event_name == 'push' && github.ref == 'refs/heads/main'";
           needs = [ "build" ];
           runsOn = "ubuntu-latest";
 
           timeoutMinutes = 15;
 
-          # `id-token`: the deployment is authorised by OIDC, not by a secret.
+          # We need `id-token` because the deployment is authorised by OIDC
+          # rather than by a secret.
           permissions = {
             pages = "write";
             id-token = "write";
@@ -83,9 +85,9 @@ in
             name = "Point the base href at the Pages path";
             env.BASE_HREF = cfg.baseHref;
 
-            # Anchored to the tag `flutter build web` writes, so a document
-            # without one fails here rather than being published with every
-            # asset path broken.
+            # We anchor this to the tag `flutter build web` writes, so that a
+            # document without one fails here rather than being published
+            # with every asset path broken.
             run = ''
               if ! grep -q '<base href="[^"]*">' site/index.html; then
                 echo '::error::site/index.html carries no base href to rewrite'

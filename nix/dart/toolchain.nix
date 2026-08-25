@@ -2,12 +2,13 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# The devshell and the formatter need the same Dart SDK: `dart format` output
-# depends on the version, so two of them would rewrite each other's output.
+# The devshell and the formatter have to use the same Dart SDK, since the
+# output of `dart format` depends on the SDK version and two of them would
+# keep rewriting each other's output.
 { lib, flake-parts-lib, ... }:
 let
-  # Upstream publishes Flutter's prebuilt engine artifacts for some of our
-  # platforms and not others. Left out where they do not exist, so the
+  # Upstream only publishes Flutter's prebuilt engine artifacts for some of
+  # our platforms. We leave out the ones where they don't exist, so that the
   # toolchain can say so instead of failing in a fetch.
   flutterSystems = [
     "x86_64-linux"
@@ -19,9 +20,9 @@ in
     options.famedly.standards.dart = {
       toolchain = lib.mkOption {
         description = ''
-          The SDK that provides `dart` for this repository. Read this rather
-          than naming a package, so everything that runs `dart` agrees on the
-          version.
+          The SDK that provides `dart` for this repository. Read this instead
+          of naming a package, so that everything which runs `dart` agrees on
+          the version.
         '';
         type = lib.types.package;
         readOnly = true;
@@ -29,8 +30,8 @@ in
 
       flutter = lib.mkOption {
         description = ''
-          Whether any project here is a Flutter one, and the toolchain above is
-          therefore the Flutter SDK.
+          Whether any project in the repository is a Flutter project, which
+          means the toolchain above is the Flutter SDK.
         '';
         type = lib.types.bool;
         readOnly = true;
@@ -62,9 +63,9 @@ in
       famedly.standards.dart = {
         inherit flutter;
 
-        # The Flutter SDK ships its own `dart`, so a repository with any
-        # Flutter project uses it for the plain Dart ones too — shipping both
-        # would leave `dart` meaning whichever won on `PATH`.
+        # The Flutter SDK ships its own `dart`, so we use it for the plain
+        # Dart projects too. Shipping both would leave `dart` meaning
+        # whichever one won on `PATH`.
         toolchain =
           if flutter then
             self'.packages.famedly-flutter-sdk

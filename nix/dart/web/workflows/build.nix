@@ -31,7 +31,7 @@ in
             lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
           }";
 
-          # The floor for every job here; the ones that publish raise it.
+          # The floor for every job here, the ones that publish raise it.
           permissions.contents = "read";
 
           on.pullRequest.branches = [ "**" ];
@@ -40,8 +40,8 @@ in
             tags = [ "v*" ];
           };
 
-          # A queue needs to see that the target still builds; the destinations
-          # skip themselves there.
+          # A queue needs to see that the target still builds, the
+          # destinations skip themselves there.
           on.mergeGroup = { };
 
           concurrency = {
@@ -83,8 +83,9 @@ in
                   shell = steps.devshell;
                   env.SENTRY_AUTH_TOKEN = "\${{ secrets.SENTRY_AUTH_TOKEN }}";
 
-                  # Not in `env`, where GitHub interpolates only its own
-                  # expressions and leaves command substitutions as characters.
+                  # Not in `env`, where GitHub only interpolates its own
+                  # expressions and leaves command substitutions as plain
+                  # characters.
                   run = inProject project ''
                     SENTRY_RELEASE="${projectConfig.web.identity.version}" \
                     	SENTRY_DIST="${projectConfig.web.identity.commit}" \
@@ -95,8 +96,8 @@ in
                 {
                   # A map left in the build directory is served with the site
                   # and hands out the source the bundle was compiled from.
-                  # Unconditional, unlike the upload: a run that skipped it
-                  # built the maps all the same.
+                  # Unlike the upload this runs unconditionally, since a run
+                  # that skipped the upload built the maps all the same.
                   name = "Take the source maps back out of the build";
 
                   run = inProject project ''
@@ -116,7 +117,7 @@ in
                     path = "${directory project}${projectConfig.web.outputPath}";
 
                     # The deployments replace what they find, so an empty
-                    # artefact would not fail but erase.
+                    # artefact wouldn't fail, it would erase.
                     if-no-files-found = "error";
 
                     retention-days = 1;

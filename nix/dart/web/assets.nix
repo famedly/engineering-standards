@@ -2,12 +2,13 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# The files a web build needs in `web/` before it starts: the vodozemac
-# WebAssembly module, and the worker that encrypts media frames. Both are
-# compiled artefacts of dependencies, so a checked-in copy would silently age.
+# The files a web build needs in `web/` before it starts, namely the
+# vodozemac WebAssembly module and the worker that encrypts media frames. Both
+# are compiled artefacts of dependencies, so a checked-in copy would silently
+# age.
 #
-# CI and a developer's shell run the same script, so an asset that misbehaves
-# in the browser can be reproduced outside CI.
+# CI and a developer's shell run the same script, so that an asset which
+# misbehaves in the browser can be reproduced outside CI.
 { lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
@@ -17,7 +18,7 @@
             compiling LiveKit's end-to-end encryption worker into `web/`.
 
             `dart_webrtc` starts it by name from the site root, and without
-            it a call joins but carries no media. Compiled from the
+            it a call joins but carries no media. We compile it from the
             `livekit_client` the project already resolved, so it needs no pin
             of its own.
 

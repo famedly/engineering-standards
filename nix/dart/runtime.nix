@@ -9,13 +9,10 @@
           options.runtime = {
             libraries = lib.mkOption {
               description = ''
-                Packages whose libraries the project `dlopen`s by soname, such
-                as `sqlite` for `sqflite_common_ffi`.
-
-                A compiled Dart binary carries no `RUNPATH`, and the nix
-                loader searches neither `/usr/lib` nor the store, so these
-                have to be named. They land on the devshell's
-                `LD_LIBRARY_PATH` and on the image's.
+                Packages whose libraries the project `dlopen`s by soname, for
+                example `sqlite` for `sqflite_common_ffi`. A compiled Dart
+                binary has no `RUNPATH`, so these have to be named here to end
+                up on the `LD_LIBRARY_PATH` of the devshell and the image.
               '';
               type = lib.types.listOf lib.types.package;
               default = [ ];
@@ -43,7 +40,8 @@
 
       libraries = lib.concatMap (project: project.runtime.libraries) projects;
 
-      # One devshell per repository, so the projects' environments are merged.
+      # There is one devshell per repository, so we merge the projects'
+      # environments together.
       environment = lib.foldl' (all: project: all // project.runtime.env) { } projects;
     in
     lib.mkIf (projects != [ ]) {

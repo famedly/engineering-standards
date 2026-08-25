@@ -22,9 +22,11 @@
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
       description = ''
-        Dart and Flutter projects in the repository to equip with our
-        standards, keyed by a relative path starting with `.`. Use `.` when the
-        repository is itself the project.
+        Dart and Flutter projects in the repository that should be equipped
+        with our standards.
+
+        This must be a relative path starting with `.`. Simply use `.` if the
+        whole project is a Dart project.
       '';
       default = { };
 
@@ -40,10 +42,9 @@
           options.flutter = lib.mkOption {
             description = ''
               Whether this is a Flutter project rather than a plain Dart one.
-
-              What differs is the SDK the toolchain comes from, the lint rules
-              that only mean something for widgets, and that dependencies and
-              analysis go through `flutter` rather than `dart`.
+              This picks the Flutter SDK, enables the lint rules that only
+              apply to widgets, and runs dependencies and analysis through
+              `flutter` instead of `dart`.
             '';
             type = lib.types.bool;
             default = false;

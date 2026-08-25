@@ -6,9 +6,10 @@
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { config, pkgs, ... }:
     let
-      # What `packages.famedly-vodozemac` is built from, called again rather
-      # than read off `self'`: an option declaration that reaches into the
-      # flake's packages makes the projects depend on themselves.
+      # What `packages.famedly-vodozemac` is built from. We call it again
+      # instead of reading it off `self'`, since an option declaration that
+      # reaches into the flake's packages makes the projects depend on
+      # themselves.
       vodozemac = pkgs.callPackage ./native.nix {
         source = pkgs.callPackage ./source.nix {
           inherit (config.famedly.standards.dart.vodozemac) version hash cargoHash;
@@ -21,12 +22,12 @@
           description = ''
             Which dart-vodozemac release to build the bindings from.
 
-            Keep it equal to the `vodozemac` — or `flutter_vodozemac` —
+            Keep this equal to the `vodozemac` or `flutter_vodozemac`
             constraint in the project's `pubspec.yaml`, which a pre-commit
-            hook checks: the Dart package is generated from this very release,
-            and a mismatch fails at the first call, not at build time.
+            hook checks. The Dart package is generated from this very release,
+            and a mismatch fails at the first call rather than at build time.
 
-            A project that cannot follow the default yet sets its own, together
+            A project that can't follow the default yet sets its own, together
             with both hashes below.
           '';
 
@@ -47,8 +48,9 @@
         cargoHash = lib.mkOption {
           description = ''
             Hash of the crate's vendored dependencies, which changes with the
-            release's `Cargo.lock`. Shared by both targets: which dependencies
-            one links is decided when it is built, not when they are resolved.
+            release's `Cargo.lock`. Both targets share it, since which
+            dependencies one links is decided when it is built and not when
+            they are resolved.
           '';
 
           type = lib.types.str;
@@ -65,22 +67,22 @@
                 built from is `famedly.standards.dart.vodozemac.version`, since
                 the bindings are built once for the repository.
 
-                Points `flutter_rust_bridge`'s library lookup at the nix-built
-                library, so `vod.init` finds it without the project having to
-                check a copy into the repository or build one first. Needs no
-                change to the Dart code: the loader prefers this over the
-                `libraryPath` it was called with.
+                This points `flutter_rust_bridge`'s library lookup at the
+                nix-built library, so that `vod.init` finds it without the
+                project having to check a copy into the repository or build
+                one first. The Dart code needs no change, since the loader
+                prefers this over the `libraryPath` it was called with.
 
                 A project that also builds for the web gets the WebAssembly
-                module placed in `web/pkg/`, where `vod.init` looks by default —
-                an application that passes a `wasmPath` of its own has to drop
-                it
+                module placed in `web/pkg/`, where `vod.init` looks by
+                default. An application that passes a `wasmPath` of its own
+                has to drop it
               '';
 
               config.runtime.env = lib.mkIf config.vodozemac.enable {
-                # `flutter_rust_bridge` runs this through `Uri.directory`, so it
-                # must be a directory and takes no trailing slash. It appends
-                # the platform-specific file name itself.
+                # `flutter_rust_bridge` runs this through `Uri.directory`, so
+                # it has to be a directory and takes no trailing slash. It
+                # appends the platform-specific file name itself.
                 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR = "${vodozemac}/lib";
               };
             }
@@ -112,7 +114,7 @@
         packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { inherit source; };
       })
 
-      # The lookup goes through `runtime.env`; this only builds the library.
+      # The lookup goes through `runtime.env`, this only builds the library.
       (lib.mkIf needed { devshells.standards.packages = [ self'.packages.famedly-vodozemac ]; })
     ];
 }
