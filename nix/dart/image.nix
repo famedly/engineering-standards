@@ -2,11 +2,9 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Images are assembled from nixpkgs rather than from a distro base image.
-# Artefacts compiled in the devshell carry nix store paths — `dart compile exe`
-# copies the SDK's `dartaotruntime`, so the binary inherits the loader nixpkgs
-# patched into it — and no distro base image can resolve those. Building the
-# image from the same nixpkgs is what keeps the two from drifting apart.
+# Assembled from nixpkgs rather than from a distro base image: `dart compile
+# exe` copies the SDK's `dartaotruntime` into the binary, so it carries a nix
+# store loader that no distro image can resolve.
 { lib, flake-parts-lib, ... }: {
   imports = [
     (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
@@ -24,12 +22,8 @@
       type = lib.types.attrsOf (
         lib.types.submodule (
           { config, ... }: {
-            # Everything about the image is stated here, both what goes into
-            # it and what CI does with it. The two used to be split over this
-            # file and the workflow, and read each other across the seam: the
-            # derivation took the name and the binary from the workflow's
-            # half, the workflow took the port and the health path from this
-            # one.
+            # Both what goes into the image and what CI does with it: the
+            # workflow reads half of these too.
             options.image = {
               enable = lib.mkEnableOption "building and pushing a container image for this project";
 
@@ -209,11 +203,9 @@
 
       mkImage =
         projectConfig:
-        # Kept a function so the compiled binary can be handed in from CI:
-        # `dart pub get` needs credentials for our private repositories, which
-        # rules out resolving dependencies inside a build sandbox.
-        #
-        # The rest is optional: a build by hand has no commit to name.
+        # A function, because `dart pub get` needs credentials for our private
+        # repositories and so cannot run in a build sandbox. Everything but the
+        # binary is optional: a build by hand has no commit to name.
         {
           server,
           source ? null,
@@ -227,21 +219,17 @@
 
           libraries = [ pkgs.glibc ] ++ projectConfig.runtime.libraries;
 
-          # Do not be tempted to patchelf this. `dart compile exe` appends the
-          # AOT snapshot behind the end of the `dartaotruntime` ELF, and
-          # rewriting the ELF moves it out of reach — the binary then still
-          # starts, but as a bare VM printing its usage.
-          #
-          # It needs no fixing up anyway: the binary carries the loader of the
-          # SDK that produced it, which is this nixpkgs'. That is why the
-          # architectures are built natively rather than cross-compiled.
+          # Do not patchelf this. `dart compile exe` appends the AOT snapshot
+          # behind the end of the `dartaotruntime` ELF, and rewriting the ELF
+          # moves it out of reach — the binary then starts as a bare VM
+          # printing its usage. It needs no fixing either: it carries the
+          # loader of this nixpkgs, which is why builds run natively.
           binary = pkgs.runCommand "${cfg.binary}-image-binary" { } ''
             install -Dm555 ${server} $out/bin/${cfg.binary}
           '';
 
           files = pkgs.runCommand "${cfg.name}-files" { } (
-            # `$out` has to be created unconditionally: a project that places no
-            # files would otherwise leave the builder without output.
+            # A project that places no files must still leave an output.
             ''
               mkdir -p "$out"
             ''
@@ -253,9 +241,8 @@
             )
           );
 
-          # `fakeNss` is not overridable in our nixpkgs and only knows root and
-          # nobody, while the service wants its own uid. nsswitch.conf matters
-          # as well: without it glibc resolves no hostnames.
+          # Not `fakeNss`: it is not overridable here and knows only root and
+          # nobody. Without nsswitch.conf glibc resolves no hostnames.
           nss = pkgs.runCommand "${cfg.name}-nss" { } ''
             mkdir -p $out/etc
             cat >$out/etc/passwd <<'EOF'
@@ -269,13 +256,11 @@
             echo 'hosts: files dns' >$out/etc/nsswitch.conf
           '';
 
-          # Image contents land at the root, so packages' `bin` directories merge
-          # into `/bin`. The project's own variables win over ours.
+          # Contents land at the root, so `bin` directories merge into `/bin`.
           environment = {
             PATH = "/bin";
 
-            # The same variable the devshell relies on, for the same reason:
-            # the binary has no RUNPATH to point `dlopen` at.
+            # As in the devshell: the binary has no RUNPATH for `dlopen`.
             LD_LIBRARY_PATH = lib.makeLibraryPath libraries;
           }
           // projectConfig.runtime.env;
@@ -291,9 +276,8 @@
           ]
           ++ lib.optional (cfg.healthPath != null) pkgs.curl;
 
-          # Runs under fakeroot, which is what lets us hand directories to a
-          # user that only exists inside the image.
-          # The working directory is the image root, so the paths are relative.
+          # Under fakeroot, so directories can be handed to a user that exists
+          # only inside the image. Paths are relative to the image root.
           fakeRootCommands = ''
             mkdir -p tmp
             chmod 1777 tmp

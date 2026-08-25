@@ -44,8 +44,7 @@
 
       libraries = lib.concatMap (project: project.runtime.libraries) projects;
 
-      # The devshell is per repository rather than per project, so a repository
-      # with several projects gets the union of their environments.
+      # One devshell per repository, so the projects' environments are merged.
       environment = lib.foldl' (all: project: all // project.runtime.env) { } projects;
     in
     lib.mkIf (projects != [ ]) {

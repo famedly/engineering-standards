@@ -85,10 +85,9 @@ in
 
           qaAppName = "qa-${cfg.projectName}";
 
-          # Neither an ssh-agent nor `StrictHostKeyChecking no`, both of which
-          # the workflow this replaces used: an agent does not survive the step
-          # that starts it, and accepting any host key hands the deployment —
-          # and the key that performs it — to whoever answers on that name.
+          # No ssh-agent, which would not survive the step that starts it, and
+          # no `StrictHostKeyChecking no`, which would hand the key to whoever
+          # answers on that name.
           authorise = ''
             install -d -m 700 ~/.ssh
             printf '%s\n' "$SSH_PRIVATE_KEY" >${identity}
@@ -101,8 +100,7 @@ in
 
           target = directory: "${cfg.user}@${cfg.server}:${cfg.root}/${directory}";
 
-          # `--delete`, so a file that a build stopped producing stops being
-          # served instead of lingering from an earlier push to the same branch.
+          # `--delete`, so a file a build stopped producing stops being served.
           deploy = directory: ''
             rsync -av --delete --rsh='${ssh}' site/ ${lib.escapeShellArg (target directory)}
           '';
@@ -126,8 +124,7 @@ in
         in
         {
           review-app = {
-            # Dependabot's pull requests run without access to our secrets, so
-            # this could only ever fail for them.
+            # Dependabot's pull requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
             needs = [ "build" ];
             runsOn = "ubuntu-latest";
@@ -158,8 +155,7 @@ in
           };
 
           qa-app = {
-            # Release candidates only. This deployment is a single shared slot
-            # that QA looks at, so it follows the tags that ask for a look.
+            # A single shared slot for QA, so it follows release candidates.
             if_ = "github.event_name == 'push' && contains(github.ref_name, 'rc')";
             needs = [ "build" ];
             runsOn = "ubuntu-latest";
@@ -190,17 +186,13 @@ in
           };
 
           cleanup-review-apps = {
-            # Dependabot's requests run without our secrets, so this job would
-            # have neither the key that reaches the server nor a token that may
-            # write deployments — the same reason the deployment above skips
-            # them.
+            # As above: Dependabot's requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
             runsOn = "ubuntu-latest";
 
             timeoutMinutes = 15;
 
-            # The default token may read a repository and nothing else, and
-            # retiring a deployment is a write.
+            # Retiring a deployment is a write, which the default token is not.
             permissions = {
               deployments = "write";
               pull-requests = "read";
@@ -208,11 +200,10 @@ in
 
             steps = [
               {
-                # The review server has no idea when a pull request closes, so
-                # somebody has to tell it. Doing that here, on every run, keeps
-                # it to one place — a workflow triggered by `pull_request:
-                # closed` would not fire for a request closed while CI was
-                # disabled, and the directory would then stay forever.
+                # The server has no idea when a request closes. Done on every
+                # run rather than on `pull_request: closed`, which would not
+                # fire for a request closed while CI was disabled — and the
+                # directory would then stay forever.
                 name = "Remove the review apps of closed pull requests";
 
                 env = key // {
@@ -228,10 +219,9 @@ in
                     	--jq '.[].id' >deployments
 
                     while read -r deployment; do
-                    	# Which request a deployment belongs to is read out of the
-                    	# address it published, not out of its branch: a branch can
-                    	# carry a second request after the first one closed, and the
-                    	# closed one would then answer for the open one's deployment.
+                    	# Read out of the published address, not the branch: a
+                    	# branch can carry a second request after the first
+                    	# closed, and the closed one would answer for it.
                     	url="$(gh api \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		--jq 'map(.environment_url | select(. != null and . != "")) | .[0] // empty')"
@@ -242,9 +232,8 @@ in
                     	# The QA app, deployed from a tag, answers to no request.
                     	test -n "$pr" || continue
 
-                    	# A request that no longer answers, or an interlude in
-                    	# the API, leaves the state empty — and an empty state is
-                    	# not an invitation to delete anything.
+                    	# An empty state — a vanished request, a hiccup in the
+                    	# API — is not an invitation to delete anything.
                     	state="$(gh api "/repos/$GITHUB_REPOSITORY/pulls/$pr" \
                     		--jq '.state // empty' 2>/dev/null || true)"
 
@@ -255,9 +244,8 @@ in
                     	${ssh} -n ${lib.escapeShellArg "${cfg.user}@${cfg.server}"} \
                     		rm -rf "${cfg.root}/${cfg.projectName}-pr-$pr"
 
-                    	# The deployment goes too, or the next run would look at
-                    	# it again — and it cannot be deleted while it counts as
-                    	# active.
+                    	# The deployment goes too, or the next run looks at it
+                    	# again — and it cannot be deleted while it is active.
                     	gh api --method POST \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		-f state=inactive >/dev/null

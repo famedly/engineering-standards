@@ -9,14 +9,12 @@
 }:
 
 let
-  # The Dart SDK that the pinned Flutter release carries, taken from the data
-  # that packages it. The two used to be written out separately and had to be
-  # kept equal by hand — the same version string and the same three hashes in
-  # two files, with nothing to notice when a Flutter bump updated only one.
+  # The Dart SDK the pinned Flutter release carries, read out of the data that
+  # packages it rather than pinned a second time.
   #
-  # A Flutter project runs the `dart` out of its own SDK either way, so a plain
-  # Dart project following the same release is what keeps a repository holding
-  # both from formatting its code two different ways.
+  # A Flutter project runs the `dart` from its own SDK either way, so following
+  # the same release keeps a repository holding both from formatting its code
+  # two different ways.
   data = lib.importJSON ./flutter-sdk-data.json;
 
   version = data.dartVersion;

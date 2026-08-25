@@ -3,13 +3,11 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 # A Flutter project's web target: built once, then handed to every destination
-# that is enabled for it — a container image, GitHub Pages, a review app.
+# enabled for it — a container image, GitHub Pages, a review app.
 #
-# Keyed on the project rather than on the site it produces, so that the project
-# path, whether its dependencies are private, and how a Flutter web application
-# is built are each stated once. The destinations are jobs of one workflow
-# because artefacts are shared within a run and not across them, which is what
-# makes all three ship the very bytes that were built and tested.
+# The destinations are jobs of one workflow because artefacts are shared within
+# a run and not across them, which is what makes all three ship the very bytes
+# that were built and tested.
 {
   flake-parts-lib,
   lib,
@@ -199,10 +197,8 @@
               artifact = "web${standardsLib.suffix name}";
 
               identity = {
-                # `--long` even on a tag, so that every build reads the same
-                # way and a version in a bug report can be compared to
-                # another without knowing which of the two happened to be a
-                # release.
+                # `--long` even on a tag, so that two versions in two bug
+                # reports can be compared without knowing which was a release.
                 version = "$(git describe --tags --long --always)";
 
                 commit = "$(git rev-parse HEAD)";
@@ -219,8 +215,7 @@
                   ''--dart-define=version="${config.web.identity.version}"''
                   ''--dart-define=commit="${config.web.identity.commit}"''
                 ]
-                # The compiler drops the maps unless asked, and the plugin has
-                # nothing to upload without them.
+                # The compiler drops the maps unless asked.
                 ++ lib.optional config.web.sentry.enable "--source-maps"
                 ++ config.web.buildArgs
               );

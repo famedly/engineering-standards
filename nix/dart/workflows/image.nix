@@ -13,8 +13,7 @@ let
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
-  # One workflow per project, so anything that has to distinguish them keys off
-  # this. `github.workflow` cannot: it holds the display name.
+  # `github.workflow` cannot serve here: it holds the display name.
   workflowId = project: "dart-image${suffix project}";
 in
 {
@@ -44,9 +43,8 @@ in
             tags = [ "v*" ];
           };
 
-          # The checks workflow runs on merge queues, and the build and the gate
-          # are what a queue most needs to see. Publishing is skipped there: the
-          # queue's ref is a temporary branch and would make a nonsense tag.
+          # A queue needs to see the build and the gate. Publishing skips
+          # itself there: the queue's ref would make a nonsense tag.
           on.mergeGroup = { };
 
           concurrency = {
@@ -80,20 +78,16 @@ in
                   })
                 ]
                 ++ lib.optional (cfg.healthPath != null) {
-                  # The image is what ships, so it is what gets tested. A binary
-                  # that runs on the runner but not in the image is the failure
-                  # this catches, and it shipped unnoticed before.
-                  #
-                  # What is polled is the image's own healthcheck, just at a
-                  # tighter interval than production would use — so that gets
-                  # verified here too, instead of a second copy of the endpoint.
+                  # The image is what ships, so it is what gets tested: a
+                  # binary that runs on the runner but not in the image used to
+                  # ship unnoticed. Polling the image's own healthcheck rather
+                  # than the endpoint verifies that too.
                   name = "Smoke test the image";
                   run = ''
                     docker load <image-''${{ matrix.architecture }}.tar
 
-                    # The arm64 runners are self-hosted and reused, and the container
-                    # outlives a cancelled job: without this, one cancellation fails
-                    # every later run on that runner.
+                    # Runners are reused and a container outlives a cancelled
+                    # job, so one cancellation would fail every later run.
                     docker rm --force smoke 2>/dev/null || true
 
                     docker run --detach --name smoke --health-interval 2s ${cfg.name}:latest

@@ -196,12 +196,10 @@ in
       githubActions.workflows.dart-checks = {
         name = "Dart checks";
 
-        # The floor for every job here, so that one added later reads the
-        # repository and nothing more until it says otherwise.
+        # The floor for every job here, including one added later.
         permissions.contents = "read";
 
-        # Mirrors `check-pre-commit-hooks`: on `push` the start and end of the
-        # commit series isn't clear, so we rely on PRs and the merge queue.
+        # Not on `push`: there the bounds of the commit series are unclear.
         on.pullRequest = {
           branches = [ "**" ];
           types = [
@@ -223,21 +221,18 @@ in
           let
             cfg = projectConfig.checks;
 
-            # `flutter analyze` is not `dart analyze` with a different name: it
-            # resolves the framework packages the project builds against.
+            # `flutter analyze` resolves the framework packages the project
+            # builds against; `dart analyze` does not.
             cli = if projectConfig.flutter then "flutter" else "dart";
 
-            # One brace-delimited set of globs, quoted so that the shell leaves
-            # the braces to the linter instead of expanding them itself.
+            # Quoted, so the shell leaves the braces to the linter.
             unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
               " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
             );
 
-            # These three tools appear in no lockfile — that is the point of
-            # installing them globally — so the version is resolved afresh on
-            # every run. Stated exactly, so a release on a Tuesday cannot fail
-            # every repository's checks on that Tuesday, and so a rerun of an
-            # old commit checks it the way it was checked then.
+            # No lockfile holds these tools, so the version is stated exactly:
+            # otherwise a release changes what CI checks between two runs of
+            # the same commit.
             activate = tool: version: "dart pub global activate ${tool} '${version}'";
           in
           lib.nameValuePair "checks${suffix project}" {
@@ -252,16 +247,14 @@ in
                 {
                   name = "Resolve dependencies";
                   shell = steps.devshell;
-                  # `--no-example`, because resolving a package's bundled example
-                  # app needs whatever that app needs, and none of the checks
-                  # below look at it.
+                  # `--no-example`: a bundled example app needs whatever it
+                  # needs, and nothing here looks at it.
                   run = inProject project "${cli} pub get --no-example";
                 }
 
                 {
-                  # Resolution just ran, so a lockfile that moved means the one
-                  # in the repository was not what the manifest asks for — and
-                  # every run before this one resolved something nobody chose.
+                  # Resolution just ran, so a lockfile that moved means the
+                  # committed one was not what the manifest asks for.
                   name = "Check that the lockfile is up to date";
 
                   run = inProject project ''
@@ -271,9 +264,7 @@ in
                       exit 0
                     fi
 
-                    # An application that never committed its lockfile leaves
-                    # nothing for the comparison below to differ from, and
-                    # resolution just wrote one either way.
+                    # Nothing to compare against, and resolution just wrote one.
                     if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
                       echo '::error::pubspec.lock is not committed — run `${cli} pub get` and commit it.'
                       exit 1
@@ -294,21 +285,16 @@ in
                 run = inProject project "${cli} analyze";
               }
               ++ lib.optional projectConfig.linting.dartCodeLinter.enable {
-                # The plugin's findings are invisible to `dart analyze`, so
-                # without this step the rule set would only ever be enforced in
-                # whichever editor happens to load the analysis server.
-                #
-                # `lib`, because that is where a package's own code lives;
-                # pointing it at the repository root would drag generated and
-                # vendored code in.
+                # `dart analyze` does not see the plugin's findings, so without
+                # this step the rules only ever apply in an editor. `lib`,
+                # because the repository root drags in vendored code.
                 name = "Lint";
                 shell = steps.devshell;
                 run = inProject project "dart run dart_code_linter:metrics analyze lib --reporter=github";
               }
               ++ lib.optional cfg.unused.files {
-                # A file nothing imports is either dead or was meant to be
-                # wired up and never was. Both are worth knowing, and neither
-                # shows up in `dart analyze`.
+                # Dead, or meant to be wired up and never was. `dart analyze`
+                # reports neither.
                 name = "Check for unused files";
                 shell = steps.devshell;
 
@@ -334,10 +320,9 @@ in
                 name = "Check the translations";
                 shell = steps.devshell;
 
-                # Sorted ARB files are what keeps two branches from both adding
-                # a key at the end of the file and conflicting over it. There is
-                # no check-only mode, so the sort runs and the question is
-                # whether it changed anything.
+                # Sorting keeps two branches from appending a key at the same
+                # place and conflicting. There is no check-only mode, so the
+                # sort runs and the question is whether it changed anything.
                 run = inProject project ''
                   ${activate "sweeper" cfg.translations.version}
 
@@ -354,9 +339,8 @@ in
                 '';
               }
               ++ lib.optional cfg.licenses.enable {
-                # `--problematic`, so a dependency under a licence the policy
-                # neither allows nor rejects is raised rather than waved
-                # through: an unreviewed licence is not the same as a fine one.
+                # `--problematic`: a licence the policy neither allows nor
+                # rejects is unreviewed, not fine.
                 name = "Check the dependency licences";
                 shell = steps.devshell;
 
@@ -374,9 +358,8 @@ in
               }
               ++ lib.optionals cfg.coverage.enable [
                 {
-                  # Codecov's own error for a missing file says little about
-                  # why it is missing, and this is the failure that hid for a
-                  # long time behind a condition that skipped the upload.
+                  # Codecov's own error says little about why the file is
+                  # missing.
                   name = "Check that the tests produced a coverage report";
                   run = inProject project ''
                     if ! test -s ${cfg.coverage.file}; then

@@ -2,16 +2,13 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# The devshell and the formatter both need a Dart SDK, and it has to be the same
-# one: `dart format` output depends on the SDK version, so a formatter that
-# differs from the `dart` on `PATH` would have the two rewrite each other's
-# output. Naming the package in one place is what keeps them from drifting.
+# The devshell and the formatter need the same Dart SDK: `dart format` output
+# depends on the version, so two of them would rewrite each other's output.
 { lib, flake-parts-lib, ... }:
 let
-  # Flutter carries prebuilt engine artifacts, which upstream publishes for some
-  # of our platforms and not others. Leaving the package out where they do not
-  # exist is what lets the toolchain say so in a sentence instead of failing in
-  # a fetch.
+  # Upstream publishes Flutter's prebuilt engine artifacts for some of our
+  # platforms and not others. Left out where they do not exist, so the
+  # toolchain can say so instead of failing in a fetch.
   flutterSystems = [
     "x86_64-linux"
     "aarch64-darwin"
@@ -66,10 +63,9 @@ in
       famedly.standards.dart = {
         inherit flutter;
 
-        # The Flutter SDK ships its own `dart`, so a repository that holds any
-        # Flutter project has to use it for its plain Dart projects too.
-        # Shipping both would leave `dart` meaning whichever one happened to win
-        # on `PATH`.
+        # The Flutter SDK ships its own `dart`, so a repository with any
+        # Flutter project uses it for the plain Dart ones too — shipping both
+        # would leave `dart` meaning whichever won on `PATH`.
         toolchain =
           if flutter then
             self'.packages.famedly-flutter-sdk

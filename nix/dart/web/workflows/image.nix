@@ -30,10 +30,8 @@ in
           container = "smoke-web${suffix project}";
         in
         {
-          # Only the server in the image is architecture-specific — the site
-          # itself is bytes either way, and was built once in `build`. So these
-          # jobs assemble rather than build, and run natively only because the
-          # server they wrap has to match the platform it is pushed as.
+          # The site was built once in `build` and is bytes either way; only
+          # the server in the image has to match the platform it is pushed as.
           image = imageWorkflow.buildJob {
             inherit (cfg) runners;
 
@@ -58,10 +56,9 @@ in
               })
 
               {
-                # The image is what ships, so it is what gets tested — a server
-                # that starts on the runner but not in the image is the failure
-                # this catches. It fetches the site's real files rather than a
-                # placeholder, so a missing entry document fails here too.
+                # The image is what ships, so it is what gets tested. It
+                # fetches the site's real files, so a missing entry document
+                # fails here too.
                 name = "Smoke test the image";
 
                 run = script (
@@ -69,19 +66,16 @@ in
                     ''
                       docker load <image-''${{ matrix.architecture }}.tar
 
-                      # The runners are reused and a container outlives a
-                      # cancelled job, so without this one cancellation would
-                      # fail every later run on that runner.
+                      # Runners are reused and a container outlives a cancelled
+                      # job, so one cancellation would fail every later run.
                       docker rm --force ${container} 2>/dev/null || true
 
-                      # An ephemeral host port, so that concurrent jobs on a
-                      # shared runner cannot collide over one.
+                      # An ephemeral port, so concurrent jobs cannot collide.
                       docker run --detach --name ${container} \
                       	--publish 127.0.0.1::${toString cfg.port} \
                       	${cfg.name}:latest
 
-                      # The server's log and the container go away whichever way
-                      # this step ends, so a failure below stays diagnosable.
+                      # Keeps a failure below diagnosable however this ends.
                       trap 'docker logs ${container}; docker rm --force ${container} >/dev/null' EXIT
 
                       base="http://$(docker port ${container} ${toString cfg.port}/tcp | head -1)"
@@ -91,15 +85,14 @@ in
                         sleep 1
                       done
 
-                      # Again, so that a server which never came up fails the
-                      # step rather than only the loop.
+                      # Again, so a server that never came up fails the step
+                      # rather than only the loop.
                       curl -fsS -o /dev/null "$base/index.html"
 
                       # What Kubernetes asks before it sends anyone here.
                       curl -fsS -o /dev/null "$base/health"
 
-                      # Read once for the comparisons below. Names come back
-                      # lower-cased, so the patterns are folded, not the file.
+                      # Read once for the comparisons below.
                       curl -fsSI "$base/index.html" | tr -d '\r' >headers
                     ''
                   ]
@@ -117,9 +110,7 @@ in
                     file="$(cd site && find . -type f -name '*.${extension}' -print -quit)"
 
                     if test -n "$file"; then
-                      # Header names and media types are both case-insensitive,
-                      # so each side is folded once instead of being matched a
-                      # letter at a time.
+                      # Header names and media types are case-insensitive.
                       served="$(curl -fsSI "$base/''${file#./}" \
                       	| tr -d '\r' \
                       	| tr '[:upper:]' '[:lower:]' \

@@ -17,8 +17,8 @@
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
 
-      # Forgetting the `include` is silent: `dart analyze` then simply analyzes
-      # with the default rule set and reports nothing about it.
+      # Forgetting the `include` is silent: `dart analyze` then falls back to
+      # the default rule set without saying so.
       lints-included = pkgs.writeShellApplication {
         name = "dart-lints-included";
         runtimeInputs = [ pkgs.gnugrep ];
@@ -51,17 +51,14 @@
         '';
       };
 
-      # A line that is nothing but a statement behind `//` is code somebody
-      # meant to come back to. It stops being compiled, so it stops being
-      # updated, and it decays into a claim about the code that is no longer
-      # true — while git remembers it perfectly well without the help.
+      # A statement behind `//` stops being compiled, so it stops being updated
+      # and decays into a claim that is no longer true. Git remembers it.
       commented-out-code = pkgs.writeShellApplication {
         name = "dart-no-commented-out-code";
         runtimeInputs = [ pkgs.gnugrep ];
 
         text = ''
-          # Without files grep would read stdin and hang, which is what a hook
-          # invoked on a commit that touches no Dart looks like.
+          # Without files grep would read stdin and hang.
           if [ "$#" -eq 0 ]; then
             exit 0
           fi
@@ -75,9 +72,8 @@
         '';
       };
 
-      # The bindings and the Dart package are released as a pair, so a drifted
-      # constraint means the Dart side talks to an API the library may not have.
-      # Nothing surfaces that at build time — it would fail when a call is made.
+      # The bindings and the Dart package are released as a pair. A drifted
+      # constraint fails at the first call, not at build time.
       vodozemac-version = pkgs.writeShellApplication {
         name = "dart-vodozemac-version";
         runtimeInputs = [
@@ -123,8 +119,7 @@
         inherit description;
 
         entry = drv.meta.mainProgram;
-        # The checks are about files that may be absent, so they can't be driven
-        # by the changed file list.
+        # These check for files that may be absent.
         pass_filenames = false;
 
         language = "system";
@@ -145,8 +140,8 @@
             hooks = [
               (hook lints-included "Ensure the managed Dart lints are actually included")
 
-              # Unlike the checks above this one is about the files in the
-              # commit, so it takes them and stays cheap on a large repository.
+              # This one takes the commit's files, and stays cheap on a large
+              # repository.
               (
                 hook commented-out-code "Reject commented-out Dart code"
                 // {

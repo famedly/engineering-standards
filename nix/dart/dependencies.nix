@@ -3,13 +3,12 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 # `dependency_validator` holds a project's manifest against what its code
-# actually imports: a dependency nobody imports, and an import nobody declared.
+# actually imports.
 #
-# The ignore list is generated, because the entries a project needs are mostly
-# not its own doing. A linter is referenced from `analysis_options.yaml` rather
+# The ignore list is generated, because most of what belongs on it is not the
+# project's doing: a linter is referenced from `analysis_options.yaml` rather
 # than from Dart code, so the tool sees it declared and never used — and which
-# linters a project declares is the standards' decision. Leaving that list to
-# every repository means each one rediscovers it by reading a failing CI run.
+# linters a project declares is the standards' decision.
 { lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
@@ -66,16 +65,15 @@
       mkConfigFile =
         projectConfig:
         let
-          # Kept beside the constraints in linting.nix: a linter that stops
-          # being mandated has to stop being excused here in the same breath,
-          # or the excuse outlives it.
+          # Mirrors linting.nix: a linter that stops being mandated has to stop
+          # being excused here, or the excuse outlives it.
           linters =
             if projectConfig.flutter then
               [ "flutter_lints" ] ++ lib.optional projectConfig.linting.riverpodLint.enable "riverpod_lint"
             else
               [ "lints" ];
 
-          # `dart_code_linter` is deliberately absent: it ships an executable,
+          # `dart_code_linter` is absent on purpose: it ships an executable,
           # which the tool takes as evidence enough of use.
           settings.ignore = lib.unique (linters ++ projectConfig.checks.dependencies.ignore);
         in

@@ -109,18 +109,12 @@
 
       projects = config.famedly.standards.dart.projects;
 
-      # Pinned here rather than only in the header below, so the version the
-      # analyzer loads and the version we tell projects to depend on cannot
-      # drift apart.
+      # One place, so the version the analyzer loads and the one projects are
+      # told to depend on cannot drift apart.
       riverpodLint = "^3.1.3";
 
-      # Migrated from the `famedly_dart_lints` and `famedly_flutter_lints`
-      # packages in famedly/frontend-ci-templates (`lints/dart` and
-      # `lints/flutter`), which repositories used to pull in as a git
-      # dependency.
-      #
-      # The two rule sets were kept in sync by hand there. Here the shared part
-      # is shared, and only what is genuinely about widgets is conditional.
+      # From `famedly_dart_lints` and `famedly_flutter_lints` in
+      # famedly/frontend-ci-templates, which kept the two sets in sync by hand.
       rules = [
         "avoid_print"
         "constant_identifier_names"
@@ -169,8 +163,7 @@
         "avoid-global-state"
       ];
 
-      # `late` is how widget state is usually initialized, so banning it is only
-      # reasonable outside of Flutter.
+      # `late` is how widget state is usually initialized.
       dartCodeLinterDartRules = [ "avoid-late-keyword" ];
 
       dartCodeLinterFlutterRules = [
@@ -182,8 +175,6 @@
         "prefer-extracting-callbacks"
       ];
 
-      # A rule is either a bare name or a single-entry set of a name and its
-      # configuration.
       ruleName = rule: if lib.isString rule then rule else lib.head (lib.attrNames rule);
 
       mkOptions =
@@ -193,8 +184,7 @@
           dartCodeLinter = projectConfig.linting.dartCodeLinter.enable;
         in
         {
-          # `flutter_lints` includes `lints/recommended.yaml` itself, so the
-          # Flutter base is a superset of the Dart one.
+          # `flutter_lints` includes `lints/recommended.yaml` itself.
           include =
             if flutter then "package:flutter_lints/flutter.yaml" else "package:lints/recommended.yaml";
 
@@ -211,8 +201,7 @@
           // lib.optionalAttrs dartCodeLinter { plugins = [ "dart_code_linter" ]; };
         }
         // lib.optionalAttrs (flutter && projectConfig.linting.riverpodLint.enable) {
-          # Riverpod ships a modern analyzer plugin, which the analyzer resolves
-          # from this top-level key rather than through `analyzer.plugins`.
+          # A modern plugin: resolved here, not through `analyzer.plugins`.
           plugins.riverpod_lint = riverpodLint;
         }
         // lib.optionalAttrs dartCodeLinter {
@@ -223,16 +212,13 @@
               standard =
                 dartCodeLinterRules ++ (if flutter then dartCodeLinterFlutterRules else dartCodeLinterDartRules);
 
-              # An entry that matches nothing is how a suppression outlives the
-              # rule it was written for, so say so rather than ignoring it.
               stale = lib.subtractLists (map ruleName standard) disabled;
             in
             assert lib.assertMsg (stale == [ ]) ''
               famedly.standards.dart.projects: disabledRules names ${lib.concatStringsSep ", " stale}, which the standard rule set does not contain.
             '';
-            # Removed rather than restated as `rule: false`, which would leave
-            # the same rule in the list twice and make the outcome depend on
-            # which entry the linter reads last.
+            # Removed rather than restated as `rule: false`, which would list
+            # the rule twice and leave the outcome to reading order.
             lib.filter (rule: !lib.elem (ruleName rule) disabled) standard
             ++ projectConfig.linting.dartCodeLinter.extraRules;
         };
@@ -266,14 +252,10 @@
           '';
         };
 
-      # Only the managed file is placed. The project's own
-      # `analysis_options.yaml` has to include it — see the `dart-lints-included`
-      # pre-commit hook, which is what keeps that from being forgotten.
-      #
-      # We deliberately don't place that file ourselves: `filegen` has no
-      # "create once" mode — `clobber = false` still overwrites and merely
-      # leaves a numbered backup behind — so we would trample the very
-      # overrides it is meant to hold.
+      # Only the managed file. The project's own `analysis_options.yaml` has to
+      # include it, which the `dart-lints-included` hook checks — placing it
+      # ourselves would trample the overrides it is meant to hold, since
+      # `filegen` has no create-once mode.
       mkProjectFiles = project: projectConfig: [
         {
           type = "copy";

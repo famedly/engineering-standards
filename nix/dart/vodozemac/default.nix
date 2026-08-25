@@ -6,10 +6,9 @@
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { config, pkgs, ... }:
     let
-      # The very package `packages.famedly-vodozemac` is built from, called
-      # again rather than read off `self'`: reaching into the flake's own
-      # packages from inside an option declaration would make the projects
-      # depend on config that is derived from the projects.
+      # What `packages.famedly-vodozemac` is built from, called again rather
+      # than read off `self'`: an option declaration that reaches into the
+      # flake's packages makes the projects depend on themselves.
       vodozemac = pkgs.callPackage ./native.nix {
         source = pkgs.callPackage ./source.nix {
           inherit (config.famedly.standards.dart.vodozemac) version hash cargoHash;
@@ -118,8 +117,7 @@
         packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { inherit source; };
       })
 
-      # The lookup itself goes through `runtime.env`; this only makes entering
-      # the shell build the library.
+      # The lookup goes through `runtime.env`; this only builds the library.
       (lib.mkIf needed { devshells.standards.packages = [ self'.packages.famedly-vodozemac ]; })
     ];
 }

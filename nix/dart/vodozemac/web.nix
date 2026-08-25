@@ -2,12 +2,12 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# The bindings compiled for the browser, a different artefact from the native
-# library rather than a variant of it.
+# The bindings compiled for the browser: a different artefact from the native
+# library, not a variant of it.
 #
 # Upstream drives `wasm-pack` through a Dart wrapper. Calling it directly keeps
 # a Dart toolchain and a pub cache out of the build, at the price of passing
-# the flags that wrapper would have passed — see `frbVersion` below.
+# the flags that wrapper would have — see `frbVersion` below.
 {
   binaryen,
   buildPackages,
@@ -75,8 +75,8 @@ stdenv.mkDerivation {
 
   env = {
     # Threads need a `std` compiled for them, which no released
-    # `wasm32-unknown-unknown` ships. Rebuilding it is nightly-only; this grants
-    # that to the stable toolchain rather than pulling a second one in.
+    # `wasm32-unknown-unknown` ships. Rebuilding it is nightly-only, and this
+    # grants that to the stable toolchain instead of adding a second one.
     RUSTC_BOOTSTRAP = 1;
 
     RUSTFLAGS = "-C target-feature=+atomics,+bulk-memory,+mutable-globals";

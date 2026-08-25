@@ -57,27 +57,22 @@
           ];
 
           text = script (
-            [
-              # Runnable from anywhere in the repository.
-              ''cd "$(git rev-parse --show-toplevel)/${directory project}"''
-            ]
+            [ ''cd "$(git rev-parse --show-toplevel)/${directory project}"'' ]
             ++ lib.optional projectConfig.vodozemac.enable ''
               # Where `vod.init` looks unless an application says otherwise.
               install -Dm644 -t web/pkg ${self'.packages.famedly-vodozemac-web}/*
             ''
             ++ lib.optional projectConfig.web.livekitE2eeWorker.enable ''
-              # The worker's imports resolve through the project's package config,
-              # which also records where the package itself sits.
+              # The worker's imports resolve through the package config.
               [ -f .dart_tool/package_config.json ] || flutter pub get
 
               package="$(jq -er '
               	.packages[] | select(.name == "livekit_client") | .rootUri
               ' .dart_tool/package_config.json)"
 
-              # Flutter copies everything under `web/` into the site, so what
-              # the compiler leaves beside the worker is served with it: a map
-              # hands out the source it was compiled from, and the dependency
-              # list beside it can only be deleted, not turned off.
+              # Flutter copies everything under `web/` into the site, so a map
+              # left beside the worker would hand out its source. The
+              # dependency list can only be deleted, not turned off.
               dart compile js --minify --no-source-maps \
               	--packages=.dart_tool/package_config.json \
               	--output web/e2ee.worker.dart.js \

@@ -52,16 +52,14 @@ in
           cfg = projectConfig.web.githubPages;
         in
         {
-          # Pages has exactly one live deployment, so it follows `main` and
-          # nothing else — not tags, and not the merge queue.
+          # Pages has one live deployment, so it follows `main` and nothing else.
           if_ = "github.event_name == 'push' && github.ref == 'refs/heads/main'";
           needs = [ "build" ];
           runsOn = "ubuntu-latest";
 
           timeoutMinutes = 15;
 
-          # `id-token`, because the deployment is authorised by an OIDC token
-          # rather than by a repository secret.
+          # `id-token`: the deployment is authorised by OIDC, not by a secret.
           permissions = {
             pages = "write";
             id-token = "write";
@@ -87,8 +85,8 @@ in
             env.BASE_HREF = cfg.baseHref;
 
             # Anchored to the tag `flutter build web` writes, so a document
-            # that stopped carrying one fails here instead of being published
-            # with every asset path broken.
+            # without one fails here rather than being published with every
+            # asset path broken.
             run = ''
               if ! grep -q '<base href="[^"]*">' site/index.html; then
                 echo '::error::site/index.html carries no base href to rewrite'
