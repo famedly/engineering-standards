@@ -42,11 +42,10 @@
                 description = ''
                   Whether to compile to WebAssembly.
 
-                  On, because it is where Flutter's web support is going and
-                  what it renders best with. It does place a demand on
-                  whatever serves the result — a browser refuses to
-                  instantiate a module that is not typed `application/wasm` —
-                  which is why the image asserts that rather than assuming it.
+                  On: it is where Flutter's web support is going and what it
+                  renders best with. It does demand something of whatever
+                  serves the result, which is why the image asserts the
+                  content type rather than assuming it.
                 '';
                 type = lib.types.bool;
                 default = true;
@@ -57,9 +56,8 @@
                   Whether to fetch canvaskit and the icon fonts from Google's
                   CDN at runtime.
 
-                  Off, so the application carries everything it needs. A
-                  frontend for a hospital network should not have to reach a
-                  third party to render, and an air-gapped deployment cannot.
+                  Off, so the application carries everything it needs: an
+                  air-gapped deployment cannot reach a third party to render.
                 '';
                 type = lib.types.bool;
                 default = false;
@@ -69,32 +67,27 @@
                 telling the application which build it is.
 
                 `git describe` and the commit reach it as the `version` and
-                `commit` dart-defines, which it reads with
-                `String.fromEnvironment`. Something the user can read off a
-                screen, so that a bug report names a build rather than a day.
+                `commit` dart-defines, read with `String.fromEnvironment`, so
+                a bug report can name a build rather than a day.
 
-                Costs the job the full history, since a shallow clone carries
-                no tags to describe against
+                Costs the job the full history: a shallow clone carries no
+                tags to describe against
               '';
 
               sentry.enable = lib.mkEnableOption ''
                 uploading the debug symbols of this build to Sentry.
 
-                Without them a report from the browser is a stack of minified
-                names and no line numbers, which is to say no stack at all.
-                Turns `version.enable` on, because a symbol file is only ever
+                Without them a report from the browser is minified names and
+                no line numbers. Turns `version.enable` on: a symbol file is
                 found again by the release it was filed under.
 
                 Expects the project's `sentry_dart_plugin` and its `sentry`
-                section in `pubspec.yaml` — which organisation and project to
-                upload to is the project's to say — and the token in the
+                section in `pubspec.yaml`, and the token in the
                 `SENTRY_AUTH_TOKEN` secret
               '';
 
               buildArgs = lib.mkOption {
-                description = ''
-                  Further arguments for `flutter build web`.
-                '';
+                description = "Further arguments for `flutter build web`.";
                 type = lib.types.listOf lib.types.str;
                 default = [ ];
                 example = [ "--dart-define=FLAVOR=production" ];
@@ -103,10 +96,8 @@
               buildCommand = lib.mkOption {
                 description = ''
                   The command CI runs to build the web target, derived from
-                  the options above.
-
-                  Exposed so that it can be read out of the flake when a
-                  build has to be reproduced by hand.
+                  the options above. Exposed so a build can be reproduced by
+                  hand.
                 '';
                 type = lib.types.str;
                 readOnly = true;
@@ -114,10 +105,9 @@
 
               workflowId = lib.mkOption {
                 description = ''
-                  Id of the workflow that builds this web target and ships
-                  it. Not an option to set: the build job and every
-                  destination job have to agree on it, and a rename would
-                  break the wiring silently.
+                  Id of the workflow that builds this web target and ships it.
+                  Read-only: the build job and every destination job have to
+                  agree on it, and a rename would break the wiring silently.
                 '';
                 type = lib.types.str;
                 readOnly = true;
@@ -125,9 +115,9 @@
 
               artifact = lib.mkOption {
                 description = ''
-                  Name of the artefact the build job leaves the site in, and
-                  that every destination job reads it back from. Derived for
-                  the same reason as `workflowId`.
+                  Name of the artefact the build job leaves the site in and
+                  every destination job reads back. Derived for the same
+                  reason as `workflowId`.
                 '';
                 type = lib.types.str;
                 readOnly = true;
@@ -136,14 +126,12 @@
               identity = lib.mkOption {
                 description = ''
                   What a build calls itself. The same two values reach the
-                  application, as dart-defines, and Sentry, as the release
-                  and the distribution it files reports under — a report can
-                  only be read against the sources it came from if both agree
-                  on which build that was.
+                  application as dart-defines and Sentry as the release and
+                  distribution, which is what lets a report be read against
+                  the sources it came from.
 
                   Command substitutions rather than a step that exports them,
-                  so that the build command the flake prints reproduces a CI
-                  build by hand.
+                  so the build command the flake prints reproduces a CI build.
                 '';
                 type = lib.types.attrsOf lib.types.str;
                 readOnly = true;
@@ -152,9 +140,8 @@
               outputPath = lib.mkOption {
                 description = ''
                   Where `flutter build web` writes the site, relative to the
-                  project. Not an option to set: it is the framework's
-                  choice, exposed only so `extraSteps` reads the same path
-                  the build and the upload step do.
+                  project. The framework's choice, exposed only so
+                  `extraSteps` reads the same path the build does.
                 '';
                 type = lib.types.str;
                 readOnly = true;
@@ -164,17 +151,13 @@
               extraSteps = lib.mkOption {
                 description = ''
                   Further GitHub Actions steps to run after the web target is
-                  built, and before it is uploaded as the artefact that every
-                  downstream job — the image, GitHub Pages, review apps —
-                  reads from.
+                  built and before it is uploaded as the artefact every
+                  destination reads from.
 
-                  For steps a project needs that the standards do not know
-                  about: stamping a build identifier into the bundle,
-                  uploading source maps to an error tracker, or anything else
-                  that has to see the built output on disk before it ships.
-                  Runs in the same job as the build, working directory
-                  unchanged, so a step here reads and writes `outputPath` the
-                  same way the build step just did.
+                  For whatever a project needs that the standards do not know
+                  about and that has to see the built output on disk. Runs in
+                  the build's job with the working directory unchanged, so a
+                  step here reads and writes `outputPath` as the build did.
                 '';
                 type = lib.types.listOf lib.types.attrs;
                 default = [ ];

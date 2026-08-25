@@ -21,21 +21,18 @@ in
           { config, ... }: {
             options.checks = {
               analyze = lib.mkOption {
-                description = ''
-                  Whether to run `dart analyze` against this project in CI.
-                '';
+                description = "Whether to run `dart analyze` in CI.";
                 type = lib.types.bool;
                 default = true;
               };
 
               testCommand = lib.mkOption {
                 description = ''
-                  The command that runs this projects' tests in CI, or `null` to
-                  not run any.
+                  The command that runs this project's tests in CI, or `null`
+                  to run none.
 
-                  This is deliberately not defaulted to `dart test`, since test
-                  suites that need external services (databases, homeservers,
-                  ...) have to be wired up by the project itself.
+                  Not defaulted to `dart test`: a suite that needs external
+                  services has to be wired up by the project itself.
                 '';
                 type = lib.types.nullOr lib.types.str;
                 default = null;
@@ -45,11 +42,8 @@ in
               browser = lib.mkOption {
                 description = ''
                   Whether this project's tests run in a browser, and therefore
-                  need one on `PATH`.
-
-                  See `famedly.standards.dart.projects.<name>.checks.testCommand`
-                  for how they are started — this only makes the browser Flutter
-                  launches a pinned one.
+                  need one on `PATH`. Only makes the browser Flutter launches
+                  a pinned one; starting them is `testCommand`'s business.
                 '';
                 type = lib.types.bool;
                 default = false;
@@ -60,23 +54,20 @@ in
 
                 file = lib.mkOption {
                   description = ''
-                    Coverage report the test command leaves behind, relative to
-                    the project.
+                    Coverage report the test command leaves behind, relative
+                    to the project.
 
-                    Producing it is up to `testCommand`, which for Flutter means
-                    passing `--coverage`. CI insists on finding it rather than
-                    skipping the upload when it is absent: a report that quietly
-                    stops being written is how coverage stops being measured
-                    without anybody noticing.
+                    Producing it is up to `testCommand`, which for Flutter
+                    means `--coverage`. CI insists on finding it rather than
+                    skipping the upload: a report that quietly stops being
+                    written is how coverage stops being measured.
                   '';
                   type = lib.types.str;
                   default = "coverage/lcov.info";
                 };
 
                 flags = lib.mkOption {
-                  description = ''
-                    Codecov flag to file this report under, or `null` for none.
-                  '';
+                  description = "Codecov flag to file this report under.";
                   type = lib.types.nullOr lib.types.str;
                   default = null;
                   example = "unit-tests";
@@ -88,8 +79,7 @@ in
 
                 config = lib.mkOption {
                   description = ''
-                    Licence policy to check the dependencies against, relative to
-                    the project.
+                    Licence policy to check against, relative to the project.
                   '';
                   type = lib.types.str;
                   default = "licenses.yaml";
@@ -99,10 +89,9 @@ in
                   description = ''
                     Version of the `license_checker` tool CI installs.
 
-                    Installed globally rather than carried as a dev dependency,
-                    because it resolves the whole of `pana` and would then get a
-                    say in which analyzer the project may use — its auditor
-                    vetoing the linters it is supposed to audit alongside.
+                    Installed globally rather than as a dev dependency: it
+                    resolves the whole of `pana` and would otherwise get a say
+                    in which analyzer the project may use.
                   '';
                   type = lib.types.str;
                   default = "1.6.2";
@@ -111,9 +100,7 @@ in
 
               unused = {
                 files = lib.mkOption {
-                  description = ''
-                    Whether to look for files in `lib` that nothing imports.
-                  '';
+                  description = "Whether to look for unimported files in `lib`.";
                   type = lib.types.bool;
                   default = config.linting.dartCodeLinter.enable;
                   defaultText = lib.literalExpression "config.linting.dartCodeLinter.enable";
@@ -121,8 +108,7 @@ in
 
                 code = lib.mkOption {
                   description = ''
-                    Whether to look for declarations in `lib` that nothing
-                    references.
+                    Whether to look for unreferenced declarations in `lib`.
                   '';
                   type = lib.types.bool;
                   default = config.linting.dartCodeLinter.enable;
@@ -133,10 +119,9 @@ in
                   description = ''
                     Globs the two checks above should not report on.
 
-                    Generated code is excluded by default, and so is whatever
-                    `linting.exclude` names: a generator writes what its template
-                    says whether anything imports it or not, so a finding there is
-                    not something anybody can act on.
+                    Generated code and whatever `linting.exclude` names: a
+                    generator writes what its template says whether anything
+                    imports it or not, so a finding there is not actionable.
                   '';
                   type = lib.types.listOf lib.types.str;
 
@@ -162,9 +147,7 @@ in
                 '';
 
                 version = lib.mkOption {
-                  description = ''
-                    Version of the `sweeper` tool CI installs.
-                  '';
+                  description = "Version of the `sweeper` tool CI installs.";
                   type = lib.types.str;
                   default = "0.4.2";
                 };
@@ -172,9 +155,8 @@ in
 
               privateDependencies = lib.mkOption {
                 description = ''
-                  Whether this project depends on private famedly repositories,
+                  Whether this project depends on private famedly repositories
                   and therefore needs an SSH key to resolve its dependencies.
-
                   See `famedly.standards.ci.steps.privateDependencies`.
                 '';
                 type = lib.types.bool;

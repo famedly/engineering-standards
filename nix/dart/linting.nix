@@ -9,10 +9,8 @@
           options.linting.exclude = lib.mkOption {
             description = ''
               Further paths the analyzer should not look at, on top of the
-              generated localisations.
-
-              For code that a generator writes: holding it to rules that a
-              human would be held to only produces findings nobody can act on.
+              generated localisations. For code a generator writes, where a
+              finding is not something anybody can act on.
             '';
 
             type = lib.types.listOf lib.types.str;
@@ -33,16 +31,13 @@
 
             extraRules = lib.mkOption {
               description = ''
-                Further rules for this project, on top of the standard set.
+                Further rules for this project, on top of the standard set. A
+                rule that takes configuration is a one-entry attribute set.
 
-                They go into the generated file rather than into the project's
-                own `analysis_options.yaml`, because the analyzer replaces
-                rather than merges the rule list of a file it includes — a
-                project that spelled its own rules out there would silently
-                lose every rule the standards contribute.
-
-                A rule that takes configuration is written as an attribute set
-                of one entry.
+                They belong here rather than in the project's own
+                `analysis_options.yaml`, because the analyzer replaces rather
+                than merges the rule list of a file it includes — rules spelled
+                out there would silently drop the standards' own.
               '';
 
               type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
@@ -65,11 +60,8 @@
 
             disabledRules = lib.mkOption {
               description = ''
-                Standard rules this project does not follow yet.
-
-                Listing them here keeps what a project has not got round to
-                visible in one place, rather than as an override that reads
-                like a decision.
+                Standard rules this project does not follow yet, kept in one
+                place rather than as overrides that read like decisions.
               '';
 
               type = lib.types.listOf lib.types.str;
@@ -83,11 +75,10 @@
               Whether to load the `riverpod_lint` analyzer plugin for a
               Flutter project.
 
-              On by default, since every Flutter project this pins the
-              toolchain for is expected to reach Riverpod 3 eventually. Turn
-              it off for one that has not: the plugin's current release
-              requires it, and an analyzer plugin that cannot resolve fails
-              every analysis, not just the findings it would have reported.
+              On, since every Flutter project here is expected to reach
+              Riverpod 3 eventually. Turn it off for one that has not: the
+              plugin's current release requires it, and a plugin that cannot
+              resolve fails every analysis.
             '';
             type = lib.types.bool;
             default = true;

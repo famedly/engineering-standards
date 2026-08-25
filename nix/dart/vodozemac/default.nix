@@ -22,16 +22,12 @@
             Which dart-vodozemac release to build the bindings from.
 
             Keep it equal to the `vodozemac` — or `flutter_vodozemac` —
-            constraint in the project's `pubspec.yaml`. The Dart package that
-            calls these bindings is generated from this very release, and a
-            project talking to bindings it was not generated against fails when
-            a call is made rather than when it is built, so a pre-commit hook
-            compares the two.
+            constraint in the project's `pubspec.yaml`, which a pre-commit
+            hook checks: the Dart package is generated from this very release,
+            and a mismatch fails at the first call, not at build time.
 
-            The default is the release we would like everyone on. A project that
-            cannot follow yet sets its own, together with both hashes below,
-            which is why they are options at all: nothing forces two projects
-            onto one version of a dependency.
+            A project that cannot follow the default yet sets its own, together
+            with both hashes below.
           '';
 
           type = lib.types.str;
@@ -51,9 +47,8 @@
         cargoHash = lib.mkOption {
           description = ''
             Hash of the crate's vendored dependencies, which changes with the
-            release's `Cargo.lock`. One lockfile, so one vendor: which
-            dependencies a target links is decided when it is built, not when
-            they are resolved, and both targets share this.
+            release's `Cargo.lock`. Shared by both targets: which dependencies
+            one links is decided when it is built, not when they are resolved.
           '';
 
           type = lib.types.str;

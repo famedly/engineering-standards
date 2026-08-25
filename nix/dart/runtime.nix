@@ -12,11 +12,10 @@
                 Packages whose libraries the project `dlopen`s by soname, such
                 as `sqlite` for `sqflite_common_ffi`.
 
-                A compiled Dart binary carries no `RUNPATH`, and the SDK is
-                patched to the nix loader, whose default search path covers
-                neither `/usr/lib` nor the nix store. So the libraries have to
-                be named, and they are needed wherever the project runs: they
-                land on the devshell's `LD_LIBRARY_PATH` and on the image's.
+                A compiled Dart binary carries no `RUNPATH`, and the nix
+                loader searches neither `/usr/lib` nor the store, so these
+                have to be named. They land on the devshell's
+                `LD_LIBRARY_PATH` and on the image's.
               '';
               type = lib.types.listOf lib.types.package;
               default = [ ];

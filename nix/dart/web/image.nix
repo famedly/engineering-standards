@@ -32,9 +32,7 @@
               enable = lib.mkEnableOption "building and pushing a container image that serves this web target";
 
               name = lib.mkOption {
-                description = ''
-                  Name of the image to push, without the registry.
-                '';
+                description = "Name of the image to push, without the registry.";
                 type = lib.types.str;
                 example = "famedly-control-client";
               };
@@ -56,13 +54,12 @@
                   Whether to let the server send `Cache-Control` headers.
 
                   Off, because its heuristic caches every file for a day,
-                  including the entry document — which would leave a browser
-                  on yesterday's build of a single-page application for a day
-                  after a deployment. Validators are still sent, so a
-                  revalidating client is served a `304` either way.
+                  including the entry document — a browser would sit on
+                  yesterday's build for a day after a deployment. Validators
+                  are sent either way.
 
-                  Turn this on for a site whose file names are
-                  content-hashed throughout.
+                  Turn it on for a site whose file names are content-hashed
+                  throughout.
                 '';
                 type = lib.types.bool;
                 default = false;
@@ -72,11 +69,9 @@
                 description = ''
                   Headers the server sends with every response.
 
-                  The defaults say nothing about the site's own contents, so
-                  no static site has a reason to withhold them.
-                  `Content-Security-Policy` is not among them: a policy that
-                  fits one application forbids another one's inline
-                  bootstrap, so it belongs to the project.
+                  No `Content-Security-Policy`: a policy that fits one
+                  application forbids another one's inline bootstrap, so it
+                  belongs to the project.
                 '';
 
                 type = lib.types.attrsOf lib.types.str;
@@ -95,11 +90,10 @@
 
               sentHeaders = lib.mkOption {
                 description = ''
-                  The headers the server is configured with: `headers`, plus
-                  the isolation pair when `crossOriginIsolation` asks for it.
-
-                  Derived, so that the image and the test that fetches from it
-                  cannot disagree about what it sends.
+                  What the server is configured with: `headers`, plus the
+                  isolation pair when `crossOriginIsolation` asks for it.
+                  Derived, so the image and the test that fetches from it
+                  cannot disagree.
                 '';
 
                 type = lib.types.attrsOf lib.types.str;
@@ -119,14 +113,12 @@
                 description = ''
                   Whether to ask the browser for cross-origin isolation.
 
-                  Off by default: `Cross-Origin-Embedder-Policy` blocks every
-                  cross-origin resource that does not opt in, which takes
-                  down a site that loads fonts, images or frames from
-                  elsewhere.
+                  Off, because `Cross-Origin-Embedder-Policy` blocks every
+                  cross-origin resource that does not opt in — fonts, images,
+                  frames.
 
-                  Worth turning on for a Flutter web build with the threaded
-                  renderer, which needs a `SharedArrayBuffer` and otherwise
-                  falls back to the single-threaded one.
+                  Turn it on for a Flutter web build with the threaded
+                  renderer, which needs a `SharedArrayBuffer`.
                 '';
 
                 type = lib.types.bool;
@@ -151,15 +143,12 @@
               contentTypes = lib.mkOption {
                 description = ''
                   Content types the image is expected to serve, keyed by file
-                  extension.
+                  extension, and checked against the site's own files.
 
-                  Checked against the site's own files, because these are the
-                  headers a browser refuses to work with rather than merely
-                  renders differently: it will not execute a module script
-                  that is not typed as JavaScript, nor instantiate a
-                  WebAssembly module that is not typed as such. Serving them
-                  wrong takes the whole application down, and does so only in
-                  the browser, where no build step is watching.
+                  A browser will not execute a module script that is not typed
+                  as JavaScript, nor instantiate a WebAssembly module that is
+                  not typed as such, so serving these wrong takes the whole
+                  application down where no build step is watching.
 
                   Extensions the site has no file for are skipped.
                 '';
@@ -171,17 +160,14 @@
               };
 
               nightlyRegistry = lib.mkOption {
-                description = ''
-                  Registry that images built from pull requests are pushed to.
-                '';
+                description = "Registry images built from pull requests go to.";
                 type = lib.types.str;
                 default = "registry.famedly.net/docker-nightly";
               };
 
               releaseRegistry = lib.mkOption {
                 description = ''
-                  Registry that images built from `main` and version tags are
-                  pushed to.
+                  Registry images built from `main` and version tags go to.
                 '';
                 type = lib.types.str;
                 default = "registry.famedly.net/docker-releases";
@@ -196,11 +182,8 @@
 
                 arm64 = lib.mkOption {
                   description = ''
-                    Runner that assembles the arm64 image.
-
-                    The standard one, for the reasons given at
-                    `image.runners.arm64`. Less to weigh here, since only the
-                    server in this image is architecture-specific.
+                    Runner that assembles the arm64 image. The standard one:
+                    only the server in this image is architecture-specific.
                   '';
                   type = lib.types.str;
                   default = "ubuntu-24.04-arm";

@@ -31,11 +31,9 @@ in
 
             environment = lib.mkOption {
               description = ''
-                GitHub environment the deployments are recorded in.
-
-                Cleaning up after closed pull requests keys off this, so a
-                repository that shares a server with others still only ever
-                removes its own review apps.
+                GitHub environment the deployments are recorded in. The
+                cleanup keys off this, so a repository sharing a server with
+                others only ever removes its own review apps.
               '';
               type = lib.types.str;
               default = "review";

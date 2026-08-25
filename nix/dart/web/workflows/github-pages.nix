@@ -23,11 +23,10 @@ in
                 Path the site is served under on Pages, or `null` to leave the
                 entry document alone.
 
-                A project site lives under the repository's name rather than
-                at the domain root, so a site built for the root resolves all
-                of its own assets one directory too high. Rewriting the base
-                here rather than building a second time is what keeps Pages
-                serving the same bytes as every other destination.
+                A project site lives under the repository's name, so one built
+                for the domain root resolves its assets one directory too
+                high. Rewritten here rather than built a second time, so Pages
+                serves the same bytes as every other destination.
               '';
               type = lib.types.nullOr (lib.types.strMatching "/.*/");
               default = null;

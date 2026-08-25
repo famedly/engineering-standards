@@ -19,10 +19,9 @@ in
     options.famedly.standards.dart = {
       toolchain = lib.mkOption {
         description = ''
-          The SDK that provides `dart` for this repository.
-
-          Read this instead of naming an SDK package directly, so that everything
-          which runs `dart` agrees on the version.
+          The SDK that provides `dart` for this repository. Read this rather
+          than naming a package, so everything that runs `dart` agrees on the
+          version.
         '';
         type = lib.types.package;
         readOnly = true;

@@ -28,25 +28,21 @@
               enable = lib.mkEnableOption "building and pushing a container image for this project";
 
               name = lib.mkOption {
-                description = ''
-                  Name of the image to push, without the registry.
-                '';
+                description = "Name of the image to push, without the registry.";
                 type = lib.types.str;
                 example = "famedly-headless";
               };
 
               entrypoint = lib.mkOption {
-                description = ''
-                  The Dart entrypoint to compile into the image.
-                '';
+                description = "The Dart entrypoint to compile into the image.";
                 type = lib.types.str;
                 default = "bin/server.dart";
               };
 
               binary = lib.mkOption {
                 description = ''
-                  Name the entrypoint is compiled to, and the name it gets
-                  inside the image.
+                  Name the entrypoint is compiled to, and its name inside the
+                  image.
                 '';
                 type = lib.types.str;
                 default = "server";
@@ -92,8 +88,8 @@
               writableDirs = lib.mkOption {
                 description = ''
                   Absolute paths of directories created up front and handed to
-                  the service user, for state that is written before a volume
-                  is mounted over it.
+                  the service user, for state written before a volume is
+                  mounted over it.
                 '';
                 type = lib.types.listOf (lib.types.strMatching "/.+");
                 default = [ ];
@@ -122,17 +118,14 @@
               };
 
               nightlyRegistry = lib.mkOption {
-                description = ''
-                  Registry that images built from pull requests are pushed to.
-                '';
+                description = "Registry images built from pull requests go to.";
                 type = lib.types.str;
                 default = "registry.famedly.net/docker-nightly";
               };
 
               releaseRegistry = lib.mkOption {
                 description = ''
-                  Registry that images built from `main` and version tags are
-                  pushed to.
+                  Registry images built from `main` and version tags go to.
                 '';
                 type = lib.types.str;
                 default = "registry.famedly.net/docker-releases";
@@ -141,8 +134,8 @@
               gate = lib.mkOption {
                 description = ''
                   A workflow that has to pass before the image is pushed, for
-                  test suites that are too project-specific to live in the
-                  standards. Called with `secrets: inherit`.
+                  tests too project-specific to live in the standards. Called
+                  with `secrets: inherit`.
                 '';
                 type = lib.types.nullOr lib.types.str;
                 default = null;
@@ -161,9 +154,9 @@
                     Runner that builds the arm64 image.
 
                     The eight-core alternative costs 2.8 times as much per
-                    minute and measured 1.16 times faster here, since half
-                    the wait is fetching and unpacking. Name it here for a
-                    project whose build really is compilation throughout.
+                    minute and measured 1.16 times faster, since half the wait
+                    is fetching and unpacking. Worth naming for a project whose
+                    build really is compilation throughout.
                   '';
                   type = lib.types.str;
                   default = "ubuntu-24.04-arm";
