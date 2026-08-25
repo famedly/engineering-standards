@@ -283,9 +283,10 @@ in
               timeoutMinutes = 20;
 
               # `id-token`, because cosign signs with this workflow's identity
-              # rather than with a key.
+              # rather than with a key. `contents`, only where there is a
+              # release to attach the documents to.
               permissions = {
-                contents = "read";
+                contents = if config.famedly.standards.release.enable then "write" else "read";
                 id-token = "write";
               };
 
@@ -294,6 +295,7 @@ in
                 ++ steps.publishImages {
                   inherit architectures reference tag;
                   lockfile = "${directory project}pubspec.lock";
+                  release = config.famedly.standards.release.enable;
                 };
             };
           }
