@@ -2,7 +2,7 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-{ lib, flake-parts-lib, ... }: importingFlake: {
+{ lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { config, pkgs, ... }:
     let

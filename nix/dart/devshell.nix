@@ -1,9 +1,14 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ lib, ... }: importingFlake: {
+{
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
     let
       inherit (config.famedly.standards.dart) projects toolchain;
 

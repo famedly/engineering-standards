@@ -16,7 +16,7 @@ importingFlake: {
 
     (importApply ./general args)
 
-    (importApply ./dart args)
+    ./dart
     (importApply ./nix args)
     (importApply ./python args)
     (importApply ./rust args)

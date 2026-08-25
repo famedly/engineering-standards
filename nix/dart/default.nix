@@ -1,19 +1,13 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{
-  flake-parts-lib,
-  lib,
-  importApply,
-  ...
-}@args:
-importingFlake: {
+{ flake-parts-lib, lib, ... }: {
   imports = [
-    (importApply ./devshell.nix args)
-    (importApply ./formatting.nix args)
-    (importApply ./linting.nix args)
-    (importApply ./sdk.nix args)
-    (importApply ./vodozemac args)
+    ./devshell.nix
+    ./formatting.nix
+    ./linting.nix
+    ./sdk.nix
+    ./vodozemac
 
     ./dependencies.nix
     ./image.nix

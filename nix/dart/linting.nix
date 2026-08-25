@@ -1,7 +1,7 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ lib, flake-parts-lib, ... }: importingFlake: {
+{ lib, flake-parts-lib, ... }: {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.dart.projects = lib.mkOption {
       type = lib.types.attrsOf (
