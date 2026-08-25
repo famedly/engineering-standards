@@ -10,42 +10,38 @@
 # than from Dart code, so the tool sees it declared and never used — and which
 # linters a project declares is the standards' decision.
 { lib, flake-parts-lib, ... }: {
-  options.perSystem = flake-parts-lib.mkPerSystemOption ({
-    options.famedly.standards.dart.projects = lib.mkOption {
-      type = lib.types.attrsOf (
-        lib.types.submodule {
-          options.checks.dependencies = {
-            enable = lib.mkEnableOption "holding this project's declared dependencies against the ones it imports";
+  imports = [
+    (import ./project-options.nix { inherit lib flake-parts-lib; } {
+      options.checks.dependencies = {
+        enable = lib.mkEnableOption "holding this project's declared dependencies against the ones it imports";
 
-            ignore = lib.mkOption {
-              description = ''
-                Packages to accept as declared but unimported, on top of the
-                linters the standards mandate. For a package whose use the
-                tool cannot see: an asset bundle, or a plugin loaded by name.
-              '';
-              type = lib.types.listOf lib.types.str;
-              default = [ ];
-              example = [ "flutter_launcher_icons" ];
-            };
+        ignore = lib.mkOption {
+          description = ''
+            Packages to accept as declared but unimported, on top of the linters
+            the standards mandate. For a package whose use the tool cannot see:
+            an asset bundle, or a plugin loaded by name.
+          '';
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          example = [ "flutter_launcher_icons" ];
+        };
 
-            version = lib.mkOption {
-              description = ''
-                Version of the `dependency_validator` tool CI installs.
+        version = lib.mkOption {
+          description = ''
+            Version of the `dependency_validator` tool CI installs.
 
-                Installed globally, since a tool that judges the manifest
-                should not appear in it — which is also why the version is
-                stated exactly: no lockfile holds it.
-              '';
-              type = lib.types.str;
-              default = "5.0.5";
-            };
-          };
-        }
-      );
-    };
-  });
+            Installed globally, since a tool that judges the manifest should not
+            appear in it — which is also why the version is stated exactly: no
+            lockfile holds it.
+          '';
+          type = lib.types.str;
+          default = "5.0.5";
+        };
+      };
+    })
+  ];
 
-  config.perSystem =
+  perSystem =
     {
       config,
       pkgs,

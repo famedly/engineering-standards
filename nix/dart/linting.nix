@@ -2,93 +2,88 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 { lib, flake-parts-lib, ... }: {
-  options.perSystem = flake-parts-lib.mkPerSystemOption ({
-    options.famedly.standards.dart.projects = lib.mkOption {
-      type = lib.types.attrsOf (
-        lib.types.submodule {
-          options.linting.exclude = lib.mkOption {
-            description = ''
-              Further paths the analyzer should not look at, on top of the
-              generated localisations. For code a generator writes, where a
-              finding is not something anybody can act on.
-            '';
+  imports = [
+    (import ./project-options.nix { inherit lib flake-parts-lib; } {
+      options.linting.exclude = lib.mkOption {
+        description = ''
+          Further paths the analyzer should not look at, on top of the generated
+          localisations. For code a generator writes, where a finding is not
+          something anybody can act on.
+        '';
 
-            type = lib.types.listOf lib.types.str;
-            default = [ ];
-            example = [ "lib/shared/l10n/*.dart" ];
-          };
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [ "lib/shared/l10n/*.dart" ];
+      };
 
-          options.linting.dartCodeLinter = {
-            enable = lib.mkEnableOption ''
-              the `dart_code_linter` rule set for this project.
+      options.linting.dartCodeLinter = {
+        enable = lib.mkEnableOption ''
+          the `dart_code_linter` rule set for this project.
 
-              Off by default, because these rules come from an analyzer plugin
-              that `dart analyze` ignores: they need a separate step, which the
-              checks workflow adds when this is enabled. The project has to
-              carry the `dart_code_linter` dev dependency for that step to
-              resolve
-            '';
+          Off by default, because these rules come from an analyzer plugin that
+          `dart analyze` ignores: they need a separate step, which the checks
+          workflow adds when this is enabled. The project has to carry the
+          `dart_code_linter` dev dependency for that step to resolve
+        '';
 
-            extraRules = lib.mkOption {
-              description = ''
-                Further rules for this project, on top of the standard set. A
-                rule that takes configuration is a one-entry attribute set.
+        extraRules = lib.mkOption {
+          description = ''
+            Further rules for this project, on top of the standard set. A rule
+            that takes configuration is a one-entry attribute set.
 
-                They belong here rather than in the project's own
-                `analysis_options.yaml`, because the analyzer replaces rather
-                than merges the rule list of a file it includes — rules spelled
-                out there would silently drop the standards' own.
-              '';
+            They belong here rather than in the project's own
+            `analysis_options.yaml`, because the analyzer replaces rather than
+            merges the rule list of a file it includes — rules spelled out there
+            would silently drop the standards' own.
+          '';
 
-              type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
-              default = [ ];
+          type = lib.types.listOf (lib.types.either lib.types.str lib.types.attrs);
+          default = [ ];
 
-              example = lib.literalExpression ''
-                [
+          example = lib.literalExpression ''
+            [
+              {
+                avoid-banned-imports.entries = [
                   {
-                    avoid-banned-imports.entries = [
-                      {
-                        paths = [ "features/.*\\.dart" ];
-                        deny = [ "services/implementations.*\\.dart" ];
-                        message = "Use the service API instead.";
-                      }
-                    ];
+                    paths = [ "features/.*\\.dart" ];
+                    deny = [ "services/implementations.*\\.dart" ];
+                    message = "Use the service API instead.";
                   }
-                ]
-              '';
-            };
+                ];
+              }
+            ]
+          '';
+        };
 
-            disabledRules = lib.mkOption {
-              description = ''
-                Standard rules this project does not follow yet, kept in one
-                place rather than as overrides that read like decisions.
-              '';
+        disabledRules = lib.mkOption {
+          description = ''
+            Standard rules this project does not follow yet, kept in one place
+            rather than as overrides that read like decisions.
+          '';
 
-              type = lib.types.listOf lib.types.str;
-              default = [ ];
-              example = [ "member-ordering" ];
-            };
-          };
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          example = [ "member-ordering" ];
+        };
+      };
 
-          options.linting.riverpodLint.enable = lib.mkOption {
-            description = ''
-              Whether to load the `riverpod_lint` analyzer plugin for a
-              Flutter project.
+      options.linting.riverpodLint.enable = lib.mkOption {
+        description = ''
+          Whether to load the `riverpod_lint` analyzer plugin for a Flutter
+          project.
 
-              On, since every Flutter project here is expected to reach
-              Riverpod 3 eventually. Turn it off for one that has not: the
-              plugin's current release requires it, and a plugin that cannot
-              resolve fails every analysis.
-            '';
-            type = lib.types.bool;
-            default = true;
-          };
-        }
-      );
-    };
-  });
+          On, since every Flutter project here is expected to reach Riverpod 3
+          eventually. Turn it off for one that has not: the plugin's current
+          release requires it, and a plugin that cannot resolve fails every
+          analysis.
+        '';
+        type = lib.types.bool;
+        default = true;
+      };
+    })
+  ];
 
-  config.perSystem =
+  perSystem =
     {
       config,
       pkgs,
