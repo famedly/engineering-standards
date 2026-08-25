@@ -153,9 +153,10 @@ in
             from, which a compiled bundle no longer names.
 
             `release` attaches those documents to the GitHub release for a
-            version tag as well, for whoever asks what a released version
-            shipped without holding credentials for the registry. Requires
-            `contents: write` on the job.
+            version tag as well, named after the image they describe, for
+            whoever asks what a released version shipped without holding
+            credentials for the registry. Requires `contents: write` on the
+            job.
 
             E.g.:
 
@@ -451,7 +452,18 @@ in
           done
 
           if gh release view "$TAG" >/dev/null 2>&1; then
-          	gh release upload "$TAG" sboms/*.spdx.json --clobber
+          	# A release holds one asset per file name, and a repository can
+          	# publish more than one image for a tag — a second project, or a
+          	# server image beside a web one. Named after the image they
+          	# describe, they cannot replace each other, which would leave a
+          	# document that reads as though it covered both.
+          	mkdir -p assets
+
+          	for sbom in sboms/*.spdx.json; do
+          		cp "$sbom" "assets/${baseNameOf reference}-$(basename "$sbom")"
+          	done
+
+          	gh release upload "$TAG" assets/*.spdx.json --clobber
           else
           	# The images are pushed and signed by the time this runs, and the
           	# documents are attached to them. Worth saying, not worth failing.
