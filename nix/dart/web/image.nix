@@ -32,18 +32,6 @@
             options.web.image = {
               enable = lib.mkEnableOption "building and pushing a container image that serves this web target";
 
-              name = lib.mkOption {
-                description = "Name of the image to push, without the registry.";
-                type = lib.types.str;
-                example = "famedly-control-client";
-              };
-
-              port = lib.mkOption {
-                description = "Port the server listens on.";
-                type = lib.types.port;
-                default = 8080;
-              };
-
               documentRoot = lib.mkOption {
                 description = "Absolute path the site is served from.";
                 type = lib.types.strMatching "/.+";
@@ -127,21 +115,6 @@
                 default = false;
               };
 
-              user = {
-                uid = lib.mkOption {
-                  description = "Uid the server runs as.";
-                  type = lib.types.int;
-                  default = 10001;
-                };
-
-                gid = lib.mkOption {
-                  description = "Gid the server runs as.";
-                  type = lib.types.int;
-                  default = config.web.image.user.uid;
-                  defaultText = "config.web.image.user.uid";
-                };
-              };
-
               contentTypes = lib.mkOption {
                 description = ''
                   Content types the image is expected to serve, keyed by file
@@ -161,27 +134,7 @@
                 };
               };
 
-              nightlyRegistry = lib.mkOption {
-                description = "Registry images built from pull requests go to.";
-                type = lib.types.str;
-                default = "registry.famedly.net/docker-nightly";
-              };
-
-              releaseRegistry = lib.mkOption {
-                description = ''
-                  Registry images built from `main` and version tags go to.
-                '';
-                type = lib.types.str;
-                default = "registry.famedly.net/docker-releases";
-              };
-
               runners = {
-                amd64 = lib.mkOption {
-                  description = "Runner that assembles the amd64 image.";
-                  type = lib.types.str;
-                  default = "ubuntu-latest";
-                };
-
                 arm64 = lib.mkOption {
                   description = ''
                     Runner that assembles the arm64 image. The standard one is

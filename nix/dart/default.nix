@@ -11,6 +11,7 @@
     ./devshell.nix
     ./formatting.nix
     ./image.nix
+    ./image-options.nix
     ./linting.nix
     ./pre-commit-hooks.nix
     ./runtime.nix

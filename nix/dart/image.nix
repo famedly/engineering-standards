@@ -27,12 +27,6 @@
             options.image = {
               enable = lib.mkEnableOption "building and pushing a container image for this project";
 
-              name = lib.mkOption {
-                description = "Name of the image to push, without the registry.";
-                type = lib.types.str;
-                example = "famedly-headless";
-              };
-
               entrypoint = lib.mkOption {
                 description = "The Dart entrypoint to compile into the image.";
                 type = lib.types.str;
@@ -63,12 +57,6 @@
                 '';
               };
 
-              port = lib.mkOption {
-                description = "Port the service listens on.";
-                type = lib.types.port;
-                default = 8080;
-              };
-
               healthPath = lib.mkOption {
                 description = ''
                   Path of the health endpoint, or `null` for no healthcheck.
@@ -96,39 +84,14 @@
                 example = [ "/app/data" ];
               };
 
-              user = {
-                name = lib.mkOption {
-                  description = "Name of the unprivileged user the service runs as.";
-                  type = lib.types.str;
-                  default = "app";
-                };
-
-                uid = lib.mkOption {
-                  description = "Uid of the service user.";
-                  type = lib.types.int;
-                  default = 10001;
-                };
-
-                gid = lib.mkOption {
-                  description = "Gid of the service user.";
-                  type = lib.types.int;
-                  default = config.image.user.uid;
-                  defaultText = "config.image.user.uid";
-                };
-              };
-
-              nightlyRegistry = lib.mkOption {
-                description = "Registry images built from pull requests go to.";
+              # The image also has a uid and a gid, declared in
+              # `image-options.nix` with the rest of what both kinds share.
+              # This one only a server image has: it needs an entry in
+              # `/etc/passwd` for glibc to resolve anything.
+              user.name = lib.mkOption {
+                description = "Name of the unprivileged user the service runs as.";
                 type = lib.types.str;
-                default = "registry.famedly.net/docker-nightly";
-              };
-
-              releaseRegistry = lib.mkOption {
-                description = ''
-                  Registry images built from `main` and version tags go to.
-                '';
-                type = lib.types.str;
-                default = "registry.famedly.net/docker-releases";
+                default = "app";
               };
 
               gate = lib.mkOption {
@@ -143,12 +106,6 @@
               };
 
               runners = {
-                amd64 = lib.mkOption {
-                  description = "Runner that builds the amd64 image.";
-                  type = lib.types.str;
-                  default = "ubuntu-latest";
-                };
-
                 arm64 = lib.mkOption {
                   description = ''
                     Runner that builds the arm64 image.
