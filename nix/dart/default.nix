@@ -6,7 +6,6 @@
     ./devshell.nix
     ./formatting.nix
     ./linting.nix
-    ./sdk.nix
     ./vodozemac
 
     ./dependencies.nix

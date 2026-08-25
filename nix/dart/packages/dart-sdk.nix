@@ -9,18 +9,23 @@
 }:
 
 let
-  version = "3.13.1";
+  # The Dart SDK that the pinned Flutter release carries, taken from the data
+  # that packages it. The two used to be written out separately and had to be
+  # kept equal by hand — the same version string and the same three hashes in
+  # two files, with nothing to notice when a Flutter bump updated only one.
+  #
+  # A Flutter project runs the `dart` out of its own SDK either way, so a plain
+  # Dart project following the same release is what keeps a repository holding
+  # both from formatting its code two different ways.
+  data = lib.importJSON ./flutter-sdk-data.json;
+
+  version = data.dartVersion;
+  hashes = data.dartHash;
 
   platforms = {
     x86_64-linux = "linux-x64";
     aarch64-linux = "linux-arm64";
     aarch64-darwin = "macos-arm64";
-  };
-
-  hashes = {
-    aarch64-darwin = "sha256-NnmElB2NFMZTeJ9veHMS5xXlxUb26fXTDYZhXGkpB6k=";
-    aarch64-linux = "sha256-UUHVrGLav88NPdj79cTRQ9AJLvQvrQ8l9s9lh+XPw78=";
-    x86_64-linux = "sha256-klHEYG67MUgMRfQwvmn84ml+O4iKCoKLnhbn0jQD1yo=";
   };
 
   archiveName =

@@ -6,8 +6,19 @@
 # one: `dart format` output depends on the SDK version, so a formatter that
 # differs from the `dart` on `PATH` would have the two rewrite each other's
 # output. Naming the package in one place is what keeps them from drifting.
-{ lib, flake-parts-lib, ... }: {
-  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+{ lib, flake-parts-lib, ... }:
+let
+  # Flutter carries prebuilt engine artifacts, which upstream publishes for some
+  # of our platforms and not others. Leaving the package out where they do not
+  # exist is what lets the toolchain say so in a sentence instead of failing in
+  # a fetch.
+  flutterSystems = [
+    "x86_64-linux"
+    "aarch64-darwin"
+  ];
+in
+{
+  options.perSystem = flake-parts-lib.mkPerSystemOption {
     options.famedly.standards.dart = {
       toolchain = lib.mkOption {
         description = ''
@@ -29,11 +40,12 @@
         readOnly = true;
       };
     };
-  });
+  };
 
   config.perSystem =
     {
       config,
+      pkgs,
       self',
       system,
       ...
@@ -44,6 +56,13 @@
       );
     in
     {
+      packages = {
+        famedly-dart-sdk = pkgs.callPackage ./packages/dart-sdk.nix { };
+      }
+      // lib.optionalAttrs (lib.elem system flutterSystems) {
+        famedly-flutter-sdk = pkgs.callPackage ./packages/flutter-sdk.nix { };
+      };
+
       famedly.standards.dart = {
         inherit flutter;
 
@@ -54,7 +73,7 @@
         toolchain =
           if flutter then
             self'.packages.famedly-flutter-sdk
-              or (throw "A Flutter project is configured, but famedly-flutter-sdk is not packaged for ${system}. See nix/dart/sdk.nix in the engineering standards.")
+              or (throw "A Flutter project is configured, but famedly-flutter-sdk is not packaged for ${system}. See nix/dart/toolchain.nix in the engineering standards.")
           else
             self'.packages.famedly-dart-sdk;
       };
