@@ -2,37 +2,41 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 { lib, flake-parts-lib, ... }: {
-  imports = [
-    (import ./project-options.nix { inherit lib flake-parts-lib; } {
-      options.runtime = {
-        libraries = lib.mkOption {
-          description = ''
-            Packages whose libraries the project `dlopen`s by soname, such as
-            `sqlite` for `sqflite_common_ffi`.
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.runtime = {
+            libraries = lib.mkOption {
+              description = ''
+                Packages whose libraries the project `dlopen`s by soname, such
+                as `sqlite` for `sqflite_common_ffi`.
 
-            A compiled Dart binary carries no `RUNPATH`, and the nix loader
-            searches neither `/usr/lib` nor the store, so these have to be
-            named. They land on the devshell's `LD_LIBRARY_PATH` and on the
-            image's.
-          '';
-          type = lib.types.listOf lib.types.package;
-          default = [ ];
-          example = lib.literalExpression "[ pkgs.sqlite ]";
-        };
+                A compiled Dart binary carries no `RUNPATH`, and the nix
+                loader searches neither `/usr/lib` nor the store, so these
+                have to be named. They land on the devshell's
+                `LD_LIBRARY_PATH` and on the image's.
+              '';
+              type = lib.types.listOf lib.types.package;
+              default = [ ];
+              example = lib.literalExpression "[ pkgs.sqlite ]";
+            };
 
-        env = lib.mkOption {
-          description = ''
-            Environment variables the project needs at runtime. Set in the
-            devshell and baked into the image.
-          '';
-          type = lib.types.attrsOf lib.types.str;
-          default = { };
-        };
-      };
-    })
-  ];
+            env = lib.mkOption {
+              description = ''
+                Environment variables the project needs at runtime. Set in the
+                devshell and baked into the image.
+              '';
+              type = lib.types.attrsOf lib.types.str;
+              default = { };
+            };
+          };
+        }
+      );
+    };
+  });
 
-  perSystem =
+  config.perSystem =
     { config, ... }:
     let
       projects = lib.attrValues config.famedly.standards.dart.projects;

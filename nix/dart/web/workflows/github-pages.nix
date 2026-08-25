@@ -11,30 +11,34 @@ let
   allowed-actions = config.famedly.standards.allowed-action-versions;
 in
 {
-  imports = [
-    (import ../../project-options.nix { inherit lib flake-parts-lib; } {
-      options.web.githubPages = {
-        enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.githubPages = {
+            enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
 
-        baseHref = lib.mkOption {
-          description = ''
-            Path the site is served under on Pages, or `null` to leave the entry
-            document alone.
+            baseHref = lib.mkOption {
+              description = ''
+                Path the site is served under on Pages, or `null` to leave the
+                entry document alone.
 
-            A project site lives under the repository's name, so one built for
-            the domain root resolves its assets one directory too high.
-            Rewritten here rather than built a second time, so Pages serves the
-            same bytes as every other destination.
-          '';
-          type = lib.types.nullOr (lib.types.strMatching "/.*/");
-          default = null;
-          example = "/famedly-control/";
-        };
-      };
-    })
-  ];
+                A project site lives under the repository's name, so one built
+                for the domain root resolves its assets one directory too
+                high. Rewritten here rather than built a second time, so Pages
+                serves the same bytes as every other destination.
+              '';
+              type = lib.types.nullOr (lib.types.strMatching "/.*/");
+              default = null;
+              example = "/famedly-control/";
+            };
+          };
+        }
+      );
+    };
+  });
 
-  perSystem =
+  config.perSystem =
     { config, ... }:
     let
       projects = lib.filterAttrs (

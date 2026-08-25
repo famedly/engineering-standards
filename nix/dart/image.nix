@@ -7,161 +7,6 @@
 # store loader that no distro image can resolve.
 { lib, flake-parts-lib, ... }: {
   imports = [
-    (import ./project-options.nix { inherit lib flake-parts-lib; } (
-      { config, ... }: {
-        # Both what goes into the image and what CI does with it: the
-        # workflow reads half of these too.
-        options.image = {
-          enable = lib.mkEnableOption "building and pushing a container image for this project";
-
-          name = lib.mkOption {
-            description = "Name of the image to push, without the registry.";
-            type = lib.types.str;
-            example = "famedly-headless";
-          };
-
-          entrypoint = lib.mkOption {
-            description = "The Dart entrypoint to compile into the image.";
-            type = lib.types.str;
-            default = "bin/server.dart";
-          };
-
-          binary = lib.mkOption {
-            description = ''
-              Name the entrypoint is compiled to, and its name inside the image.
-            '';
-            type = lib.types.str;
-            default = "server";
-          };
-
-          files = lib.mkOption {
-            description = ''
-              Files to place in the image, keyed by their absolute destination.
-              Directories are copied recursively.
-            '';
-            type = lib.types.attrsOf lib.types.path;
-            default = { };
-            example = lib.literalExpression ''
-              {
-                "/app/openapi.yaml" = ./openapi.yaml;
-                "/app/assets" = ./assets;
-              }
-            '';
-          };
-
-          port = lib.mkOption {
-            description = "Port the service listens on.";
-            type = lib.types.port;
-            default = 8080;
-          };
-
-          healthPath = lib.mkOption {
-            description = ''
-              Path of the health endpoint, or `null` for no healthcheck. Adds
-              `curl` to the image.
-            '';
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            example = "/api/v1/health";
-          };
-
-          workdir = lib.mkOption {
-            description = "Working directory of the service.";
-            type = lib.types.str;
-            default = "/app";
-          };
-
-          writableDirs = lib.mkOption {
-            description = ''
-              Absolute paths of directories created up front and handed to the
-              service user, for state written before a volume is mounted over
-              it.
-            '';
-            type = lib.types.listOf (lib.types.strMatching "/.+");
-            default = [ ];
-            example = [ "/app/data" ];
-          };
-
-          user = {
-            name = lib.mkOption {
-              description = "Name of the unprivileged user the service runs as.";
-              type = lib.types.str;
-              default = "app";
-            };
-
-            uid = lib.mkOption {
-              description = "Uid of the service user.";
-              type = lib.types.int;
-              default = 10001;
-            };
-
-            gid = lib.mkOption {
-              description = "Gid of the service user.";
-              type = lib.types.int;
-              default = config.image.user.uid;
-              defaultText = "config.image.user.uid";
-            };
-          };
-
-          nightlyRegistry = lib.mkOption {
-            description = "Registry images built from pull requests go to.";
-            type = lib.types.str;
-            default = "registry.famedly.net/docker-nightly";
-          };
-
-          releaseRegistry = lib.mkOption {
-            description = ''
-              Registry images built from `main` and version tags go to.
-            '';
-            type = lib.types.str;
-            default = "registry.famedly.net/docker-releases";
-          };
-
-          gate = lib.mkOption {
-            description = ''
-              A workflow that has to pass before the image is pushed, for tests
-              too project-specific to live in the standards. Called with
-              `secrets: inherit`.
-            '';
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            example = "./.github/workflows/test.yaml";
-          };
-
-          runners = {
-            amd64 = lib.mkOption {
-              description = "Runner that builds the amd64 image.";
-              type = lib.types.str;
-              default = "ubuntu-latest";
-            };
-
-            arm64 = lib.mkOption {
-              description = ''
-                Runner that builds the arm64 image.
-
-                The eight-core alternative costs 2.8 times as much per minute
-                and measured 1.16 times faster, since half the wait is fetching
-                and unpacking. Worth naming for a project whose build really is
-                compilation throughout.
-              '';
-              type = lib.types.str;
-              default = "ubuntu-24.04-arm";
-            };
-
-            arm64Release = lib.mkOption {
-              description = ''
-                Runner that builds the arm64 release image, for projects that
-                want to spend more on it than on nightlies.
-              '';
-              type = lib.types.str;
-              default = config.image.runners.arm64;
-              defaultText = "config.image.runners.arm64";
-            };
-          };
-        };
-      }
-    ))
-
     (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
       name = "dartImages";
       file = ./image.nix;
@@ -171,7 +16,170 @@
       '';
     })
   ];
-  perSystem =
+
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule (
+          { config, ... }: {
+            # Both what goes into the image and what CI does with it: the
+            # workflow reads half of these too.
+            options.image = {
+              enable = lib.mkEnableOption "building and pushing a container image for this project";
+
+              name = lib.mkOption {
+                description = "Name of the image to push, without the registry.";
+                type = lib.types.str;
+                example = "famedly-headless";
+              };
+
+              entrypoint = lib.mkOption {
+                description = "The Dart entrypoint to compile into the image.";
+                type = lib.types.str;
+                default = "bin/server.dart";
+              };
+
+              binary = lib.mkOption {
+                description = ''
+                  Name the entrypoint is compiled to, and its name inside the
+                  image.
+                '';
+                type = lib.types.str;
+                default = "server";
+              };
+
+              files = lib.mkOption {
+                description = ''
+                  Files to place in the image, keyed by their absolute
+                  destination. Directories are copied recursively.
+                '';
+                type = lib.types.attrsOf lib.types.path;
+                default = { };
+                example = lib.literalExpression ''
+                  {
+                    "/app/openapi.yaml" = ./openapi.yaml;
+                    "/app/assets" = ./assets;
+                  }
+                '';
+              };
+
+              port = lib.mkOption {
+                description = "Port the service listens on.";
+                type = lib.types.port;
+                default = 8080;
+              };
+
+              healthPath = lib.mkOption {
+                description = ''
+                  Path of the health endpoint, or `null` for no healthcheck.
+                  Adds `curl` to the image.
+                '';
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                example = "/api/v1/health";
+              };
+
+              workdir = lib.mkOption {
+                description = "Working directory of the service.";
+                type = lib.types.str;
+                default = "/app";
+              };
+
+              writableDirs = lib.mkOption {
+                description = ''
+                  Absolute paths of directories created up front and handed to
+                  the service user, for state written before a volume is
+                  mounted over it.
+                '';
+                type = lib.types.listOf (lib.types.strMatching "/.+");
+                default = [ ];
+                example = [ "/app/data" ];
+              };
+
+              user = {
+                name = lib.mkOption {
+                  description = "Name of the unprivileged user the service runs as.";
+                  type = lib.types.str;
+                  default = "app";
+                };
+
+                uid = lib.mkOption {
+                  description = "Uid of the service user.";
+                  type = lib.types.int;
+                  default = 10001;
+                };
+
+                gid = lib.mkOption {
+                  description = "Gid of the service user.";
+                  type = lib.types.int;
+                  default = config.image.user.uid;
+                  defaultText = "config.image.user.uid";
+                };
+              };
+
+              nightlyRegistry = lib.mkOption {
+                description = "Registry images built from pull requests go to.";
+                type = lib.types.str;
+                default = "registry.famedly.net/docker-nightly";
+              };
+
+              releaseRegistry = lib.mkOption {
+                description = ''
+                  Registry images built from `main` and version tags go to.
+                '';
+                type = lib.types.str;
+                default = "registry.famedly.net/docker-releases";
+              };
+
+              gate = lib.mkOption {
+                description = ''
+                  A workflow that has to pass before the image is pushed, for
+                  tests too project-specific to live in the standards. Called
+                  with `secrets: inherit`.
+                '';
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                example = "./.github/workflows/test.yaml";
+              };
+
+              runners = {
+                amd64 = lib.mkOption {
+                  description = "Runner that builds the amd64 image.";
+                  type = lib.types.str;
+                  default = "ubuntu-latest";
+                };
+
+                arm64 = lib.mkOption {
+                  description = ''
+                    Runner that builds the arm64 image.
+
+                    The eight-core alternative costs 2.8 times as much per
+                    minute and measured 1.16 times faster, since half the wait
+                    is fetching and unpacking. Worth naming for a project whose
+                    build really is compilation throughout.
+                  '';
+                  type = lib.types.str;
+                  default = "ubuntu-24.04-arm";
+                };
+
+                arm64Release = lib.mkOption {
+                  description = ''
+                    Runner that builds the arm64 release image, for projects
+                    that want to spend more on it than on nightlies.
+                  '';
+                  type = lib.types.str;
+                  default = config.image.runners.arm64;
+                  defaultText = "config.image.runners.arm64";
+                };
+              };
+            };
+          }
+        )
+      );
+    };
+  });
+
+  config.perSystem =
     {
       config,
       pkgs,
