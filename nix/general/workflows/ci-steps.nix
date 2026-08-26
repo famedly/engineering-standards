@@ -636,20 +636,25 @@ in
               # follows. There is no other way to inherit it, and without this
               # every release starts its triage from nothing.
               track() {
-              	local name="$1" parent="$2" sbom="$3" previous
+              	local name="$1" parent="$2" sbom="$3" previous uuid version
 
               	# The name travels in the path here, so it is encoded for one. A
               	# first release has no version before it, and the answer to that
               	# is a sentence rather than a document.
               	previous="$(api GET "v1/project/latest/$(jq -rn --arg name "$name" '$name | @uri')" \
-              		2>/dev/null | jq -r '.uuid // empty' 2>/dev/null || true)"
+              		2>/dev/null || true)"
+              	uuid="$(printf '%s' "$previous" | jq -r '.uuid // empty' 2>/dev/null || true)"
+              	version="$(printf '%s' "$previous" | jq -r '.version // empty' 2>/dev/null || true)"
 
-              	if [ -n "$previous" ]; then
+              	# A rerun's latest is this tag already. Cloning it into itself
+              	# is a conflict, and would skip the upload that refreshes the
+              	# documents.
+              	if [ -n "$uuid" ] && [ "$version" != "$TAG" ]; then
               		# Everything a person could have put there by hand. The
               		# access list comes along because a clone without it is one
               		# nobody can see, should this instance ever restrict who may
               		# read what.
-              		api POST "v2/projects/$previous/clone" --data "$(
+              		api POST "v2/projects/$uuid/clone" --data "$(
               			jq -cn --arg version "$TAG" \
               				'{version: $version, version_is_latest: true,
               				  includes: ["ACL", "COMPONENTS", "FINDINGS",
