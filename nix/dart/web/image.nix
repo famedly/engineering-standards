@@ -169,7 +169,31 @@
         let
           cfg = projectConfig.web.image;
 
-          server = pkgs.static-web-server;
+          # Only what this deployment uses. The rest is not merely unused:
+          # `http2` compiles in a TLS stack and `directory-listing-download` a
+          # tar reader, and between them they carried every advisory the
+          # scanner had to report — about code that cannot run in a container
+          # which terminates no TLS and lists no directories. Reducing the
+          # features leaves 44 crates out, and the report empty.
+          #
+          # `compression` earns its place: the server only compresses what it
+          # was built to, and the bundle is megabytes of JavaScript and wasm.
+          # `fallback-page` pulls in no dependency at all and is what a single
+          # page application's deep links need.
+          server =
+            let
+              features = [
+                "compression"
+                "fallback-page"
+              ];
+            in
+            pkgs.static-web-server.overrideAttrs {
+              cargoBuildNoDefaultFeatures = true;
+              cargoCheckNoDefaultFeatures = true;
+
+              cargoBuildFeatures = features;
+              cargoCheckFeatures = features;
+            };
 
           # Relative, because the commands below run with the image root as
           # their working directory.
