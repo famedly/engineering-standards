@@ -150,7 +150,9 @@ in
 
             Each image is described in a CycloneDX document before it is
             pushed. `lockfile` adds one for the packages the application was
-            built from, which a compiled bundle no longer names.
+            built from, which a compiled bundle no longer names; that one is
+            named after the image with `-source` appended, so the two documents
+            cannot be mistaken for versions of each other.
 
             `release` attaches those documents to the GitHub release for a
             version tag as well, named after the image they describe, for
@@ -271,11 +273,15 @@ in
           # its kind ingest — the same direction from two sides.
           name = "Describe what the images hold";
 
-          shell = "nix shell --inputs-from . nixpkgs#syft --command bash -e {0}";
+          shell = "nix shell --inputs-from . nixpkgs#syft nixpkgs#jq --command bash -e {0}";
 
           env = {
             IMAGE = reference;
             TAG = tag;
+
+            # Who a reader is to ask about the document, which the guidelines
+            # asking for these documents all want named.
+            SUPPLIER = "Famedly GmbH";
           };
 
           run = script (
@@ -287,14 +293,41 @@ in
             ++ map (architecture: ''
               syft scan docker-archive:images/image-${architecture}.tar \
               	--source-name "$IMAGE" --source-version "$TAG-${architecture}" \
+              	--source-supplier "$SUPPLIER" \
               	--output cyclonedx-json=sboms/image-${architecture}.cdx.json
             '') architectures
             ++ lib.optional (lockfile != null) ''
-              # A compiled bundle no longer names its packages; this does.
+              # A compiled bundle no longer names its packages; this does. Under
+              # a name of its own, because the packages an application was built
+              # from are not another version of the image built from them, and a
+              # reader given one name for both has no way to tell them apart.
               syft scan file:${lockfile} \
-              	--source-name "$IMAGE" --source-version "$TAG" \
+              	--source-name "$IMAGE-source" --source-version "$TAG" \
+              	--source-supplier "$SUPPLIER" \
               	--output cyclonedx-json=sboms/source.cdx.json
+
+              # syft names what it read, and what it read is a lockfile. The
+              # document is about the application built from that lockfile, and
+              # anything sorting documents by kind reads this field to decide.
+              jq '.metadata.component.type = "application"' \
+              	sboms/source.cdx.json >sboms/source.cdx.json.new
+              mv sboms/source.cdx.json.new sboms/source.cdx.json
             ''
+            ++ [
+              ''
+                # syft guesses a CPE for every package it finds, and NVD entries
+                # match those on vendor and product alone. A guess of
+                # `tokio:tokio` therefore collects an advisory about a different
+                # crate entirely, reported as critical and with no upper version
+                # bound to ever release it again. PURLs carry the ecosystem, so
+                # dropping the guesses loses nothing: grype reports the same
+                # advisories from these documents either way.
+                for sbom in sboms/*.cdx.json; do
+                	jq 'del(.components[]?.cpe)' "$sbom" >"$sbom.new"
+                	mv "$sbom.new" "$sbom"
+                done
+              ''
+            ]
           );
         }
 
