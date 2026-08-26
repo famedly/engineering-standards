@@ -5,6 +5,7 @@
 # managed-by: engineering-standards — do not edit manually.
 #
 # Regenerate with `nix run .#filegen-activate`.
+
 allowMissingFormatter = false
 excludes = [
     "*.lock",
@@ -18,13 +19,13 @@ excludes = [
     ".hgignore",
     ".svnignore",
     "LICENSE",
-    ".pre-commit-config.yaml",
     ".github/workflows/check-pre-commit-hooks.yml",
-    ".gitattributes",
+    ".pre-commit-config.yaml",
     ".editorconfig",
-    "treefmt.toml",
-    ".taplo.toml",
+    ".gitattributes",
     ".github/workflows/check-pre-commit-hooks.yml.license",
+    ".taplo.toml",
+    "treefmt.toml",
 ]
 walk = "git"
 

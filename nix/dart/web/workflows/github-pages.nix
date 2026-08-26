@@ -9,38 +9,34 @@
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
-  inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.githubPages = {
-              enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.githubPages = {
+            enable = lib.mkEnableOption "publishing this site to GitHub Pages when `main` moves";
 
-              baseHref = lib.mkOption {
-                description = ''
-                  Path the site is served under on Pages, or `null` to leave the
-                  entry document alone.
+            baseHref = lib.mkOption {
+              description = ''
+                Path the site is served under on Pages, or `null` to leave the
+                entry document alone.
 
-                  A project site lives under the repository's name rather than
-                  at the domain root, so a site built for the root resolves all
-                  of its own assets one directory too high. Rewriting the base
-                  here rather than building a second time is what keeps Pages
-                  serving the same bytes as every other destination.
-                '';
-                type = lib.types.nullOr (lib.types.strMatching "/.*/");
-                default = null;
-                example = "/famedly-control/";
-              };
+                A project site lives under the repository's name, so one built
+                for the domain root resolves its assets one directory too
+                high. We rewrite it here instead of building a second time, so
+                that Pages serves the same bytes as every other destination.
+              '';
+              type = lib.types.nullOr (lib.types.strMatching "/.*/");
+              default = null;
+              example = "/famedly-control/";
             };
-          }
-        );
-      };
-    }
-  );
+          };
+        }
+      );
+    };
+  });
 
   config.perSystem =
     { config, ... }:
@@ -55,16 +51,16 @@ in
           cfg = projectConfig.web.githubPages;
         in
         {
-          # Pages has exactly one live deployment, so it follows `main` and
-          # nothing else — not tags, and not the merge queue.
+          # Pages has one live deployment, so it follows `main` and nothing
+          # else.
           if_ = "github.event_name == 'push' && github.ref == 'refs/heads/main'";
           needs = [ "build" ];
           runsOn = "ubuntu-latest";
 
           timeoutMinutes = 15;
 
-          # `id-token`, because the deployment is authorised by an OIDC token
-          # rather than by a repository secret.
+          # We need `id-token` because the deployment is authorised by OIDC
+          # rather than by a secret.
           permissions = {
             pages = "write";
             id-token = "write";
@@ -80,7 +76,7 @@ in
               uses = allowed-actions."actions/download-artifact".uses;
 
               with_ = {
-                name = artifact project;
+                name = projectConfig.web.artifact;
                 path = "site";
               };
             }
@@ -89,8 +85,8 @@ in
             name = "Point the base href at the Pages path";
             env.BASE_HREF = cfg.baseHref;
 
-            # Anchored to the tag `flutter build web` writes, so a document
-            # that stopped carrying one fails here instead of being published
+            # We anchor this to the tag `flutter build web` writes, so that a
+            # document without one fails here rather than being published
             # with every asset path broken.
             run = ''
               if ! grep -q '<base href="[^"]*">' site/index.html; then
@@ -120,7 +116,7 @@ in
     {
       githubActions.workflows = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair (workflowId project) { jobs.pages = mkJob project projectConfig; }
+        lib.nameValuePair projectConfig.web.workflowId { jobs.pages = mkJob project projectConfig; }
       ) projects;
     };
 }

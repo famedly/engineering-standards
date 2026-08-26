@@ -1,12 +1,16 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  standardsLib,
+  ...
+}:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-
-  script = import ../../lib/compose-script.nix { inherit lib; };
+  inherit (standardsLib) script;
 in
 {
   options.famedly.standards.ci.advisories.failOn = lib.mkOption {

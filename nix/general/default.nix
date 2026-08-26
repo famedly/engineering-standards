@@ -22,7 +22,7 @@ importingFlake: {
     ./workflows/release.nix
   ];
 
-  config.perSystem =
+  perSystem =
     { config, ... }:
     lib.mkMerge [
       { githubActions.enable = true; }

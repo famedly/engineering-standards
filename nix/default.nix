@@ -14,9 +14,11 @@ importingFlake: {
     inputs.treefmt.flakeModule
     flakeModules.prek-pre-commit
 
+    ./lib/module.nix
+
     (importApply ./general args)
 
-    (importApply ./dart args)
+    ./dart
     (importApply ./nix args)
     (importApply ./python args)
     (importApply ./rust args)

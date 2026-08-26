@@ -11,42 +11,40 @@ let
   inherit (config.famedly.standards.ci) steps;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.commitMessages = {
-        enable = lib.mkEnableOption ''
-          checking that every commit in a pull request describes itself in the
-          conventional commits form
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.commitMessages = {
+      enable = lib.mkEnableOption ''
+        checking that every commit in a pull request describes itself in the
+        conventional commits form
 
-          Opt-in rather than on everywhere, because switching it on turns every
-          open pull request whose history predates the rule red at once, and
-          that is a decision for whoever maintains the repository
+        Opt-in rather than on everywhere, because switching it on turns every
+        open pull request whose history predates the rule red at once, and
+        that is a decision for whoever maintains the repository
+      '';
+
+      types = lib.mkOption {
+        description = ''
+          Types a commit subject may declare itself as.
         '';
 
-        types = lib.mkOption {
-          description = ''
-            Types a commit subject may declare itself as.
-          '';
+        type = lib.types.listOf (lib.types.strMatching "[a-z]+");
 
-          type = lib.types.listOf (lib.types.strMatching "[a-z]+");
-
-          default = [
-            "build"
-            "chore"
-            "ci"
-            "docs"
-            "feat"
-            "fix"
-            "perf"
-            "refactor"
-            "revert"
-            "style"
-            "test"
-          ];
-        };
+        default = [
+          "build"
+          "chore"
+          "ci"
+          "docs"
+          "feat"
+          "fix"
+          "perf"
+          "refactor"
+          "revert"
+          "style"
+          "test"
+        ];
       };
-    }
-  );
+    };
+  });
 
   config.perSystem =
     { config, ... }:

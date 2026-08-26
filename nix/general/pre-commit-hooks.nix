@@ -8,7 +8,7 @@
   ...
 }:
 importingFlake: {
-  config.perSystem =
+  perSystem =
     {
       config,
       pkgs,

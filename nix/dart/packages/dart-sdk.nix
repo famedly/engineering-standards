@@ -9,18 +9,19 @@
 }:
 
 let
-  version = "3.13.1";
+  # We read the Dart version out of the data that packages Flutter, rather
+  # than pinning it a second time. A Flutter project runs the `dart` from its
+  # own SDK anyway, so following the same release keeps a repository that
+  # holds both from formatting its code two different ways.
+  data = lib.importJSON ./flutter-sdk-data.json;
+
+  version = data.dartVersion;
+  hashes = data.dartHash;
 
   platforms = {
     x86_64-linux = "linux-x64";
     aarch64-linux = "linux-arm64";
     aarch64-darwin = "macos-arm64";
-  };
-
-  hashes = {
-    aarch64-darwin = "sha256-NnmElB2NFMZTeJ9veHMS5xXlxUb26fXTDYZhXGkpB6k=";
-    aarch64-linux = "sha256-UUHVrGLav88NPdj79cTRQ9AJLvQvrQ8l9s9lh+XPw78=";
-    x86_64-linux = "sha256-klHEYG67MUgMRfQwvmn84ml+O4iKCoKLnhbn0jQD1yo=";
   };
 
   archiveName =
@@ -41,8 +42,8 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    # `revision` has to stay: `dart compile exe --target-arch` resolves the
-    # matching target SDK from the Dart archive through it, and without it
+    # We have to keep `revision`, since `dart compile exe --target-arch` uses
+    # it to resolve the matching target SDK from the Dart archive. Without it
     # cross-compiling fails with 'Channel "stable" requires valid revision'.
     rm -f LICENSE README
     cp -R . $out

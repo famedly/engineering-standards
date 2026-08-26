@@ -2,11 +2,9 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Images are assembled from nixpkgs rather than from a distro base image.
-# Artefacts compiled in the devshell carry nix store paths — `dart compile exe`
-# copies the SDK's `dartaotruntime`, so the binary inherits the loader nixpkgs
-# patched into it — and no distro base image can resolve those. Building the
-# image from the same nixpkgs is what keeps the two from drifting apart.
+# We assemble these from nixpkgs rather than from a distro base image, since
+# `dart compile exe` copies the SDK's `dartaotruntime` into the binary and it
+# therefore carries a nix store loader that no distro image can resolve.
 { lib, flake-parts-lib, ... }: {
   imports = [
     (import ../lib/image-output.nix { inherit lib flake-parts-lib; } {
@@ -19,91 +17,132 @@
     })
   ];
 
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule (
-            { config, ... }: {
-              options.image = {
-                files = lib.mkOption {
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule (
+          { config, ... }: {
+            # This covers both what goes into the image and what CI does with
+            # it, since the workflow reads half of these options too.
+            options.image = {
+              enable = lib.mkEnableOption "building and pushing a container image for this project";
+
+              entrypoint = lib.mkOption {
+                description = "The Dart entrypoint to compile into the image.";
+                type = lib.types.str;
+                default = "bin/server.dart";
+              };
+
+              binary = lib.mkOption {
+                description = ''
+                  Name the entrypoint is compiled to, and its name inside the
+                  image.
+                '';
+                type = lib.types.str;
+                default = "server";
+              };
+
+              files = lib.mkOption {
+                description = ''
+                  Files to place in the image, keyed by their absolute
+                  destination. Directories are copied recursively.
+                '';
+                type = lib.types.attrsOf lib.types.path;
+                default = { };
+                example = lib.literalExpression ''
+                  {
+                    "/app/openapi.yaml" = ./openapi.yaml;
+                    "/app/assets" = ./assets;
+                  }
+                '';
+              };
+
+              healthPath = lib.mkOption {
+                description = ''
+                  Path of the health endpoint, or `null` for no healthcheck.
+                  Adds `curl` to the image.
+                '';
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                example = "/api/v1/health";
+              };
+
+              workdir = lib.mkOption {
+                description = "Working directory of the service.";
+                type = lib.types.str;
+                default = "/app";
+              };
+
+              writableDirs = lib.mkOption {
+                description = ''
+                  Absolute paths of directories to create up front and hand to
+                  the service user. Use this for state that is written before a
+                  volume is mounted over it.
+                '';
+                type = lib.types.listOf (lib.types.strMatching "/.+");
+                default = [ ];
+                example = [ "/app/data" ];
+              };
+
+              # The image also has a uid and a gid, declared in
+              # `image-options.nix` with the rest of what both kinds share.
+              # This one only a server image has: it needs an entry in
+              # `/etc/passwd` for glibc to resolve anything.
+              user.name = lib.mkOption {
+                description = "Name of the unprivileged user the service runs as.";
+                type = lib.types.str;
+                default = "app";
+              };
+
+              gate = lib.mkOption {
+                description = ''
+                  A workflow that has to pass before the image is pushed, for
+                  tests that are too project-specific to live in the standards.
+                  We call it with `secrets: inherit`.
+                '';
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                example = "./.github/workflows/test.yaml";
+              };
+
+              runners = {
+                arm64 = lib.mkOption {
                   description = ''
-                    Files to place in the image, keyed by their absolute
-                    destination. Directories are copied recursively.
-                  '';
-                  type = lib.types.attrsOf lib.types.path;
-                  default = { };
-                  example = lib.literalExpression ''
-                    {
-                      "/app/openapi.yaml" = ./openapi.yaml;
-                      "/app/assets" = ./assets;
-                    }
-                  '';
-                };
+                    Runner that builds the arm64 image.
 
-                port = lib.mkOption {
-                  description = "Port the service listens on.";
-                  type = lib.types.port;
-                  default = 8080;
-                };
-
-                healthPath = lib.mkOption {
-                  description = ''
-                    Path of the health endpoint, or `null` for no healthcheck.
-                    Adds `curl` to the image.
+                    The eight-core alternative costs 2.8 times as much per
+                    minute and measured only 1.16 times faster, because half
+                    the wait is fetching and unpacking. It is worth naming for
+                    a project whose build really is compilation throughout.
                   '';
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  example = "/api/v1/health";
-                };
-
-                workdir = lib.mkOption {
-                  description = "Working directory of the service.";
                   type = lib.types.str;
-                  default = "/app";
+                  default = "ubuntu-24.04-arm";
                 };
 
-                writableDirs = lib.mkOption {
+                arm64Release = lib.mkOption {
                   description = ''
-                    Absolute paths of directories created up front and handed to
-                    the service user, for state that is written before a volume
-                    is mounted over it.
+                    Runner that builds the arm64 release image, for projects
+                    that want to spend more on it than on nightlies.
                   '';
-                  type = lib.types.listOf (lib.types.strMatching "/.+");
-                  default = [ ];
-                  example = [ "/app/data" ];
-                };
-
-                user = {
-                  name = lib.mkOption {
-                    description = "Name of the unprivileged user the service runs as.";
-                    type = lib.types.str;
-                    default = "app";
-                  };
-
-                  uid = lib.mkOption {
-                    description = "Uid of the service user.";
-                    type = lib.types.int;
-                    default = 10001;
-                  };
-
-                  gid = lib.mkOption {
-                    description = "Gid of the service user.";
-                    type = lib.types.int;
-                    default = config.image.user.uid;
-                    defaultText = "config.image.user.uid";
-                  };
+                  type = lib.types.str;
+                  default = config.image.runners.arm64;
+                  defaultText = "config.image.runners.arm64";
                 };
               };
-            }
-          )
-        );
-      };
-    }
-  );
+            };
+          }
+        )
+      );
+    };
+  });
 
   config.perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      standardsLib,
+      ...
+    }:
     let
       projects = lib.filterAttrs (
         _: project: project.image.enable
@@ -114,10 +153,16 @@
 
       mkImage =
         projectConfig:
-        # Kept a function so the compiled binary can be handed in from CI:
-        # `dart pub get` needs credentials for our private repositories, which
-        # rules out resolving dependencies inside a build sandbox.
-        { server }:
+        # This is a function because `dart pub get` needs credentials for our
+        # private repositories and can't run in a build sandbox. Everything
+        # except the binary is optional, since a build by hand has no commit
+        # to name.
+        {
+          server,
+          source ? null,
+          revision ? null,
+          version ? null,
+        }:
         let
           cfg = projectConfig.image;
 
@@ -125,21 +170,17 @@
 
           libraries = [ pkgs.glibc ] ++ projectConfig.runtime.libraries;
 
-          # Do not be tempted to patchelf this. `dart compile exe` appends the
-          # AOT snapshot behind the end of the `dartaotruntime` ELF, and
-          # rewriting the ELF moves it out of reach — the binary then still
-          # starts, but as a bare VM printing its usage.
-          #
-          # It needs no fixing up anyway: the binary carries the loader of the
-          # SDK that produced it, which is this nixpkgs'. That is why the
-          # architectures are built natively rather than cross-compiled.
+          # Don't patchelf this. `dart compile exe` appends the AOT snapshot
+          # behind the end of the `dartaotruntime` ELF, and rewriting the ELF
+          # moves it out of reach, so the binary then starts as a bare VM
+          # printing its usage. It doesn't need fixing anyway, since it
+          # carries the loader of this nixpkgs. That is why we build natively.
           binary = pkgs.runCommand "${cfg.binary}-image-binary" { } ''
             install -Dm555 ${server} $out/bin/${cfg.binary}
           '';
 
           files = pkgs.runCommand "${cfg.name}-files" { } (
-            # `$out` has to be created unconditionally: a project that places no
-            # files would otherwise leave the builder without output.
+            # A project that places no files still has to leave an output.
             ''
               mkdir -p "$out"
             ''
@@ -151,9 +192,9 @@
             )
           );
 
-          # `fakeNss` is not overridable in our nixpkgs and only knows root and
-          # nobody, while the service wants its own uid. nsswitch.conf matters
-          # as well: without it glibc resolves no hostnames.
+          # We don't use `fakeNss`, since it isn't overridable here and only
+          # knows root and nobody. Without an nsswitch.conf glibc resolves no
+          # hostnames at all.
           nss = pkgs.runCommand "${cfg.name}-nss" { } ''
             mkdir -p $out/etc
             cat >$out/etc/passwd <<'EOF'
@@ -167,13 +208,11 @@
             echo 'hosts: files dns' >$out/etc/nsswitch.conf
           '';
 
-          # Image contents land at the root, so packages' `bin` directories merge
-          # into `/bin`. The project's own variables win over ours.
+          # Contents land at the root, so `bin` directories merge into `/bin`.
           environment = {
             PATH = "/bin";
 
-            # The same variable the devshell relies on, for the same reason:
-            # the binary has no RUNPATH to point `dlopen` at.
+            # Same as in the devshell, the binary has no RUNPATH for `dlopen`.
             LD_LIBRARY_PATH = lib.makeLibraryPath libraries;
           }
           // projectConfig.runtime.env;
@@ -189,9 +228,9 @@
           ]
           ++ lib.optional (cfg.healthPath != null) pkgs.curl;
 
-          # Runs under fakeroot, which is what lets us hand directories to a
-          # user that only exists inside the image.
-          # The working directory is the image root, so the paths are relative.
+          # This runs under fakeroot, so that we can hand directories to a
+          # user which only exists inside the image. Paths are relative to
+          # the image root.
           fakeRootCommands = ''
             mkdir -p tmp
             chmod 1777 tmp
@@ -214,6 +253,11 @@
             Cmd = [ "${binary}/bin/${cfg.binary}" ];
             WorkingDir = cfg.workdir;
             User = "${toString user.uid}:${toString user.gid}";
+
+            Labels = standardsLib.ociLabels {
+              inherit source revision version;
+              title = cfg.name;
+            };
 
             ExposedPorts."${toString cfg.port}/tcp" = { };
 
