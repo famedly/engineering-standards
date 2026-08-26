@@ -609,7 +609,7 @@ in
 
               	curl -sS --fail-with-body -X "$method" \
               		-H "X-Api-Key: $DT_KEY" -H 'Content-Type: application/json' \
-              		"$DT_URL/api/v1/$path" "$@"
+              		"$DT_URL/api/$path" "$@"
               }
 
               # A collection project holds no components of its own and sums up
@@ -619,42 +619,41 @@ in
               collection() {
               	local name="$1" logic="$2" parent="''${3-}"
 
-              	api PUT project --data "$(
+              	api PUT v1/project --data "$(
               		jq -cn --arg name "$name" --arg logic "$logic" --arg parent "$parent" \
               			'{name: $name, collectionLogic: $logic}
               			 | if $parent == "" then . else .parent = {uuid: $parent} end'
               	)" >/dev/null 2>&1 || true
 
-              	api GET project/lookup -G --data-urlencode "name=$name" | jq -r .uuid
+              	api GET v1/project/lookup -G --data-urlencode "name=$name" | jq -r .uuid
               }
 
               # Carry over what was already decided about the version this one
               # follows. There is no other way to inherit it, and without this
               # every release starts its triage from nothing.
               track() {
-              	local name="$1" parent="$2" sbom="$3" previous token
+              	local name="$1" parent="$2" sbom="$3" previous
 
               	# The name travels in the path here, so it is encoded for one. A
               	# first release has no version before it, and the answer to that
               	# is a sentence rather than a document.
-              	previous="$(api GET "project/latest/$(jq -rn --arg name "$name" '$name | @uri')" \
+              	previous="$(api GET "v1/project/latest/$(jq -rn --arg name "$name" '$name | @uri')" \
               		2>/dev/null | jq -r '.uuid // empty' 2>/dev/null || true)"
 
               	if [ -n "$previous" ]; then
-              		token="$(api PUT project/clone --data "$(
-              			jq -cn --arg project "$previous" --arg version "$TAG" \
-              				'{project: $project, version: $version,
-              				  includeAuditHistory: true, includeComponents: true,
-              				  includeDependencies: true, includeTags: true,
-              				  makeCloneLatest: true}'
-              		)" | jq -r .token)"
-
-              		# Queued rather than done, and uploading into a version that
-              		# is still being copied would race it.
-              		for _ in $(seq 60); do
-              			[ "$(api GET "event/token/$token" | jq -r .processing)" = false ] && break
-              			sleep 2
-              		done
+              		# Everything a person could have put there by hand. The
+              		# access list comes along because a clone without it is one
+              		# nobody can see, should this instance ever restrict who may
+              		# read what.
+              		api POST "v2/projects/$previous/clone" --data "$(
+              			jq -cn --arg version "$TAG" \
+              				'{version: $version, version_is_latest: true,
+              				  includes: ["ACL", "COMPONENTS", "FINDINGS",
+              				             "FINDINGS_AUDIT_HISTORY",
+              				             "POLICY_VIOLATIONS",
+              				             "POLICY_VIOLATIONS_AUDIT_HISTORY",
+              				             "TAGS"]}'
+              		)" >/dev/null
               	fi
 
               	curl -sS --fail-with-body -X POST -H "X-Api-Key: $DT_KEY" \
