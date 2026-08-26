@@ -154,6 +154,11 @@ in
             named after the image with `-source` appended, so the two documents
             cannot be mistaken for versions of each other.
 
+            Once the registry has the images, each document is told what it
+            describes: the digest of the artefact, the repository it was built
+            from and the run that built it. A digest is the one name for an
+            image that cannot drift, and it is known no earlier than this.
+
             `release` attaches those documents to the GitHub release for a
             version tag as well, named after the image they describe, for
             whoever asks what a released version shipped without holding
@@ -417,6 +422,57 @@ in
 
             skopeo manifest-digest digests/list.json >digests/list
           '';
+        }
+
+        {
+          # syft names the image it read and stops there. What is missing is
+          # the one name for an artefact that cannot drift, and the digest it
+          # is built from exists only once the registry holds the image. It
+          # goes in here, before anything signs, attaches or uploads a
+          # document, so that every reader of one is told the same thing about
+          # what it describes.
+          name = "Name what the documents describe";
+
+          shell = "nix shell --inputs-from . nixpkgs#jq --command bash -e {0}";
+
+          env = {
+            IMAGE = reference;
+            TAG = tag;
+          };
+
+          run = script (
+            [
+              ''
+                # Where it was built from, and by which run. Both hold for a
+                # nightly as much as for a release, which a release page
+                # would not.
+                references="$(
+                	jq -cn \
+                		--arg repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+                		--arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+                		'[{type: "vcs", url: $repository},
+                		  {type: "build-system", url: $run}]'
+                )"
+
+                identify() {
+                	jq --arg purl "$2" --argjson references "$references" \
+                		'.metadata.component += {purl: $purl, externalReferences: $references}' \
+                		"$1" >"$1.new"
+
+                	mv "$1.new" "$1"
+                }
+              ''
+            ]
+            ++ map (architecture: ''
+              identify sboms/image-${architecture}.cdx.json \
+              	"pkg:oci/''${IMAGE##*/}@$(cat digests/${architecture})?repository_url=''${IMAGE%/*}&arch=${architecture}&tag=$TAG"
+            '') architectures
+            ++ lib.optional (lockfile != null) ''
+              # No image of its own to point at: what pins the packages an
+              # application was built from is the commit they were read at.
+              identify sboms/source.cdx.json "pkg:github/$GITHUB_REPOSITORY@$GITHUB_SHA"
+            ''
+          );
         }
 
         {
