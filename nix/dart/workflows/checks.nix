@@ -27,6 +27,28 @@ in
                 default = true;
               };
 
+              fatalInfos = lib.mkOption {
+                description = ''
+                  Whether the analyze step fails on info level diagnostics.
+
+                  Every lint rule we mandate reports at that level, and
+                  `dart analyze` fails on warnings and errors alone. Without
+                  this the rule set is advisory: the findings are printed, the
+                  step passes, and nothing keeps them from landing.
+
+                  What else sits at that level is mostly the notes people leave
+                  themselves, and the generated analysis options already ignore
+                  `todo` — so this asks for the rules and little besides.
+
+                  On by default, because a rule nobody has to follow is not
+                  one. A project holding findings it cannot clear yet turns it
+                  off, which leaves the backlog written down rather than
+                  passing quietly.
+                '';
+                type = lib.types.bool;
+                default = true;
+              };
+
               testCommand = lib.mkOption {
                 description = ''
                   The command that runs this projects' tests in CI, or `null` to
@@ -283,7 +305,8 @@ in
               ++ lib.optional cfg.analyze {
                 name = "Analyze";
                 shell = steps.devshell;
-                run = inProject project "${cli} analyze";
+
+                run = inProject project "${cli} analyze${lib.optionalString cfg.fatalInfos " --fatal-infos"}";
               }
               ++ lib.optional projectConfig.linting.dartCodeLinter.enable {
                 # The plugin's findings are invisible to `dart analyze`, so
