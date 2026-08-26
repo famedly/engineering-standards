@@ -148,9 +148,9 @@ in
             holding an `image-<architecture>.tar`, and credentials in the
             `REGISTRY_USER` variable and the `registry_password` secret.
 
-            Each image is described in an SPDX document before it is pushed.
-            `lockfile` adds one for the packages the application was built
-            from, which a compiled bundle no longer names.
+            Each image is described in a CycloneDX document before it is
+            pushed. `lockfile` adds one for the packages the application was
+            built from, which a compiled bundle no longer names.
 
             `release` attaches those documents to the GitHub release for a
             version tag as well, named after the image they describe, for
@@ -262,6 +262,13 @@ in
         {
           # From the archives rather than the recipe, so it describes what is
           # pushed.
+          #
+          # CycloneDX 1.6, which is a version BSI TR-03183-2 accepts and syft
+          # writes. Its SPDX output stops at 2.3 where that guideline asks for
+          # 3.0.1, so the format used until now could not serve the purpose the
+          # documents exist for. `syft convert` still produces SPDX for whoever
+          # asks in that format, and it is the only format Dependency-Track and
+          # its kind ingest — the same direction from two sides.
           name = "Describe what the images hold";
 
           shell = "nix shell --inputs-from . nixpkgs#syft --command bash -e {0}";
@@ -280,13 +287,13 @@ in
             ++ map (architecture: ''
               syft scan docker-archive:images/image-${architecture}.tar \
               	--source-name "$IMAGE" --source-version "$TAG-${architecture}" \
-              	--output spdx-json=sboms/image-${architecture}.spdx.json
+              	--output cyclonedx-json=sboms/image-${architecture}.cdx.json
             '') architectures
             ++ lib.optional (lockfile != null) ''
               # A compiled bundle no longer names its packages; this does.
               syft scan file:${lockfile} \
               	--source-name "$IMAGE" --source-version "$TAG" \
-              	--output spdx-json=sboms/source.spdx.json
+              	--output cyclonedx-json=sboms/source.cdx.json
             ''
           );
         }
@@ -319,8 +326,8 @@ in
 
               status=0
 
-              for sbom in sboms/*.spdx.json; do
-              	name="$(basename "$sbom" .spdx.json)"
+              for sbom in sboms/*.cdx.json; do
+              	name="$(basename "$sbom" .cdx.json)"
 
               	# Into a file, so the summary is written even when the report
               	# is what fails this step.
@@ -407,8 +414,8 @@ in
 
               cosign sign --yes "$IMAGE@$digest"
 
-              cosign attest --yes --type spdxjson \
-              	--predicate sboms/image-${architecture}.spdx.json \
+              cosign attest --yes --type cyclonedx \
+              	--predicate sboms/image-${architecture}.cdx.json \
               	"$IMAGE@$digest"
             '') architectures
             ++ [
@@ -420,8 +427,8 @@ in
               ''
             ]
             ++ lib.optional (lockfile != null) ''
-              cosign attest --yes --type spdxjson \
-              	--predicate sboms/source.spdx.json \
+              cosign attest --yes --type cyclonedx \
+              	--predicate sboms/source.cdx.json \
               	"$IMAGE@$list"
             ''
           );
@@ -459,11 +466,11 @@ in
           	# document that reads as though it covered both.
           	mkdir -p assets
 
-          	for sbom in sboms/*.spdx.json; do
+          	for sbom in sboms/*.cdx.json; do
           		cp "$sbom" "assets/${baseNameOf reference}-$(basename "$sbom")"
           	done
 
-          	gh release upload "$TAG" assets/*.spdx.json --clobber
+          	gh release upload "$TAG" assets/*.cdx.json --clobber
           else
           	# The images are pushed and signed by the time this runs, and the
           	# documents are attached to them. Worth saying, not worth failing.
