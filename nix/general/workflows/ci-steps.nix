@@ -154,11 +154,27 @@ in
             named after the image with `-source` appended, so the two documents
             cannot be mistaken for versions of each other.
 
+            Once the registry has the images, each document is told what it
+            describes: the digest of the artefact, the repository it was built
+            from and the run that built it. A digest is the one name for an
+            image that cannot drift, and it is known no earlier than this.
+
             `release` attaches those documents to the GitHub release for a
             version tag as well, named after the image they describe, for
             whoever asks what a released version shipped without holding
             credentials for the registry. Requires `contents: write` on the
             job.
+
+            It also sends them to the Dependency-Track instance named in the
+            `DEPENDENCY_TRACK_URL` variable, authenticated by the
+            `dependency_track_api_key` secret, which answers the question the
+            other way round: a component became a problem today, and which
+            released version holds it. Where the variable is unset, that step
+            is skipped. The key needs `BOM_UPLOAD`,
+            `PROJECT_CREATION_UPLOAD`, `VIEW_PORTFOLIO` and
+            `PORTFOLIO_MANAGEMENT_CREATE` — enough to add a version and carry
+            over what was decided about the one before it, and not enough to
+            change or remove anything already recorded.
 
             E.g.:
 
@@ -420,6 +436,60 @@ in
         }
 
         {
+          # syft names the image it read and stops there. What is missing is
+          # the one name for an artefact that cannot drift, and the digest it
+          # is built from exists only once the registry holds the image. It
+          # goes in here, before anything signs, attaches or uploads a
+          # document, so that every reader of one is told the same thing about
+          # what it describes.
+          name = "Name what the documents describe";
+
+          shell = "nix shell --inputs-from . nixpkgs#jq --command bash -e {0}";
+
+          env = {
+            IMAGE = reference;
+            TAG = tag;
+          };
+
+          run = script (
+            [
+              ''
+                # Where it was built from, and by which run. Both hold for a
+                # nightly as much as for a release, which a release page
+                # would not.
+                references="$(
+                	jq -cn \
+                		--arg repository "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+                		--arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+                		'[{type: "vcs", url: $repository},
+                		  {type: "build-system", url: $run}]'
+                )"
+
+                identify() {
+                	jq --arg purl "$2" --argjson references "$references" \
+                		'.metadata.component += {purl: $purl, externalReferences: $references}' \
+                		"$1" >"$1.new"
+
+                	mv "$1.new" "$1"
+                }
+              ''
+            ]
+            ++ map (architecture: ''
+              # pkg:oci names only the last fragment of the repository. Where
+              # to fetch it from is `repository_url`, which is the whole path
+              # — debian lives at docker.io/library/debian, not docker.io/library.
+              identify sboms/image-${architecture}.cdx.json \
+              	"pkg:oci/''${IMAGE##*/}@$(cat digests/${architecture})?repository_url=''${IMAGE}&arch=${architecture}&tag=$TAG"
+            '') architectures
+            ++ lib.optional (lockfile != null) ''
+              # No image of its own to point at: what pins the packages an
+              # application was built from is the commit they were read at.
+              identify sboms/source.cdx.json "pkg:github/$GITHUB_REPOSITORY@$GITHUB_SHA"
+            ''
+          );
+        }
+
+        {
           name = "Sign the images and attest what they hold";
 
           shell = "nix shell --inputs-from . nixpkgs#cosign --command bash -e {0}";
@@ -510,6 +580,124 @@ in
           	echo "::warning::No release for $TAG, so its SBOM is only in the registry and this run"
           fi
         '';
+      }
+      ++ lib.optional release {
+        # A document attached to a release answers what a version shipped, to
+        # whoever thinks to look. This answers the other direction: a component
+        # became a problem today, and which of the versions still in use holds
+        # it. Nobody asks that of a nightly, so only released versions go in.
+        #
+        # Skipped where `DEPENDENCY_TRACK_URL` is unset, which is every
+        # repository that has no tracker to tell.
+        name = "Tell the tracker what this version holds";
+
+        if_ = "startsWith(github.ref, 'refs/tags/') && vars.DEPENDENCY_TRACK_URL != ''";
+
+        shell = "nix shell --inputs-from . nixpkgs#curl nixpkgs#jq --command bash -e {0}";
+
+        env = {
+          IMAGE = reference;
+          TAG = "\${{ github.ref_name }}";
+
+          DT_URL = "\${{ vars.DEPENDENCY_TRACK_URL }}";
+          DT_KEY = "\${{ secrets.dependency_track_api_key }}";
+        };
+
+        run = script (
+          [
+            ''
+              # An address typed into a settings page tends to end in a slash,
+              # and every request below would carry that doubled.
+              DT_URL="''${DT_URL%/}"
+
+              api() {
+              	local method="$1" path="$2"
+              	shift 2
+
+              	curl -sS --fail-with-body -X "$method" \
+              		-H "X-Api-Key: $DT_KEY" -H 'Content-Type: application/json' \
+              		"$DT_URL/api/$path" "$@"
+              }
+
+              # A collection project holds no components of its own and sums up
+              # its children instead. Asking for one that is already there
+              # answers 409, which is the ordinary case from the second release
+              # onwards, so it is read back by name either way.
+              collection() {
+              	local name="$1" logic="$2" parent="''${3-}"
+
+              	api PUT v1/project --data "$(
+              		jq -cn --arg name "$name" --arg logic "$logic" --arg parent "$parent" \
+              			'{name: $name, collectionLogic: $logic}
+              			 | if $parent == "" then . else .parent = {uuid: $parent} end'
+              	)" >/dev/null 2>&1 || true
+
+              	api GET v1/project/lookup -G --data-urlencode "name=$name" | jq -r .uuid
+              }
+
+              # Carry over what was already decided about the version this one
+              # follows. There is no other way to inherit it, and without this
+              # every release starts its triage from nothing.
+              track() {
+              	local name="$1" parent="$2" sbom="$3" previous uuid version
+
+              	# The name travels in the path here, so it is encoded for one. A
+              	# first release has no version before it, and the answer to that
+              	# is a sentence rather than a document.
+              	previous="$(api GET "v1/project/latest/$(jq -rn --arg name "$name" '$name | @uri')" \
+              		2>/dev/null || true)"
+              	uuid="$(printf '%s' "$previous" | jq -r '.uuid // empty' 2>/dev/null || true)"
+              	version="$(printf '%s' "$previous" | jq -r '.version // empty' 2>/dev/null || true)"
+
+              	# A rerun's latest is this tag already. Cloning it into itself
+              	# is a conflict, and would skip the upload that refreshes the
+              	# documents.
+              	if [ -n "$uuid" ] && [ "$version" != "$TAG" ]; then
+              		# Everything a person could have put there by hand. The
+              		# access list comes along because a clone without it is one
+              		# nobody can see, should this instance ever restrict who may
+              		# read what.
+              		api POST "v2/projects/$uuid/clone" --data "$(
+              			jq -cn --arg version "$TAG" \
+              				'{version: $version, version_is_latest: true,
+              				  includes: ["ACL", "COMPONENTS", "FINDINGS",
+              				             "FINDINGS_AUDIT_HISTORY",
+              				             "POLICY_VIOLATIONS",
+              				             "POLICY_VIOLATIONS_AUDIT_HISTORY",
+              				             "TAGS"]}'
+              		)" >/dev/null
+              	fi
+
+              	curl -sS --fail-with-body -X POST -H "X-Api-Key: $DT_KEY" \
+              		-F "projectName=$name" -F "projectVersion=$TAG" \
+              		-F autoCreate=true -F "parentUUID=$parent" -F isLatest=true \
+              		-F "bom=@$sbom" "$DT_URL/api/v1/bom" >/dev/null
+              }
+
+              # Which registry an artefact came from is written in the document
+              # itself, so what is left to name here is the short thing a
+              # reader can hold in their head: the product at the top, its
+              # images under that, and a line of its own for each platform. A
+              # platform image is a separate artefact holding different bytes,
+              # so each keeps a history of its own, and of one name only a
+              # single version can be the current one.
+              product="''${IMAGE##*/}"
+
+              top="$(collection "$product" AGGREGATE_DIRECT_CHILDREN)"
+              images="$(collection "$product-image" AGGREGATE_DIRECT_CHILDREN "$top")"
+            ''
+          ]
+          ++ map (architecture: ''
+            track "$product-${architecture}" \
+            	"$(collection "$product-${architecture}" AGGREGATE_LATEST_VERSION_CHILDREN "$images")" \
+            	sboms/image-${architecture}.cdx.json
+          '') architectures
+          ++ lib.optional (lockfile != null) ''
+            track "$product-source" \
+            	"$(collection "$product-source" AGGREGATE_LATEST_VERSION_CHILDREN "$top")" \
+            	sboms/source.cdx.json
+          ''
+        );
       };
   };
 }
