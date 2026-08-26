@@ -475,8 +475,11 @@ in
               ''
             ]
             ++ map (architecture: ''
+              # pkg:oci names only the last fragment of the repository. Where
+              # to fetch it from is `repository_url`, which is the whole path
+              # — debian lives at docker.io/library/debian, not docker.io/library.
               identify sboms/image-${architecture}.cdx.json \
-              	"pkg:oci/''${IMAGE##*/}@$(cat digests/${architecture})?repository_url=''${IMAGE%/*}&arch=${architecture}&tag=$TAG"
+              	"pkg:oci/''${IMAGE##*/}@$(cat digests/${architecture})?repository_url=''${IMAGE}&arch=${architecture}&tag=$TAG"
             '') architectures
             ++ lib.optional (lockfile != null) ''
               # No image of its own to point at: what pins the packages an
