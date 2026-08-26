@@ -303,5 +303,11 @@ in
         project: projectConfig:
         lib.nameValuePair (workflowId project) { jobs = mkJobs project projectConfig; }
       ) projects;
+
+      # The registry a tag is pushed to, which is the one a release refers to.
+      famedly.standards.release.signedImages = lib.mapAttrsToList (project: projectConfig: {
+        reference = "${projectConfig.web.image.releaseRegistry}/${projectConfig.web.image.name}";
+        workflow = "${workflowId project}.yml";
+      }) projects;
     };
 }

@@ -311,5 +311,11 @@ in
       githubActions.workflows = lib.mapAttrs' (
         project: projectConfig: lib.nameValuePair (workflowId project) (mkWorkflow project projectConfig)
       ) projects;
+
+      # The registry a tag is pushed to, which is the one a release refers to.
+      famedly.standards.release.signedImages = lib.mapAttrsToList (project: projectConfig: {
+        reference = "${projectConfig.image.releaseRegistry}/${projectConfig.image.name}";
+        workflow = "${workflowId project}.yml";
+      }) projects;
     };
 }
