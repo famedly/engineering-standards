@@ -603,6 +603,10 @@ in
         run = script (
           [
             ''
+              # An address typed into a settings page tends to end in a slash,
+              # and every request below would carry that doubled.
+              DT_URL="''${DT_URL%/}"
+
               api() {
               	local method="$1" path="$2"
               	shift 2
