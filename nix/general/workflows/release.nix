@@ -149,16 +149,24 @@ in
                     	found { print }
                     ' "$input" >notes.md
 
-                    if ! test -s notes.md; then
+                    if test -s notes.md; then
+                    	described=1
+                    else
                     	echo "::warning::$CHANGELOG says nothing about $version, falling back to the commit summary"
 
                     	# The summary `--generate-notes` writes, asked for here
                     	# instead: that flag fills the whole body and only on
                     	# creation, which leaves nowhere to add anything to. A
                     	# summary is not worth failing a release for, so a refusal
-                    	# leaves whatever follows standing on its own.
-                    	gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-                    		-f tag_name="$TAG" --jq .body >notes.md || true
+                    	# leaves whatever follows standing on its own — written
+                    	# beside the notes, so that it is a refusal and not an
+                    	# emptying of them.
+                    	described=
+                    	if gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+                    		-f tag_name="$TAG" --jq .body >summary.md && test -s summary.md; then
+                    		mv summary.md notes.md
+                    		described=1
+                    	fi
                     fi
                   ''
                 ]
@@ -216,7 +224,7 @@ in
                 ''
                 ++ [
                   ''
-                    flags=(--title "$version" --notes-file notes.md)
+                    flags=(--title "$version")
 
                     # Everything semver spells with a hyphen is a prerelease.
                     case "$TAG" in
@@ -226,9 +234,16 @@ in
                     # Created or edited, so that a rerun finishes the job instead
                     # of failing on what the first attempt managed.
                     if gh release view "$TAG" >/dev/null 2>&1; then
+                    	# Whatever a run before this one found to say about the
+                    	# version outlasts a rerun that found nothing, which would
+                    	# otherwise write over it with the little it has.
+                    	if test -n "$described"; then
+                    		flags+=(--notes-file notes.md)
+                    	fi
+
                     	gh release edit "$TAG" "''${flags[@]}"
                     else
-                    	gh release create "$TAG" --verify-tag "''${flags[@]}"
+                    	gh release create "$TAG" --verify-tag --notes-file notes.md "''${flags[@]}"
                     fi
                   ''
                 ]
