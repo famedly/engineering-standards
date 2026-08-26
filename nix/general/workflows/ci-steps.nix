@@ -165,6 +165,17 @@ in
             credentials for the registry. Requires `contents: write` on the
             job.
 
+            It also sends them to the Dependency-Track instance named in the
+            `DEPENDENCY_TRACK_URL` variable, authenticated by the
+            `dependency_track_api_key` secret, which answers the question the
+            other way round: a component became a problem today, and which
+            released version holds it. Where the variable is unset, that step
+            is skipped. The key needs `BOM_UPLOAD`,
+            `PROJECT_CREATION_UPLOAD`, `VIEW_PORTFOLIO` and
+            `PORTFOLIO_MANAGEMENT_CREATE` — enough to add a version and carry
+            over what was decided about the one before it, and not enough to
+            change or remove anything already recorded.
+
             E.g.:
 
             ```nix
@@ -566,6 +577,116 @@ in
           	echo "::warning::No release for $TAG, so its SBOM is only in the registry and this run"
           fi
         '';
+      }
+      ++ lib.optional release {
+        # A document attached to a release answers what a version shipped, to
+        # whoever thinks to look. This answers the other direction: a component
+        # became a problem today, and which of the versions still in use holds
+        # it. Nobody asks that of a nightly, so only released versions go in.
+        #
+        # Skipped where `DEPENDENCY_TRACK_URL` is unset, which is every
+        # repository that has no tracker to tell.
+        name = "Tell the tracker what this version holds";
+
+        if_ = "startsWith(github.ref, 'refs/tags/') && vars.DEPENDENCY_TRACK_URL != ''";
+
+        shell = "nix shell --inputs-from . nixpkgs#curl nixpkgs#jq --command bash -e {0}";
+
+        env = {
+          IMAGE = reference;
+          TAG = "\${{ github.ref_name }}";
+
+          DT_URL = "\${{ vars.DEPENDENCY_TRACK_URL }}";
+          DT_KEY = "\${{ secrets.dependency_track_api_key }}";
+        };
+
+        run = script (
+          [
+            ''
+              api() {
+              	local method="$1" path="$2"
+              	shift 2
+
+              	curl -sS --fail-with-body -X "$method" \
+              		-H "X-Api-Key: $DT_KEY" -H 'Content-Type: application/json' \
+              		"$DT_URL/api/v1/$path" "$@"
+              }
+
+              # A collection project holds no components of its own and sums up
+              # its children instead. Asking for one that is already there
+              # answers 409, which is the ordinary case from the second release
+              # onwards, so it is read back by name either way.
+              collection() {
+              	local name="$1" logic="$2" parent="''${3-}"
+
+              	api PUT project --data "$(
+              		jq -cn --arg name "$name" --arg logic "$logic" --arg parent "$parent" \
+              			'{name: $name, collectionLogic: $logic}
+              			 | if $parent == "" then . else .parent = {uuid: $parent} end'
+              	)" >/dev/null 2>&1 || true
+
+              	api GET project/lookup -G --data-urlencode "name=$name" | jq -r .uuid
+              }
+
+              # Carry over what was already decided about the version this one
+              # follows. There is no other way to inherit it, and without this
+              # every release starts its triage from nothing.
+              track() {
+              	local name="$1" parent="$2" sbom="$3" previous token
+
+              	# The name travels in the path here, so it is encoded for one. A
+              	# first release has no version before it, and the answer to that
+              	# is a sentence rather than a document.
+              	previous="$(api GET "project/latest/$(jq -rn --arg name "$name" '$name | @uri')" \
+              		2>/dev/null | jq -r '.uuid // empty' 2>/dev/null || true)"
+
+              	if [ -n "$previous" ]; then
+              		token="$(api PUT project/clone --data "$(
+              			jq -cn --arg project "$previous" --arg version "$TAG" \
+              				'{project: $project, version: $version,
+              				  includeAuditHistory: true, includeComponents: true,
+              				  includeDependencies: true, includeTags: true,
+              				  makeCloneLatest: true}'
+              		)" | jq -r .token)"
+
+              		# Queued rather than done, and uploading into a version that
+              		# is still being copied would race it.
+              		for _ in $(seq 60); do
+              			[ "$(api GET "event/token/$token" | jq -r .processing)" = false ] && break
+              			sleep 2
+              		done
+              	fi
+
+              	curl -sS --fail-with-body -X POST -H "X-Api-Key: $DT_KEY" \
+              		-F "projectName=$name" -F "projectVersion=$TAG" \
+              		-F autoCreate=true -F "parentUUID=$parent" -F isLatest=true \
+              		-F "bom=@$sbom" "$DT_URL/api/v1/bom" >/dev/null
+              }
+
+              # Which registry an artefact came from is written in the document
+              # itself, so what is left to name here is the short thing a
+              # reader can hold in their head: the product at the top, its
+              # images under that, and a line of its own for each platform. A
+              # platform image is a separate artefact holding different bytes,
+              # so each keeps a history of its own, and of one name only a
+              # single version can be the current one.
+              product="''${IMAGE##*/}"
+
+              top="$(collection "$product" AGGREGATE_DIRECT_CHILDREN)"
+              images="$(collection "$product-image" AGGREGATE_DIRECT_CHILDREN "$top")"
+            ''
+          ]
+          ++ map (architecture: ''
+            track "$product-${architecture}" \
+            	"$(collection "$product-${architecture}" AGGREGATE_LATEST_VERSION_CHILDREN "$images")" \
+            	sboms/image-${architecture}.cdx.json
+          '') architectures
+          ++ lib.optional (lockfile != null) ''
+            track "$product-source" \
+            	"$(collection "$product-source" AGGREGATE_LATEST_VERSION_CHILDREN "$top")" \
+            	sboms/source.cdx.json
+          ''
+        );
       };
   };
 }
