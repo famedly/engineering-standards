@@ -6,12 +6,12 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-
-  script = import ../../lib/compose-script.nix { inherit lib; };
+  inherit (standardsLib) script;
 
   issuer = "https://token.actions.githubusercontent.com";
 
@@ -21,61 +21,59 @@ let
     image: "https://github.com/@REPOSITORY@/.github/workflows/${image.workflow}@refs/tags/@TAG@";
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.release = {
-        enable = lib.mkEnableOption ''
-          publishing a GitHub release for every version tag
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.release = {
+      enable = lib.mkEnableOption ''
+        publishing a GitHub release for every version tag
 
-          A tag says a version exists; the release says what changed in it
+        A tag says a version exists; the release says what changed in it
+      '';
+
+      changelog = lib.mkOption {
+        description = ''
+          File the release notes are taken from.
+
+          The section whose heading names the version is used, whichever
+          heading level it is written at. A file that is missing or says
+          nothing about this version falls back to GitHub's summary of the
+          commits, since by then the tag is already pushed.
         '';
 
-        changelog = lib.mkOption {
-          description = ''
-            File the release notes are taken from.
-
-            The section whose heading names the version is used, whichever
-            heading level it is written at. A file that is missing or says
-            nothing about this version falls back to GitHub's summary of the
-            commits, since by then the tag is already pushed.
-          '';
-
-          type = lib.types.str;
-          default = "CHANGELOG.md";
-        };
-
-        signedImages = lib.mkOption {
-          description = ''
-            Images a version tag publishes, which its release notes then say
-            how to check.
-
-            Set by the modules that publish them: a keyless signature names
-            the workflow that made it, and only they know which one that is.
-          '';
-
-          type = lib.types.listOf (
-            lib.types.submodule {
-              options = {
-                reference = lib.mkOption {
-                  description = "The image with its registry, without a tag.";
-                  type = lib.types.str;
-                  example = "registry.famedly.net/docker-releases/famedly-control-client";
-                };
-
-                workflow = lib.mkOption {
-                  description = "File name of the workflow that publishes it.";
-                  type = lib.types.str;
-                  example = "dart-web.yml";
-                };
-              };
-            }
-          );
-
-          default = [ ];
-        };
+        type = lib.types.str;
+        default = "CHANGELOG.md";
       };
-    }
-  );
+
+      signedImages = lib.mkOption {
+        description = ''
+          Images a version tag publishes, which its release notes then say
+          how to check.
+
+          Set by the modules that publish them: a keyless signature names
+          the workflow that made it, and only they know which one that is.
+        '';
+
+        type = lib.types.listOf (
+          lib.types.submodule {
+            options = {
+              reference = lib.mkOption {
+                description = "The image with its registry, without a tag.";
+                type = lib.types.str;
+                example = "registry.famedly.net/docker-releases/famedly-control-client";
+              };
+
+              workflow = lib.mkOption {
+                description = "File name of the workflow that publishes it.";
+                type = lib.types.str;
+                example = "dart-web.yml";
+              };
+            };
+          }
+        );
+
+        default = [ ];
+      };
+    };
+  });
 
   config.perSystem =
     { config, ... }:

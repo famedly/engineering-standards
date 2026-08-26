@@ -65,7 +65,12 @@
           inherit default;
         };
 
-        imports = [ default ];
+        imports = [
+          default
+
+          # This repository's own checks, which downstream flakes do not get.
+          ./nix/dart/tests
+        ];
       }
     );
 }

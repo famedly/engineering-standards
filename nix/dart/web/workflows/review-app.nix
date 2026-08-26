@@ -5,70 +5,65 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
-  inherit (import ../workflow-ids.nix { inherit lib; }) artifact workflowId;
-
-  script = import ../../../lib/compose-script.nix { inherit lib; };
+  inherit (standardsLib) script;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.dart.projects = lib.mkOption {
-        type = lib.types.attrsOf (
-          lib.types.submodule {
-            options.web.reviewApp = {
-              enable = lib.mkEnableOption "deploying this site for review while a pull request is open";
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.dart.projects = lib.mkOption {
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options.web.reviewApp = {
+            enable = lib.mkEnableOption "deploying this site for review while a pull request is open";
 
-              projectName = lib.mkOption {
-                description = ''
-                  Name the review app is addressed by, used both in its
-                  hostname and in its directory on the review server.
-                '';
-                type = lib.types.str;
-                example = "famedly-control";
-              };
-
-              environment = lib.mkOption {
-                description = ''
-                  GitHub environment the deployments are recorded in.
-
-                  Cleaning up after closed pull requests keys off this, so a
-                  repository that shares a server with others still only ever
-                  removes its own review apps.
-                '';
-                type = lib.types.str;
-                default = "review";
-              };
-
-              server = lib.mkOption {
-                description = ''
-                  Host that serves the review apps, and the domain their
-                  hostnames are formed under.
-                '';
-                type = lib.types.str;
-                default = "web-review.famedly.de";
-              };
-
-              user = lib.mkOption {
-                description = "User to reach the review server as.";
-                type = lib.types.str;
-                default = "web-review";
-              };
-
-              root = lib.mkOption {
-                description = "Directory the review server serves from.";
-                type = lib.types.strMatching "/.+";
-                default = "/opt/web-review/web";
-              };
+            projectName = lib.mkOption {
+              description = ''
+                Name the review app is addressed by, used both in its
+                hostname and in its directory on the review server.
+              '';
+              type = lib.types.str;
+              example = "famedly-control";
             };
-          }
-        );
-      };
-    }
-  );
+
+            environment = lib.mkOption {
+              description = ''
+                GitHub environment the deployments are recorded in. The
+                cleanup keys off this, so a repository sharing a server with
+                others only ever removes its own review apps.
+              '';
+              type = lib.types.str;
+              default = "review";
+            };
+
+            server = lib.mkOption {
+              description = ''
+                Host that serves the review apps, and the domain their
+                hostnames are formed under.
+              '';
+              type = lib.types.str;
+              default = "web-review.famedly.de";
+            };
+
+            user = lib.mkOption {
+              description = "User to reach the review server as.";
+              type = lib.types.str;
+              default = "web-review";
+            };
+
+            root = lib.mkOption {
+              description = "Directory the review server serves from.";
+              type = lib.types.strMatching "/.+";
+              default = "/opt/web-review/web";
+            };
+          };
+        }
+      );
+    };
+  });
 
   config.perSystem =
     { config, ... }:
@@ -84,14 +79,22 @@ in
 
           identity = "~/.ssh/review-app";
 
-          reviewAppName = "${cfg.projectName}-pr-\${{ github.event.number }}";
+          # A review app's name has to be agreed on in three places: the host
+          # it is deployed under, its directory on the server, and the pattern
+          # the cleanup below reads a request number back out of. Only one of
+          # the three would fail visibly if they drifted apart — the cleanup
+          # would quietly stop matching and the directories would pile up.
+          appName = pullRequest: "${cfg.projectName}-pr-${pullRequest}";
+
+          reviewAppName = appName "\${{ github.event.number }}";
 
           qaAppName = "qa-${cfg.projectName}";
 
-          # Neither an ssh-agent nor `StrictHostKeyChecking no`, both of which
-          # the workflow this replaces used: an agent does not survive the step
-          # that starts it, and accepting any host key hands the deployment —
-          # and the key that performs it — to whoever answers on that name.
+          url = name: "https://${name}.${cfg.server}";
+
+          # We use no ssh-agent, since it wouldn't survive the step that
+          # starts it, and no `StrictHostKeyChecking no`, which would hand the
+          # key to whoever answers on that name.
           authorise = ''
             install -d -m 700 ~/.ssh
             printf '%s\n' "$SSH_PRIVATE_KEY" >${identity}
@@ -104,8 +107,8 @@ in
 
           target = directory: "${cfg.user}@${cfg.server}:${cfg.root}/${directory}";
 
-          # `--delete`, so a file that a build stopped producing stops being
-          # served instead of lingering from an earlier push to the same branch.
+          # We pass `--delete`, so that a file a build stopped producing stops
+          # being served.
           deploy = directory: ''
             rsync -av --delete --rsh='${ssh}' site/ ${lib.escapeShellArg (target directory)}
           '';
@@ -115,7 +118,7 @@ in
               uses = allowed-actions."actions/download-artifact".uses;
 
               with_ = {
-                name = artifact project;
+                name = projectConfig.web.artifact;
                 path = "site";
               };
             }
@@ -126,84 +129,78 @@ in
           announce = ''
             echo "$NAME: $URL" >>"$GITHUB_STEP_SUMMARY"
           '';
+
+          # The two deployments differ in when they run, what they are called
+          # and which name they land under. Putting a build on the review
+          # server is the same job for both.
+          deployJob =
+            {
+              if_,
+              step,
+              label,
+              app,
+            }:
+            {
+              inherit if_;
+
+              needs = [ "build" ];
+              runsOn = "ubuntu-latest";
+
+              timeoutMinutes = 15;
+
+              environment = {
+                name = cfg.environment;
+                url = url app;
+              };
+
+              steps = download ++ [
+                {
+                  name = step;
+
+                  # The address is announced from the environment rather than
+                  # interpolated into the script, so the summary and the
+                  # deployment record cannot disagree about where it went.
+                  env = key // {
+                    NAME = label;
+                    URL = url app;
+                  };
+
+                  run = script [
+                    authorise
+                    (deploy app)
+                    announce
+                  ];
+                }
+              ];
+            };
         in
         {
-          review-app = {
-            # Dependabot's pull requests run without access to our secrets, so
-            # this could only ever fail for them.
+          review-app = deployJob {
+            # Dependabot's pull requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
-            needs = [ "build" ];
-            runsOn = "ubuntu-latest";
 
-            timeoutMinutes = 15;
-
-            environment = {
-              name = cfg.environment;
-              url = "https://${reviewAppName}.${cfg.server}";
-            };
-
-            steps = download ++ [
-              {
-                name = "Deploy the review app";
-
-                env = key // {
-                  NAME = "Review app";
-                  URL = "https://${reviewAppName}.${cfg.server}";
-                };
-
-                run = script [
-                  authorise
-                  (deploy reviewAppName)
-                  announce
-                ];
-              }
-            ];
+            step = "Deploy the review app";
+            label = "Review app";
+            app = reviewAppName;
           };
 
-          qa-app = {
-            # Release candidates only. This deployment is a single shared slot
-            # that QA looks at, so it follows the tags that ask for a look.
+          qa-app = deployJob {
+            # A single shared slot for QA, so it follows release candidates.
             if_ = "github.event_name == 'push' && contains(github.ref_name, 'rc')";
-            needs = [ "build" ];
-            runsOn = "ubuntu-latest";
 
-            timeoutMinutes = 15;
-
-            environment = {
-              name = cfg.environment;
-              url = "https://${qaAppName}.${cfg.server}";
-            };
-
-            steps = download ++ [
-              {
-                name = "Deploy the QA app";
-
-                env = key // {
-                  NAME = "QA app";
-                  URL = "https://${qaAppName}.${cfg.server}";
-                };
-
-                run = script [
-                  authorise
-                  (deploy qaAppName)
-                  announce
-                ];
-              }
-            ];
+            step = "Deploy the QA app";
+            label = "QA app";
+            app = qaAppName;
           };
 
           cleanup-review-apps = {
-            # Dependabot's requests run without our secrets, so this job would
-            # have neither the key that reaches the server nor a token that may
-            # write deployments — the same reason the deployment above skips
-            # them.
+            # As above, Dependabot's requests have no access to the key.
             if_ = "github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'";
             runsOn = "ubuntu-latest";
 
             timeoutMinutes = 15;
 
-            # The default token may read a repository and nothing else, and
-            # retiring a deployment is a write.
+            # Retiring a deployment is a write, and the default token is not.
             permissions = {
               deployments = "write";
               pull-requests = "read";
@@ -211,11 +208,10 @@ in
 
             steps = [
               {
-                # The review server has no idea when a pull request closes, so
-                # somebody has to tell it. Doing that here, on every run, keeps
-                # it to one place — a workflow triggered by `pull_request:
-                # closed` would not fire for a request closed while CI was
-                # disabled, and the directory would then stay forever.
+                # The server has no idea when a request closes. We do this on
+                # every run rather than on `pull_request: closed`, which
+                # wouldn't fire for a request closed while CI was disabled,
+                # and the directory would then stay forever.
                 name = "Remove the review apps of closed pull requests";
 
                 env = key // {
@@ -231,23 +227,26 @@ in
                     	--jq '.[].id' >deployments
 
                     while read -r deployment; do
-                    	# Which request a deployment belongs to is read out of the
-                    	# address it published, not out of its branch: a branch can
-                    	# carry a second request after the first one closed, and the
-                    	# closed one would then answer for the open one's deployment.
+                    	# We read this out of the published address rather than
+                    	# the branch, since a branch can carry a second request
+                    	# after the first closed.
                     	url="$(gh api \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		--jq 'map(.environment_url | select(. != null and . != "")) | .[0] // empty')"
 
                     	pr="$(printf '%s\n' "$url" \
-                    		| sed -n 's|^https://${cfg.projectName}-pr-\([0-9][0-9]*\)\..*|\1|p')"
+                    		| sed -n 's|^${
+                        # The address is a pattern here, so the dots in the
+                        # server's name have to stop being wildcards. The
+                        # name itself carries none.
+                        lib.replaceStrings [ "." ] [ "\\." ] (url (appName ''\([0-9][0-9]*\)''))
+                      }.*|\1|p')"
 
                     	# The QA app, deployed from a tag, answers to no request.
                     	test -n "$pr" || continue
 
-                    	# A request that no longer answers, or an interlude in
-                    	# the API, leaves the state empty — and an empty state is
-                    	# not an invitation to delete anything.
+                    	# An empty state, from a vanished request or a hiccup in
+                    	# the API, is not an invitation to delete anything.
                     	state="$(gh api "/repos/$GITHUB_REPOSITORY/pulls/$pr" \
                     		--jq '.state // empty' 2>/dev/null || true)"
 
@@ -256,11 +255,10 @@ in
                     	echo "Removing the review app of pull request $pr"
 
                     	${ssh} -n ${lib.escapeShellArg "${cfg.user}@${cfg.server}"} \
-                    		rm -rf "${cfg.root}/${cfg.projectName}-pr-$pr"
+                    		rm -rf "${cfg.root}/${appName "$pr"}"
 
-                    	# The deployment goes too, or the next run would look at
-                    	# it again — and it cannot be deleted while it counts as
-                    	# active.
+                    	# The deployment goes too, or the next run looks at it
+                    	# again, and it can't be deleted while it is active.
                     	gh api --method POST \
                     		"/repos/$GITHUB_REPOSITORY/deployments/$deployment/statuses" \
                     		-f state=inactive >/dev/null
@@ -278,7 +276,7 @@ in
     {
       githubActions.workflows = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair (workflowId project) { jobs = mkJobs project projectConfig; }
+        lib.nameValuePair projectConfig.web.workflowId { jobs = mkJobs project projectConfig; }
       ) projects;
     };
 }

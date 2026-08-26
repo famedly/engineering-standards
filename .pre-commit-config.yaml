@@ -5,6 +5,7 @@
 # managed-by: engineering-standards — do not edit manually.
 #
 # Regenerate with `nix run .#filegen-activate`.
+
 repos:
 - hooks:
   - id: check-added-large-files
@@ -95,4 +96,14 @@ repos:
     language: system
     name: reuse
     stages: []
+  repo: local
+- hooks:
+  - description: Evaluate the Dart standards against the fixture repository
+    entry: dart-standards-fixture
+    id: dart-standards
+    language: system
+    name: dart standards
+    pass_filenames: false
+    stages:
+    - pre-push
   repo: local

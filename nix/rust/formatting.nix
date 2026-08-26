@@ -51,6 +51,7 @@
       config,
       pkgs,
       self',
+      standardsLib,
       ...
     }:
     {
@@ -66,17 +67,9 @@
       filegen.settings.files = map ({ name, value }: {
         type = "copy";
         target = "${name}/rustfmt.toml";
-        source = import ../lib/add-header.nix {
+        source = standardsLib.managedFile {
           inherit pkgs;
-          header = ''
-            ## SPDX-FileCopyrightText: 2026 Famedly GmbH
-            ##
-            ## SPDX-License-Identifier: Apache-2.0
-
-            # managed-by: engineering-standards — do not edit manually.
-            #
-            # Regenerate with `nix run .#filegen-activate`.
-          '';
+          name = "rustfmt.toml";
           file = pkgs.writers.writeTOML "rustfmt.toml" value.rustfmt.settings;
         };
       }) (lib.attrsToList config.famedly.standards.rust.projects);

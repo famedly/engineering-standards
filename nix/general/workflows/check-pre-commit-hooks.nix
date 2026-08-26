@@ -1,33 +1,36 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{ config, flake-parts-lib, ... }:
+{
+  config,
+  lib,
+  flake-parts-lib,
+  ...
+}:
 let
   inherit (config.famedly.standards.ci) steps;
 in
 {
-  options.perSystem = flake-parts-lib.mkPerSystemOption (
-    { lib, ... }: {
-      options.famedly.standards.ci.preCommit.setupSteps = lib.mkOption {
-        description = ''
-          Steps to run in the pre-commit job before the hooks themselves.
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.ci.preCommit.setupSteps = lib.mkOption {
+      description = ''
+        Steps to run in the pre-commit job before the hooks themselves.
 
-          Some hooks need more of the project than its files: a formatter that
-          reads the language version out of a resolved package config formats
-          differently when it cannot find one, which is how this job and a
-          developer's machine come to disagree about the very files the job is
-          checking. A language module that has such a hook prepares for it
-          here.
+        Some hooks need more of the project than its files: a formatter that
+        reads the language version out of a resolved package config formats
+        differently when it cannot find one, which is how this job and a
+        developer's machine come to disagree about the very files the job is
+        checking. A language module that has such a hook prepares for it
+        here.
 
-          Kept apart from the hooks so that whatever they need is set up once
-          for all of them, in the order the job runs.
-        '';
+        Kept apart from the hooks so that whatever they need is set up once
+        for all of them, in the order the job runs.
+      '';
 
-        type = lib.types.listOf lib.types.attrs;
-        default = [ ];
-      };
-    }
-  );
+      type = lib.types.listOf lib.types.attrs;
+      default = [ ];
+    };
+  });
 
   config.perSystem = { config, ... }: {
     githubActions.workflows.check-pre-commit-hooks = {
