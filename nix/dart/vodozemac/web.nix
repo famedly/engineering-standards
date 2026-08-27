@@ -88,7 +88,7 @@ stdenv.mkDerivation {
     # The `flutter_rust_bridge` release whose `build_web/executor.dart` we
     # read the flags below off. They have changed before, and a module built
     # without them fails in the browser rather than here.
-    frbVersion = "2.11.1";
+    frbVersion = "2.12.0";
   };
 
   # We use `no-modules` because the glue is loaded by a plain script tag from

@@ -36,7 +36,7 @@ in
           '';
 
           type = lib.types.str;
-          default = "0.5.0";
+          default = "0.7.1";
         };
 
         hash = lib.mkOption {
@@ -46,7 +46,7 @@ in
           '';
 
           type = lib.types.str;
-          default = "sha256-H3g0is/+Cf3xBqqxw6qCjZSv5ZjftNSQP4hdwwEsOrs=";
+          default = "sha256-z1DCU9WH5XAf5QquV7loUOVM5OaZmLqziF4gR75/4rk=";
         };
 
         cargoHash = lib.mkOption {
@@ -58,7 +58,7 @@ in
           '';
 
           type = lib.types.str;
-          default = "sha256-eKKrcroV2yl/FV2WmgZWFPO5MPAGz0xCvpr0fgIuGZ4=";
+          default = "sha256-KsOyQyz9TqcmkHwuf3iA0NQU+pOOtoBVKv1AxZCjxnw=";
         };
       };
 
