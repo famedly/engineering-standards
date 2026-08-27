@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory suffix;
+  inherit (standardsLib) suffix;
 in
 {
   perSystem =
@@ -119,7 +119,7 @@ in
 
                     # A single directory is uploaded without its own prefix, so
                     # the artefact holds the site at its root.
-                    path = "${directory project}${projectConfig.web.outputPath}";
+                    path = "${project}/${projectConfig.web.outputPath}";
 
                     # The deployments replace what they find, so an empty
                     # artefact wouldn't fail, it would erase.

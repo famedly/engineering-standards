@@ -39,7 +39,7 @@
       ...
     }:
     let
-      inherit (standardsLib) directory script suffix;
+      inherit (standardsLib)  script suffix;
 
       projects = lib.filterAttrs (
         _: project: project.web.enable && (project.vodozemac.enable || project.web.livekitE2eeWorker.enable)
@@ -58,7 +58,7 @@
           ];
 
           text = script (
-            [ ''cd "$(git rev-parse --show-toplevel)/${directory project}"'' ]
+            [ ''cd "$(git rev-parse --show-toplevel)/${project}"'' ]
             ++ lib.optional projectConfig.vodozemac.enable ''
               # Where `vod.init` looks unless an application says otherwise.
               install -Dm644 -t web/pkg ${self'.packages.famedly-vodozemac-web}/*

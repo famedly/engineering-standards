@@ -166,8 +166,6 @@ in
       ...
     }:
     let
-      inherit (standardsLib) directory;
-
       inherit (config.famedly.standards.dart) projects;
 
       # Taken from `famedly_dart_lints` and `famedly_flutter_lints` in
@@ -315,7 +313,7 @@ in
       mkProjectFiles = project: projectConfig: [
         {
           type = "copy";
-          target = "./${directory project}analysis_options.standards.yaml";
+          target = "${project}/analysis_options.standards.yaml";
           source = mkOptionsFile projectConfig;
           clobber = true;
         }

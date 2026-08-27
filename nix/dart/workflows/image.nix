@@ -9,7 +9,7 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory suffix;
+  inherit (standardsLib) suffix;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
@@ -80,7 +80,7 @@ in
 
                     artefact = {
                       name = "server";
-                      path = "${directory project}${cfg.binary}";
+                      path = "${project}/${cfg.binary}";
                     };
                   })
                 ]
@@ -114,7 +114,7 @@ in
             publish = imageWorkflow.publishJob {
               needs = [ "build" ] ++ lib.optional (cfg.gate != null) "gate";
               reference = imageWorkflow.reference cfg;
-              lockfile = "${directory project}pubspec.lock";
+              lockfile = "${project}/pubspec.lock";
               release = config.famedly.standards.release.enable;
             };
           }

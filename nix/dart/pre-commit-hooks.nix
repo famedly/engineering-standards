@@ -11,8 +11,6 @@
       ...
     }:
     let
-      inherit (standardsLib) directory;
-
       inherit (config.famedly.standards.dart) projects;
 
       usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
@@ -44,7 +42,7 @@
 
           ${lib.concatLines (
             lib.mapAttrsToList (
-              project: _: ''check analysis_options.standards.yaml "${directory project}analysis_options.yaml"''
+              project: _: ''check analysis_options.standards.yaml "${project}/analysis_options.yaml"''
             ) projects
           )}
           exit "$status"
@@ -93,7 +91,7 @@
                 project: projectConfig:
                 lib.mapAttrsToList (
                   package: settings:
-                  "check ${lib.escapeShellArg "${directory project}pubspec.yaml"} ${package} ${lib.escapeShellArg settings.constraint}"
+                  "check ${lib.escapeShellArg "${project}/pubspec.yaml"} ${package} ${lib.escapeShellArg settings.constraint}"
                 ) projectConfig.linting.packages
               ) projects
             )
@@ -157,7 +155,7 @@
           }
 
           ${lib.concatLines (
-            lib.mapAttrsToList (project: _: ''check "${directory project}pubspec.yaml"'') (
+            lib.mapAttrsToList (project: _: ''check "${project}/pubspec.yaml"'') (
               lib.filterAttrs (_: project: project.vodozemac.enable) projects
             )
           )}

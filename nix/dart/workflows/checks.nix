@@ -11,7 +11,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory suffix;
+  inherit (standardsLib) suffix;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
@@ -277,7 +277,7 @@ in
               uses = allowed-actions."codecov/codecov-action".uses;
 
               with_ = {
-                files = "${directory project}${cfg.coverage.file}";
+                files = "${project}/${cfg.coverage.file}";
                 fail_ci_if_error = true;
                 token = "\${{ secrets.CODECOV_TOKEN }}";
               }

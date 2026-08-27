@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory suffix;
+  inherit (standardsLib) suffix;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 in
@@ -134,7 +134,7 @@ in
           publish = imageWorkflow.publishJob {
             needs = [ "image" ];
             reference = imageWorkflow.reference cfg;
-            lockfile = "${directory project}pubspec.lock";
+            lockfile = "${project}/pubspec.lock";
             release = config.famedly.standards.release.enable;
           };
         };

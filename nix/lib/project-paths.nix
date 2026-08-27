@@ -6,9 +6,6 @@
 # paths relative to the repository root: `.` for a repository that is one
 # project, `./packages/foo` for one that holds several.
 { lib }: {
-  # Prefix for file names inside the project, empty at the repository root.
-  directory = project: if project == "." then "" else "${lib.removePrefix "./" project}/";
-
   # Workflow and job ids may contain neither `/` nor `.`, so derive a suffix
   # from the project path. Empty at the repository root, which keeps the names
   # of single-project repositories plain.
