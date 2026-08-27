@@ -33,9 +33,7 @@ in
 
           # We pass `--no-example` as in the checks workflow, since a bundled
           # example app needs whatever it needs and no hook looks at it.
-          run = inProject project "${
-            if projectConfig.flutter then "flutter" else "dart"
-          } pub get --no-example";
+          run = inProject project "${projectConfig.cli} pub get --no-example";
         }) projects;
     };
 }
