@@ -7,6 +7,7 @@
 # drifted between them would fail at the first call and not before.
 {
   fetchFromGitHub,
+  lib,
   version,
   hash,
   cargoHash,
@@ -32,5 +33,6 @@ in
   meta = {
     description = "Dart bindings for the vodozemac Matrix cryptography library";
     homepage = "https://github.com/famedly/dart-vodozemac";
+    license = lib.licenses.asl20;
   };
 }

@@ -4,10 +4,11 @@
 
 { lib, flake-parts-lib, ... }:
 let
-  # How the vodozemac source is instantiated from the options, shared between
-  # the option declaration and the flake's packages so that the two cannot
-  # drift apart.
+  # How the source and the native bindings are instantiated from the options,
+  # shared between the option declaration and the flake's packages so that the
+  # two cannot drift apart.
   mkSource = pkgs: cfg: pkgs.callPackage ./source.nix { inherit (cfg) version hash cargoHash; };
+  mkBindings = pkgs: cfg: pkgs.callPackage ./native.nix { source = mkSource pkgs cfg; };
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption (
@@ -17,9 +18,7 @@ in
       # instead of reading it off `self'`, since an option declaration that
       # reaches into the flake's packages makes the projects depend on
       # themselves.
-      vodozemac = pkgs.callPackage ./native.nix {
-        source = mkSource pkgs config.famedly.standards.dart.vodozemac;
-      };
+      vodozemac = mkBindings pkgs config.famedly.standards.dart.vodozemac;
     in
     {
       options.famedly.standards.dart.vodozemac = {
@@ -98,26 +97,15 @@ in
   );
 
   config.perSystem =
-    {
-      config,
-      pkgs,
-      self',
-      ...
-    }:
+    { config, pkgs, ... }:
     let
-      needed = lib.any (project: project.vodozemac.enable) (
-        lib.attrValues config.famedly.standards.dart.projects
-      );
-
-      source = mkSource pkgs config.famedly.standards.dart.vodozemac;
+      cfg = config.famedly.standards.dart.vodozemac;
     in
-    lib.mkMerge [
-      (lib.mkIf (config.famedly.standards.dart.projects != { }) {
-        packages.famedly-vodozemac = pkgs.callPackage ./native.nix { inherit source; };
-        packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { inherit source; };
-      })
-
-      # The lookup goes through `runtime.env`, this only builds the library.
-      (lib.mkIf needed { devshells.standards.packages = [ self'.packages.famedly-vodozemac ]; })
-    ];
+    # The library needs no devshell entry of its own: `runtime.env`
+    # interpolates its store path, so the shell already depends on it and
+    # entering one builds it.
+    lib.mkIf (config.famedly.standards.dart.projects != { }) {
+      packages.famedly-vodozemac = mkBindings pkgs cfg;
+      packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { source = mkSource pkgs cfg; };
+    };
 }

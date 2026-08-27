@@ -12,7 +12,6 @@
   binaryen,
   buildPackages,
   cargo,
-  lib,
   removeReferencesTo,
   rustPlatform,
   rustc,
@@ -69,7 +68,11 @@ stdenv.mkDerivation {
     cargo
     removeReferencesTo
     rustc.llvmPackages.lld
+
+    # Has to match the `wasm-bindgen` version in the release's `Cargo.lock`;
+    # the CLI itself refuses a module built against any other.
     wasm-bindgen-cli_0_2_100
+
     wasm-pack
     writableTmpDirAsHomeHook
   ];
@@ -81,12 +84,12 @@ stdenv.mkDerivation {
     RUSTC_BOOTSTRAP = 1;
 
     RUSTFLAGS = "-C target-feature=+atomics,+bulk-memory,+mutable-globals";
-  };
 
-  # The `flutter_rust_bridge` release whose `build_web/executor.dart` we read
-  # the flags below off. They have changed before, and a module built without
-  # them fails in the browser rather than here.
-  frbVersion = "2.11.1";
+    # The `flutter_rust_bridge` release whose `build_web/executor.dart` we
+    # read the flags below off. They have changed before, and a module built
+    # without them fails in the browser rather than here.
+    frbVersion = "2.11.1";
+  };
 
   # We use `no-modules` because the glue is loaded by a plain script tag from
   # a Flutter web application rather than by a bundler.
@@ -126,7 +129,5 @@ stdenv.mkDerivation {
     find $out -name '*.wasm' -exec remove-references-to -t ${sysroot} {} +
   '';
 
-  meta = source.meta // {
-    license = lib.licenses.asl20;
-  };
+  meta = source.meta;
 }
