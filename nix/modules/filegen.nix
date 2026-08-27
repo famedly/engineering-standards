@@ -22,8 +22,6 @@ in
               To generate the files, an "app" named `filegen-activate` is created,
               which can be executed with `nix run .#filegen-activate`.
 
-              ---
-
               Note: This module does *not* attempt to protect against writes to or
               reads from files outside of the repository.
 

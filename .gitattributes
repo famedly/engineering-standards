@@ -12,4 +12,5 @@
 .gitattributes linguist-generated
 .github/workflows/check-pre-commit-hooks.yml.license linguist-generated
 .taplo.toml linguist-generated
+options.md linguist-generated
 treefmt.toml linguist-generated
