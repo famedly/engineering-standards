@@ -79,6 +79,7 @@
           browser = true;
           coverage.enable = true;
           translations.enable = true;
+          fatalInfos = false;
         };
 
         web = {

@@ -26,6 +26,23 @@ in
                 default = true;
               };
 
+              fatalInfos = lib.mkOption {
+                description = ''
+                  Whether the analyze step fails on info level diagnostics.
+
+                  Every lint rule we mandate reports at that level. `dart
+                  analyze` fails on warnings and errors alone, so without this
+                  the rule set is advisory. `flutter analyze` already fails on
+                  infos, so turning this off has to say so rather than omit a
+                  flag.
+
+                  On by default. A project holding findings it cannot clear
+                  yet turns it off.
+                '';
+                type = lib.types.bool;
+                default = true;
+              };
+
               testCommand = lib.mkOption {
                 description = ''
                   The command that runs this project's tests in CI, or `null`
@@ -207,6 +224,18 @@ in
             # builds against, `dart analyze` doesn't.
             cli = if projectConfig.flutter then "flutter" else "dart";
 
+            # `dart analyze` ignores infos unless asked. `flutter analyze`
+            # fails on them unless asked not to, so omitting the flag is the
+            # wrong opt-out there.
+            analyze =
+              "${cli} analyze"
+              + (
+                if cfg.fatalInfos then
+                  " --fatal-infos"
+                else
+                  lib.optionalString projectConfig.flutter " --no-fatal-infos"
+              );
+
             # Quoted, so that the shell leaves the braces to the linter.
             unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
               " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
@@ -291,7 +320,7 @@ in
                 (check "Resolve dependencies" "${cli} pub get --no-example")
                 lockfile
               ]
-              ++ lib.optional cfg.analyze (check "Analyze" "${cli} analyze")
+              ++ lib.optional cfg.analyze (check "Analyze" analyze)
 
               # `dart analyze` doesn't see the plugin's findings, so without
               # this step the rules would only ever apply in an editor. We
