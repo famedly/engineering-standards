@@ -25,6 +25,7 @@ excludes = [
     ".gitattributes",
     ".github/workflows/check-pre-commit-hooks.yml.license",
     ".taplo.toml",
+    "options.md",
     "treefmt.toml",
 ]
 walk = "git"

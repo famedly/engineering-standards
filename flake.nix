@@ -61,6 +61,34 @@
       {
         systems = self.lib.famedlySystems;
 
+        perSystem = { self', pkgs, ... }: {
+          packages.docs =
+            (pkgs.nixosOptionsDoc {
+              options =
+                let
+                  getModuleOptions =
+                    evaluatedModule:
+                    ((evaluatedModule.type.getSubOptions [ "perSystem" ]).perSystem.type.getSubOptions [ ]);
+                  inherit (inputs.flake-parts.lib) evalFlakeModule;
+                in
+                {
+                  filegen =
+                    let
+                      evaluatedModule = evalFlakeModule { inherit inputs; } flakeModules.filegen;
+                      filegenOptions = getModuleOptions evaluatedModule;
+                    in
+                    filegenOptions.filegen;
+                };
+            }).optionsCommonMark;
+          filegen.settings.files = [
+            {
+              type = "copy";
+              target = "options.md";
+              source = self'.packages.docs;
+            }
+          ];
+        };
+
         flake.flakeModules = flakeModules // {
           inherit default;
         };
