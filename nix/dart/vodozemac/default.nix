@@ -2,7 +2,14 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-{ lib, flake-parts-lib, ... }: {
+{ lib, flake-parts-lib, ... }:
+let
+  # How the vodozemac source is instantiated from the options, shared between
+  # the option declaration and the flake's packages so that the two cannot
+  # drift apart.
+  mkSource = pkgs: cfg: pkgs.callPackage ./source.nix { inherit (cfg) version hash cargoHash; };
+in
+{
   options.perSystem = flake-parts-lib.mkPerSystemOption (
     { config, pkgs, ... }:
     let
@@ -11,9 +18,7 @@
       # reaches into the flake's packages makes the projects depend on
       # themselves.
       vodozemac = pkgs.callPackage ./native.nix {
-        source = pkgs.callPackage ./source.nix {
-          inherit (config.famedly.standards.dart.vodozemac) version hash cargoHash;
-        };
+        source = mkSource pkgs config.famedly.standards.dart.vodozemac;
       };
     in
     {
@@ -104,9 +109,7 @@
         lib.attrValues config.famedly.standards.dart.projects
       );
 
-      source = pkgs.callPackage ./source.nix {
-        inherit (config.famedly.standards.dart.vodozemac) version hash cargoHash;
-      };
+      source = mkSource pkgs config.famedly.standards.dart.vodozemac;
     in
     lib.mkMerge [
       (lib.mkIf (config.famedly.standards.dart.projects != { }) {

@@ -203,10 +203,6 @@ in
           let
             cfg = projectConfig.checks;
 
-            # `flutter analyze` resolves the framework packages the project
-            # builds against, `dart analyze` doesn't.
-            cli = if projectConfig.flutter then "flutter" else "dart";
-
             # Quoted, so that the shell leaves the braces to the linter.
             unusedExclude = lib.optionalString (cfg.unused.exclude != [ ]) (
               " --exclude='{${lib.concatStringsSep "," cfg.unused.exclude}}'"
@@ -240,14 +236,14 @@ in
 
                 # Nothing to compare against, and resolution just wrote one.
                 if ! git ls-files --error-unmatch pubspec.lock >/dev/null 2>&1; then
-                  echo '::error::pubspec.lock is not committed — run `${cli} pub get` and commit it.'
+                  echo '::error::pubspec.lock is not committed — run `${projectConfig.cli} pub get` and commit it.'
                   exit 1
                 fi
 
                 if ! git diff --quiet -- pubspec.lock; then
                   git diff -- pubspec.lock
 
-                  echo '::error::pubspec.lock is out of date — run `${cli} pub get` and commit it.'
+                  echo '::error::pubspec.lock is out of date — run `${projectConfig.cli} pub get` and commit it.'
                   exit 1
                 fi
               '';
@@ -288,10 +284,10 @@ in
               ++ [
                 # We pass `--no-example`, since a bundled example app needs
                 # whatever it needs and nothing here looks at it.
-                (check "Resolve dependencies" "${cli} pub get --no-example")
+                (check "Resolve dependencies" "${projectConfig.cli} pub get --no-example")
                 lockfile
               ]
-              ++ lib.optional cfg.analyze (check "Analyze" "${cli} analyze")
+              ++ lib.optional cfg.analyze (check "Analyze" "${projectConfig.cli} analyze")
 
               # `dart analyze` doesn't see the plugin's findings, so without
               # this step the rules would only ever apply in an editor. We

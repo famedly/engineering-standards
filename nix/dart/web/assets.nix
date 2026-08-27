@@ -39,7 +39,7 @@
       ...
     }:
     let
-      inherit (standardsLib) directory script suffix;
+      inherit (standardsLib) directory script;
 
       projects = lib.filterAttrs (
         _: project: project.web.enable && (project.vodozemac.enable || project.web.livekitE2eeWorker.enable)
@@ -48,7 +48,7 @@
       mkAssets =
         project: projectConfig:
         pkgs.writeShellApplication {
-          name = "dart-web-assets${suffix project}";
+          name = projectConfig.web.assetsPackage;
 
           runtimeInputs = [
             config.famedly.standards.dart.toolchain
@@ -87,11 +87,11 @@
     {
       packages = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair "dart-web-assets${suffix project}" (mkAssets project projectConfig)
+        lib.nameValuePair projectConfig.web.assetsPackage (mkAssets project projectConfig)
       ) projects;
 
       devshells.standards.packages = lib.mapAttrsToList (
-        project: _: self'.packages."dart-web-assets${suffix project}"
+        _: projectConfig: self'.packages.${projectConfig.web.assetsPackage}
       ) projects;
     };
 }

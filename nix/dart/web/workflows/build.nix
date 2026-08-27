@@ -10,16 +10,13 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib) directory inProject;
 in
 {
   perSystem =
     { config, ... }:
     let
       projects = lib.filterAttrs (_: project: project.web.enable) config.famedly.standards.dart.projects;
-
-      # `assets.nix` builds one of these only for a project that needs it.
-      assets = project: "dart-web-assets${suffix project}";
 
       mkWorkflow =
         project: projectConfig:
@@ -59,10 +56,11 @@ in
               # A shallow clone carries no tags for `git describe`.
               (if projectConfig.web.version.enable then steps.withHistory steps.setup else steps.setup)
               ++ lib.optionals projectConfig.checks.privateDependencies steps.privateDependencies
-              ++ lib.optional (config.packages ? ${assets project}) {
+              # `assets.nix` builds one of these only for a project that needs it.
+              ++ lib.optional (config.packages ? ${projectConfig.web.assetsPackage}) {
                 name = "Assemble the assets the web target needs";
                 shell = steps.devshell;
-                run = assets project;
+                run = projectConfig.web.assetsPackage;
               }
               ++ [
                 {

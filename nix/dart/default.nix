@@ -44,18 +44,35 @@
       '';
 
       type = lib.types.attrsOf (
-        lib.types.submodule {
-          options.flutter = lib.mkOption {
-            description = ''
-              Whether this is a Flutter project rather than a plain Dart one.
-              This picks the Flutter SDK, enables the lint rules that only
-              apply to widgets, and runs dependencies and analysis through
-              `flutter` instead of `dart`.
-            '';
-            type = lib.types.bool;
-            default = false;
-          };
-        }
+        lib.types.submodule (
+          { config, ... }: {
+            options.flutter = lib.mkOption {
+              description = ''
+                Whether this is a Flutter project rather than a plain Dart one.
+                This picks the Flutter SDK, enables the lint rules that only
+                apply to widgets, and runs dependencies and analysis through
+                `flutter` instead of `dart`.
+              '';
+              type = lib.types.bool;
+              default = false;
+            };
+
+            options.cli = lib.mkOption {
+              description = ''
+                The CLI that toolchain invocations for this project run
+                through: `flutter` for a Flutter project, since
+                `flutter analyze` and `flutter pub get` resolve the framework
+                packages the project builds against and `dart` doesn't.
+                Derived from `flutter` so that every workflow step makes the
+                same choice.
+              '';
+              type = lib.types.str;
+              readOnly = true;
+              default = if config.flutter then "flutter" else "dart";
+              defaultText = lib.literalExpression ''if config.flutter then "flutter" else "dart"'';
+            };
+          }
+        )
       );
     };
   });
