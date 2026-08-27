@@ -124,6 +124,17 @@
                 readOnly = true;
               };
 
+              assetsPackage = lib.mkOption {
+                description = ''
+                  Name of the package `assets.nix` publishes the asset script
+                  under and the build workflow looks up before it builds.
+                  Named in one place for the same reason as `workflowId`: a
+                  rename would break the wiring silently.
+                '';
+                type = lib.types.str;
+                readOnly = true;
+              };
+
               identity = lib.mkOption {
                 description = ''
                   What a build calls itself. The same two values reach the
@@ -181,6 +192,7 @@
 
               workflowId = "dart-web${standardsLib.suffix name}";
               artifact = "web${standardsLib.suffix name}";
+              assetsPackage = "dart-web-assets${standardsLib.suffix name}";
 
               identity = {
                 # We pass `--long` even on a tag, so that two versions in two
