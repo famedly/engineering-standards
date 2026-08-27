@@ -39,7 +39,7 @@
       ...
     }:
     let
-      inherit (standardsLib)  script suffix;
+      inherit (standardsLib)   script makeValidGitHubWorkflowID;
 
       projects = lib.filterAttrs (
         _: project: project.web.enable && (project.vodozemac.enable || project.web.livekitE2eeWorker.enable)
@@ -48,7 +48,7 @@
       mkAssets =
         project: projectConfig:
         pkgs.writeShellApplication {
-          name = "dart-web-assets${suffix project}";
+          name = "dart-web-assets${makeValidGitHubWorkflowID project}";
 
           runtimeInputs = [
             config.famedly.standards.dart.toolchain
@@ -87,11 +87,11 @@
     {
       packages = lib.mapAttrs' (
         project: projectConfig:
-        lib.nameValuePair "dart-web-assets${suffix project}" (mkAssets project projectConfig)
+        lib.nameValuePair "dart-web-assets${makeValidGitHubWorkflowID project}" (mkAssets project projectConfig)
       ) projects;
 
       devshells.standards.packages = lib.mapAttrsToList (
-        project: _: self'.packages."dart-web-assets${suffix project}"
+        project: _: self'.packages."dart-web-assets${makeValidGitHubWorkflowID project}"
       ) projects;
     };
 }

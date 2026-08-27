@@ -179,8 +179,8 @@
             config.web = {
               version.enable = lib.mkDefault config.web.sentry.enable;
 
-              workflowId = "dart-web${standardsLib.suffix name}";
-              artifact = "web${standardsLib.suffix name}";
+              workflowId = "dart-web${standardsLib.makeValidGitHubWorkflowID name}";
+              artifact = "web${standardsLib.makeValidGitHubWorkflowID name}";
 
               identity = {
                 # We pass `--long` even on a tag, so that two versions in two

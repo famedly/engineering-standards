@@ -9,12 +9,12 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) suffix;
+  inherit (standardsLib) makeValidGitHubWorkflowID;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
   # We can't use `github.workflow` for this, it holds the display name.
-  workflowId = project: "dart-image${suffix project}";
+  workflowId = project: "dart-image${makeValidGitHubWorkflowID project}";
 in
 {
   perSystem =
@@ -29,7 +29,7 @@ in
         let
           cfg = projectConfig.image;
 
-          container = "smoke${suffix project}";
+          container = "smoke${makeValidGitHubWorkflowID project}";
         in
         {
           name = "Build and push the container image${

@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) suffix;
+  inherit (standardsLib) makeValidGitHubWorkflowID;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 in
@@ -27,7 +27,7 @@ in
         let
           cfg = projectConfig.web.image;
 
-          container = "smoke-web${suffix project}";
+          container = "smoke-web${makeValidGitHubWorkflowID project}";
 
           serve = ''
             base="http://$(docker port ${container} ${toString cfg.port}/tcp | head -1)"

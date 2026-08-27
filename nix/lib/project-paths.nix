@@ -9,7 +9,7 @@
   # Workflow and job ids may contain neither `/` nor `.`, so derive a suffix
   # from the project path. Empty at the repository root, which keeps the names
   # of single-project repositories plain.
-  suffix =
+  makeValidGitHubWorkflowID =
     project:
     if project == "." then
       ""

@@ -11,7 +11,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) suffix;
+  inherit (standardsLib) makeValidGitHubWorkflowID;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
@@ -284,7 +284,7 @@ in
               // lib.optionalAttrs (cfg.coverage.flags != null) { inherit (cfg.coverage) flags; };
             };
           in
-          lib.nameValuePair "checks${suffix project}" {
+          lib.nameValuePair "checks${makeValidGitHubWorkflowID project}" {
             runsOn = "ubuntu-latest";
 
             timeoutMinutes = 30;

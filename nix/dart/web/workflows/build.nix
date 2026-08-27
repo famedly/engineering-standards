@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) suffix;
+  inherit (standardsLib) makeValidGitHubWorkflowID;
 in
 {
   perSystem =
@@ -19,7 +19,7 @@ in
       projects = lib.filterAttrs (_: project: project.web.enable) config.famedly.standards.dart.projects;
 
       # `assets.nix` builds one of these only for a project that needs it.
-      assets = project: "dart-web-assets${suffix project}";
+      assets = project: "dart-web-assets${makeValidGitHubWorkflowID project}";
 
       mkWorkflow =
         project: projectConfig:
