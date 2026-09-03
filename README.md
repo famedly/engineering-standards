@@ -32,6 +32,8 @@ If you want to get started using this, follow these steps:
 3. [Optional] use [direnv](https://direnv.net/) to automatically enter
    project shells when entering Famedly project directories.
    - This is especially useful if you use a non-bash shell.
+   - We recommend starting out with the included example `.envrc`. Run
+     `cp .envrc.example .envrc` to get it.
 4. [Optional] configure your editor to use the direnv-based shell as
    well
    - Various plugins exist for this. Examples:
