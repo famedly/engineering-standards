@@ -98,11 +98,11 @@ can make sense to add downstream.
 
 The following basic devshells are available:
 
-| Name      | Purpose |
-| --------- | ------- |
-| standards | Contains basic tools and configuration used by all famedly projects. |
+| Name      | Purpose                                                                              |
+| --------- | ------------------------------------------------------------------------------------ |
+| standards | Contains basic tools and configuration used by all famedly projects.                 |
 | rust      | Contains the Famedly Rust toolchain, and everything required to build Rust projects. |
-| k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS. |
+| k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS.            |
 
 Projects should generally choose one of these to alias to the
 projects' `default` devshell - this allows new developers to very
@@ -158,17 +158,21 @@ be expected.
 
 Engineering Standards sets up the [REUSE](https://reuse.software/) lint by default.
 For non-FOSS repositories, you must create a custom "All rights reserved" license like so:
+
 ```bash
 echo "All rights reserved" > LICENSES/LicenseRef-private.txt
 ```
 
 You can then use the SPDX header
+
 <!-- REUSE-IgnoreStart -->
+
 ```
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: LicenseRef-private
 ```
+
 <!-- REUSE-IgnoreEnd -->
 
 ## Contributing
@@ -188,7 +192,7 @@ command.
 
 ### Adding pre-commit hooks
 
-Pre-commit hooks are intended to be *very* fast to execute. These
+Pre-commit hooks are intended to be _very_ fast to execute. These
 should be ergonomic to run every time you create a git commit - when
 doing rebase operations, that can mean dozens in a few 100ms.
 

@@ -39,6 +39,23 @@
         };
         settings.formatter.taplo.command = "taplo";
 
+        # prettier formats JSON, YAML, Markdown, JS/TS, CSS, HTML, …
+        programs.prettier.enable = true;
+        # We explicitly do not set `settings`, because it generates a nix
+        # store path, and puts it in treefmt.toml
+        # Instead, we generate a `.prettierrc.yaml` with filegen further down.
+        settings.formatter.prettier = {
+          command = "prettier";
+          # Helm templates match `*.yaml` but are Go templates. Formatting them
+          # as YAML corrupts them.
+          excludes = [
+            "**/charts/**/templates/*.yaml"
+            "**/charts/**/templates/*.yml"
+            "**/charts/**/templates/**/*.yaml"
+            "**/charts/**/templates/**/*.yml"
+          ];
+        };
+
       };
 
       filegen.settings.files = [
@@ -55,6 +72,11 @@
           type = "copy";
           target = ".taplo.toml";
           source = ./taplo.toml;
+        }
+        {
+          type = "copy";
+          target = ".prettierrc.yaml";
+          source = ../../standards/prettierrc.yaml;
         }
       ];
     };
