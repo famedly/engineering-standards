@@ -151,7 +151,7 @@ in
             name = "gitattributes";
             file = pkgs.writeText "gitattributes-entries" (
               lib.pipe cfg.generatedFiles [
-                (map (target: "${target} linguist-generated"))
+                (map (target: "${target} linguist-generated gitlab-generated"))
                 lib.concatLines
               ]
             );

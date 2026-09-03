@@ -6,10 +6,10 @@
 #
 # Regenerate with `nix run .#filegen-activate`.
 
-.github/workflows/check-pre-commit-hooks.yml linguist-generated
-.pre-commit-config.yaml linguist-generated
-.editorconfig linguist-generated
-.gitattributes linguist-generated
-.github/workflows/check-pre-commit-hooks.yml.license linguist-generated
-.taplo.toml linguist-generated
-treefmt.toml linguist-generated
+.github/workflows/check-pre-commit-hooks.yml linguist-generated gitlab-generated
+.pre-commit-config.yaml linguist-generated gitlab-generated
+.editorconfig linguist-generated gitlab-generated
+.gitattributes linguist-generated gitlab-generated
+.github/workflows/check-pre-commit-hooks.yml.license linguist-generated gitlab-generated
+.taplo.toml linguist-generated gitlab-generated
+treefmt.toml linguist-generated gitlab-generated
