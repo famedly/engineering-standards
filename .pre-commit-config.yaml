@@ -60,12 +60,13 @@ repos:
     types:
     - text
   - description: Ensure that files set up with the filegen module are up-to-date
-    entry: filegen-apply-script
+    entry: nix run .#filegen-activate
     id: filegen
     language: system
     name: filegen
     pass_filenames: false
-    stages: []
+    stages:
+    - pre-push
   - description: Format *all* files
     entry: treefmt
     id: treefmt

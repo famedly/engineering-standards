@@ -20,7 +20,6 @@ importingFlake: {
         package.runtimePkgs = lib.attrValues (
           {
             inherit (pkgs) editorconfig-checker typos;
-            filegen-activate = self'.apps.filegen-activate.meta.package;
             treefmt = config.treefmt.package;
           }
           // config.treefmt.build.programs
@@ -128,8 +127,9 @@ importingFlake: {
                 name = "filegen";
                 description = "Ensure that files set up with the filegen module are up-to-date";
                 pass_filenames = false;
+                stages = [ "pre-push" ];
 
-                entry = "filegen-apply-script";
+                entry = "nix run .#filegen-activate";
                 language = "system";
               }
 
