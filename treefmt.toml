@@ -52,3 +52,6 @@ command = "taplo"
 excludes = []
 includes = ["*.toml"]
 options = ["format"]
+
+# sneaky fox, goes into your files
+# messes up what prek had ordained
