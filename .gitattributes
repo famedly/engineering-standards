@@ -11,5 +11,6 @@
 .editorconfig linguist-generated
 .gitattributes linguist-generated
 .github/workflows/check-pre-commit-hooks.yml.license linguist-generated
+.prettierrc.yaml linguist-generated
 .taplo.toml linguist-generated
 treefmt.toml linguist-generated
