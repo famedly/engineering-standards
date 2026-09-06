@@ -34,6 +34,40 @@ in
     default = null;
   };
 
+  options.famedly.standards.ci.binaryCache.name = lib.mkOption {
+    description = ''
+      Cachix cache every generated workflow substitutes from, or `null` to
+      leave Nix talking only to cache.nixos.org.
+
+      `famedly` is the company cache, private, and the default: product
+      repositories live there and already hold the token. `famedly-oss` is the
+      public one. A public repository has to name it, because GitHub will not
+      hand a private cache's token to a public workflow — and because a private
+      cache cannot be read without one, so a fork would rebuild from source
+      even when the bytes are already built.
+
+      The token and signing key are `CACHIX_AUTH_TOKEN_<NAME>` and
+      `CACHIX_SIGNING_KEY_<NAME>`, hyphens turned into underscores, which is
+      how the two caches are already named in the organisation.
+
+      Only `main` and the tags write. A pull request and a merge queue entry
+      both build what a branch decided, and a run there that could write would
+      let any branch put a store path in front of every other repository's
+      builds. The ref decides this rather than the event name, which gets two
+      cases wrong: a run started by hand is not a `push`, and a `push` is
+      whatever branch a repository chose to run on.
+
+      Reading may fail without failing the workflow: a cache out of reach
+      should cost a run its time and not its result. What a trusted ref builds
+      is pushed by the same step, so a workflow that already runs on `main`
+      fills the cache without a job of its own.
+    '';
+
+    type = lib.types.nullOr lib.types.str;
+    default = "famedly";
+    example = "famedly-oss";
+  };
+
   options.famedly.standards.ci.steps = lib.mkOption {
     description = ''
       Workflow steps shared between our GitHub workflows.
@@ -91,10 +125,23 @@ in
           readOnly = true;
         };
 
+        binaryCache = lib.mkOption {
+          description = ''
+            Substitute from `famedly.standards.ci.binaryCache.name`, and push
+            back what a trusted ref built.
+
+            Empty when the name is `null`. Taken by `setup`; a job that
+            assembles its own steps and still wants the cache appends this.
+          '';
+          type = lib.types.listOf lib.types.attrs;
+          readOnly = true;
+        };
+
         setup = lib.mkOption {
           description = ''
             The steps every workflow of ours starts with: make room on the
-            runner, check out the repository and install nix.
+            runner, check out the repository, install nix, and point it at
+            the binary cache.
 
             Since the toolchain comes from the devshell, there is deliberately
             no language-specific setup action here.
@@ -192,6 +239,36 @@ in
     ];
     installNix = [ { uses = allowed-actions."cachix/install-nix-action".uses; } ];
 
+    binaryCache =
+      let
+        cache = config.famedly.standards.ci.binaryCache.name;
+      in
+      lib.optionals (cache != null) (
+        let
+          suffix = lib.toUpper (lib.replaceStrings [ "-" ] [ "_" ] cache);
+        in
+        [
+          {
+            uses = allowed-actions."cachix/cachix-action".uses;
+
+            # github-actions-nix types this as a bool, so the same condition as
+            # `skipPush` cannot live here. A cache out of reach should cost a
+            # run its time and not its result: everything it holds can be built
+            # again.
+            continueOnError = true;
+
+            with_ = {
+              name = cache;
+
+              authToken = "\${{ secrets.CACHIX_AUTH_TOKEN_${suffix} }}";
+              signingKey = "\${{ secrets.CACHIX_SIGNING_KEY_${suffix} }}";
+
+              skipPush = "\${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}";
+            };
+          }
+        ]
+      );
+
     freeDiskSpace = [
       {
         name = "Free up disk space";
@@ -203,7 +280,7 @@ in
       }
     ];
 
-    setup = steps.freeDiskSpace ++ steps.checkout ++ steps.installNix;
+    setup = steps.freeDiskSpace ++ steps.checkout ++ steps.installNix ++ steps.binaryCache;
 
     withHistory = map (
       step:
