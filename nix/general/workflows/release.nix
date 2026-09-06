@@ -191,15 +191,15 @@ in
                       ```
 
                     '') cfg.signedImages
-                  }The `.spdx.json` files attached below name what each image and the application
-                  were built from, for a reader who has no such credentials. The same documents
-                  are signed onto the images, and can be read from there rather than from this
-                  page:
+                  }The `.cdx.json` files attached below are CycloneDX documents naming what each
+                  image and the application were built from, for a reader who has no such
+                  credentials. The same documents are signed onto the images, and can be read
+                  from there rather than from this page:
 
                   ${
                     lib.concatMapStrings (image: ''
                       ```bash
-                      cosign verify-attestation --type spdxjson \
+                      cosign verify-attestation --type cyclonedx \
                         --certificate-identity ${identity image} \
                         --certificate-oidc-issuer ${issuer} \
                         ${image.reference}:@TAG@ \
