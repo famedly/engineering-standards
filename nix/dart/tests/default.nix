@@ -92,6 +92,20 @@
       #
       # It costs an evaluation rather than a build: the images are only
       # instantiated, and everything else here is text.
+      #
+      # This is a wrapper rather than the hook's command written out in
+      # `args`, so that the `${system}` in it is resolved where the hook
+      # runs: the hook config is committed, and a flake attr frozen on one
+      # machine names checks the next one may not be able to build.
+      runChecks = pkgs.writeShellApplication {
+        name = "dart-standards-fixture";
+
+        text = ''
+          nix build --no-link --print-build-logs \
+          	".#checks.${system}.dart-standards" \
+          	".#checks.${system}.dart-standards-workflows"
+        '';
+      };
     in
     # Flutter is not packaged everywhere, and the fixture holds a Flutter
     # project on purpose.
@@ -159,7 +173,7 @@
       };
 
       prek-pre-commit = {
-        package.runtimePkgs = [ pkgs.nix ];
+        package.runtimePkgs = [ runChecks ];
 
         workspaces.".".repos = [
           {
@@ -171,16 +185,7 @@
                 name = "dart standards";
                 description = "Evaluate the Dart standards against the fixture repository";
 
-                entry = "nix";
-
-                args = [
-                  "build"
-                  "--no-link"
-                  "--print-build-logs"
-                  ".#checks.${system}.dart-standards"
-                  ".#checks.${system}.dart-standards-workflows"
-                ];
-
+                entry = "dart-standards-fixture";
                 pass_filenames = false;
                 stages = [ "pre-push" ];
 
