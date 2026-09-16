@@ -93,8 +93,9 @@ in
 
         setup = lib.mkOption {
           description = ''
-            The steps every workflow of ours starts with: make room on the
-            runner, check out the repository and install nix.
+            The steps a job that builds on the runner starts with: make room
+            for the build, check out the repository and install nix. A job
+            that only runs the hooks starts from `checkout` and `installNix`.
 
             Since the toolchain comes from the devshell, there is deliberately
             no language-specific setup action here.
