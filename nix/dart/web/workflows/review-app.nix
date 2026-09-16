@@ -29,36 +29,6 @@ in
               example = "famedly-control";
             };
 
-            environment = lib.mkOption {
-              description = ''
-                GitHub environment the deployments are recorded in. The
-                cleanup keys off this, so a repository sharing a server with
-                others only ever removes its own review apps.
-              '';
-              type = lib.types.str;
-              default = "review";
-            };
-
-            server = lib.mkOption {
-              description = ''
-                Host that serves the review apps, and the domain their
-                hostnames are formed under.
-              '';
-              type = lib.types.str;
-              default = "web-review.famedly.de";
-            };
-
-            user = lib.mkOption {
-              description = "User to reach the review server as.";
-              type = lib.types.str;
-              default = "web-review";
-            };
-
-            root = lib.mkOption {
-              description = "Directory the review server serves from.";
-              type = lib.types.strMatching "/.+";
-              default = "/opt/web-review/web";
-            };
           };
         }
       );
@@ -68,14 +38,20 @@ in
   config.perSystem =
     { config, ... }:
     let
-      projects = lib.filterAttrs (
-        _: project: project.web.enable && project.web.reviewApp.enable
-      ) config.famedly.standards.dart.projects;
+      projects = standardsLib.webProjects "reviewApp" config.famedly.standards.dart.projects;
 
       mkJobs =
-        project: projectConfig:
+        projectConfig:
         let
           cfg = projectConfig.web.reviewApp;
+
+          # One review server serves all of these; the address and the
+          # account on it were options until every consumer turned out to
+          # use the same ones.
+          server = "web-review.famedly.de";
+          user = "web-review";
+          root = "/opt/web-review/web";
+          environment = "review";
 
           identity = "~/.ssh/review-app";
 
@@ -90,7 +66,7 @@ in
 
           qaAppName = "qa-${cfg.projectName}";
 
-          url = name: "https://${name}.${cfg.server}";
+          url = name: "https://${name}.${server}";
 
           # We use no ssh-agent, since it wouldn't survive the step that
           # starts it, and no `StrictHostKeyChecking no`, which would hand the
@@ -100,12 +76,12 @@ in
             printf '%s\n' "$SSH_PRIVATE_KEY" >${identity}
             chmod 600 ${identity}
 
-            ssh-keyscan -t rsa,ecdsa,ed25519 ${cfg.server} >>~/.ssh/known_hosts
+            ssh-keyscan -t rsa,ecdsa,ed25519 ${server} >>~/.ssh/known_hosts
           '';
 
           ssh = "ssh -i ${identity} -o IdentitiesOnly=yes";
 
-          target = directory: "${cfg.user}@${cfg.server}:${cfg.root}/${directory}";
+          target = directory: "${user}@${server}:${root}/${directory}";
 
           # We pass `--delete`, so that a file a build stopped producing stops
           # being served.
@@ -149,7 +125,7 @@ in
               timeoutMinutes = 15;
 
               environment = {
-                name = cfg.environment;
+                name = environment;
                 url = url app;
               };
 
@@ -216,7 +192,7 @@ in
 
                 env = key // {
                   GH_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
-                  ENVIRONMENT = cfg.environment;
+                  ENVIRONMENT = environment;
                 };
 
                 run = script [
@@ -254,8 +230,8 @@ in
 
                     	echo "Removing the review app of pull request $pr"
 
-                    	${ssh} -n ${lib.escapeShellArg "${cfg.user}@${cfg.server}"} \
-                    		rm -rf "${cfg.root}/${appName "$pr"}"
+                    	${ssh} -n ${lib.escapeShellArg "${user}@${server}"} \
+                    		rm -rf "${root}/${appName "$pr"}"
 
                     	# The deployment goes too, or the next run looks at it
                     	# again, and it can't be deleted while it is active.
@@ -275,8 +251,7 @@ in
     in
     {
       githubActions.workflows = lib.mapAttrs' (
-        project: projectConfig:
-        lib.nameValuePair projectConfig.web.workflowId { jobs = mkJobs project projectConfig; }
+        _: projectConfig: lib.nameValuePair projectConfig.web.workflowId { jobs = mkJobs projectConfig; }
       ) projects;
     };
 }

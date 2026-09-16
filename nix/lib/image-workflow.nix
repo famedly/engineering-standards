@@ -46,6 +46,41 @@ in
 {
   inherit buildImage;
 
+  # The envelope every one of these workflows wears: read by default — the
+  # job that publishes raises it — triggered by reviews and `main`, and one
+  # queue per workflow, since the queue's ref would make a nonsense tag.
+  head = { id }: {
+    permissions.contents = "read";
+
+    on.pullRequest.branches = [ "**" ];
+    on.push = {
+      branches = [ "main" ];
+      tags = [ "v*" ];
+    };
+
+    on.mergeGroup = { };
+
+    concurrency = {
+      group = "${id}-\${{ github.ref }}";
+      cancelInProgress = true;
+    };
+  };
+
+  # The registry references a release refers to, one entry per image a
+  # project publishes: where a tag was pushed and the workflow that pushes
+  # it. `id` and `image` read the workflow id and the image options of a
+  # project, which a server and a web workflow name in different places.
+  signedImages =
+    {
+      projects,
+      id,
+      image,
+    }:
+    lib.mapAttrsToList (project: projectConfig: {
+      reference = "${(image projectConfig).releaseRegistry}/${(image projectConfig).name}";
+      workflow = "${id project projectConfig}.yml";
+    }) projects;
+
   # Where an image goes, given its options: a build off a pull request is a
   # nightly, one off `main` or a version tag a release.
   reference =
