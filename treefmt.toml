@@ -6,19 +6,7 @@
 #
 # Regenerate with `nix run .#filegen-activate`.
 
-allowMissingFormatter = false
 excludes = [
-    "*.lock",
-    "*.patch",
-    "package-lock.json",
-    "go.mod",
-    "go.sum",
-    ".gitattributes",
-    ".gitignore",
-    ".gitmodules",
-    ".hgignore",
-    ".svnignore",
-    "LICENSE",
     ".github/workflows/check-pre-commit-hooks.yml",
     ".pre-commit-config.yaml",
     ".editorconfig",
@@ -27,12 +15,12 @@ excludes = [
     ".prettierrc.yaml",
     ".taplo.toml",
     "treefmt.toml",
+    "package-lock.json",
 ]
 walk = "git"
 
 [formatter.nixfmt]
 command = "nixfmt"
-excludes = []
 includes = ["*.nix"]
 options = ["--strict"]
 
@@ -61,18 +49,15 @@ options = ["--write"]
 
 [formatter.rustfmt]
 command = "rustfmt"
-excludes = []
 includes = ["*.rs"]
 options = ["--config", "skip_children=true", "--edition", "2024"]
 
 [formatter.shfmt]
 command = "shfmt"
-excludes = []
 includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
 options = ["-w", "-i", "0", "-s"]
 
 [formatter.taplo]
 command = "taplo"
-excludes = []
 includes = ["*.toml"]
 options = ["format"]
