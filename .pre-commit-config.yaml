@@ -99,8 +99,14 @@ repos:
     stages: []
   repo: local
 - hooks:
-  - description: Evaluate the Dart standards against the fixture repository
-    entry: dart-standards-fixture
+  - args:
+    - build
+    - --no-link
+    - --print-build-logs
+    - .#checks.aarch64-darwin.dart-standards
+    - .#checks.aarch64-darwin.dart-standards-workflows
+    description: Evaluate the Dart standards against the fixture repository
+    entry: nix
     id: dart-standards
     language: system
     name: dart standards

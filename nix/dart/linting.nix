@@ -288,7 +288,7 @@ in
         projectConfig:
         let
           dependencies = lib.mapAttrsToList (
-            package: settings: "${package}: ${settings.constraint}"
+            package: settings: "  ${package}: ${settings.constraint}"
           ) projectConfig.linting.packages;
         in
         standardsLib.managedFile {
@@ -303,7 +303,7 @@ in
 
             Requires these dev dependencies:
 
-            ${lib.concatStringsSep "\n" (map (dependency: "  ${dependency}") dependencies)}
+            ${lib.concatStringsSep "\n" dependencies}
           '';
         };
 
@@ -312,16 +312,12 @@ in
       # `dart-lints-included` hook checks. Writing that one ourselves would
       # trample the overrides it is meant to hold, since `filegen` has no
       # create-once mode.
-      mkProjectFiles = project: projectConfig: [
-        {
-          type = "copy";
-          target = "./${directory project}analysis_options.standards.yaml";
-          source = mkOptionsFile projectConfig;
-          clobber = true;
-        }
-      ];
     in
     {
-      filegen.settings.files = lib.concatLists (lib.mapAttrsToList mkProjectFiles projects);
+      filegen.settings.files = lib.mapAttrsToList (project: projectConfig: {
+        type = "copy";
+        target = "./${directory project}analysis_options.standards.yaml";
+        source = mkOptionsFile projectConfig;
+      }) projects;
     };
 }

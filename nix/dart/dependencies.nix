@@ -85,7 +85,6 @@
         type = "copy";
         target = "./${directory project}dart_dependency_validator.yaml";
         source = mkConfigFile projectConfig;
-        clobber = true;
       }) projects;
     };
 }

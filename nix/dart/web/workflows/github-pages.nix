@@ -5,10 +5,12 @@
   config,
   lib,
   flake-parts-lib,
+  standardsLib,
   ...
 }:
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
+  inherit (config.famedly.standards.ci) steps;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
@@ -41,12 +43,10 @@ in
   config.perSystem =
     { config, ... }:
     let
-      projects = lib.filterAttrs (
-        _: project: project.web.enable && project.web.githubPages.enable
-      ) config.famedly.standards.dart.projects;
+      projects = standardsLib.webProjects "githubPages" config.famedly.standards.dart.projects;
 
       mkJob =
-        project: projectConfig:
+        projectConfig:
         let
           cfg = projectConfig.web.githubPages;
         in
@@ -71,52 +71,44 @@ in
             url = "\${{ steps.deployment.outputs.page_url }}";
           };
 
-          steps = [
-            {
-              uses = allowed-actions."actions/download-artifact".uses;
+          steps =
+            steps.downloadArtifact { name = projectConfig.web.artifact; }
+            ++ lib.optional (cfg.baseHref != null) {
+              name = "Point the base href at the Pages path";
+              env.BASE_HREF = cfg.baseHref;
 
-              with_ = {
-                name = projectConfig.web.artifact;
-                path = "site";
-              };
+              # We anchor this to the tag `flutter build web` writes, so that a
+              # document without one fails here rather than being published
+              # with every asset path broken.
+              run = ''
+                if ! grep -q '<base href="[^"]*">' site/index.html; then
+                  echo '::error::site/index.html carries no base href to rewrite'
+                  exit 1
+                fi
+
+                sed -i "s|<base href=\"[^\"]*\">|<base href=\"$BASE_HREF\">|" site/index.html
+              '';
             }
-          ]
-          ++ lib.optional (cfg.baseHref != null) {
-            name = "Point the base href at the Pages path";
-            env.BASE_HREF = cfg.baseHref;
+            ++ [
+              { uses = allowed-actions."actions/configure-pages".uses; }
 
-            # We anchor this to the tag `flutter build web` writes, so that a
-            # document without one fails here rather than being published
-            # with every asset path broken.
-            run = ''
-              if ! grep -q '<base href="[^"]*">' site/index.html; then
-                echo '::error::site/index.html carries no base href to rewrite'
-                exit 1
-              fi
+              {
+                uses = allowed-actions."actions/upload-pages-artifact".uses;
+                with_.path = "site";
+              }
 
-              sed -i "s|<base href=\"[^\"]*\">|<base href=\"$BASE_HREF\">|" site/index.html
-            '';
-          }
-          ++ [
-            { uses = allowed-actions."actions/configure-pages".uses; }
-
-            {
-              uses = allowed-actions."actions/upload-pages-artifact".uses;
-              with_.path = "site";
-            }
-
-            {
-              name = "Deploy to GitHub Pages";
-              id = "deployment";
-              uses = allowed-actions."actions/deploy-pages".uses;
-            }
-          ];
+              {
+                name = "Deploy to GitHub Pages";
+                id = "deployment";
+                uses = allowed-actions."actions/deploy-pages".uses;
+              }
+            ];
         };
     in
     {
       githubActions.workflows = lib.mapAttrs' (
-        project: projectConfig:
-        lib.nameValuePair projectConfig.web.workflowId { jobs.pages = mkJob project projectConfig; }
+        _: projectConfig:
+        lib.nameValuePair projectConfig.web.workflowId { jobs.pages = mkJob projectConfig; }
       ) projects;
     };
 }
