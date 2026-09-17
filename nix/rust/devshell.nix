@@ -43,6 +43,10 @@
 
             # To check dependencies are actually used
             cargo-udeps = pkgs.callPackage ./packages/cargo-udeps.nix { inherit inputs; };
+
+            # Release helper, dependent tooling is wrapped into the
+            # package itself
+            cargo-release = pkgs.callPackage ./packages/cargo-release.nix { };
           };
 
           env = [
