@@ -36,7 +36,7 @@
 
               # Comment formatting (unstable as of v1.9)
               wrap_comments = lib.mkDefault true;
-              comment_width = lib.mkDefault 80;
+              comment_width = lib.mkDefault 100;
               doc_comment_code_block_width = lib.mkDefault 80;
               format_code_in_doc_comments = lib.mkDefault true;
             };
