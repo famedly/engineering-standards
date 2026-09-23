@@ -22,12 +22,21 @@ importingFlake: {
       #   would be missing if they were not in the shell
       packages = builtins.map (package: package.data) config.prek-pre-commit.package.runtimePkgs;
 
+      env = [
+        # Setting this has the result of printing logs by default when calling `nix build` and probably other commands.
+        # This generally saves a couple of steps when troubleshooting someone's build issues.
+        {
+          name = "NIX_CONFIG";
+          value = "log-format = multiline-with-logs";
+        }
+      ];
+
       commands = [
         {
           name = "nix fmt";
           help = "Auto-format all files in the project.";
           category = "[[lints and checks]]";
-          package = pkgs.nix;
+          package = pkgs.lixPackageSets.latest.lix;
         }
 
         {
