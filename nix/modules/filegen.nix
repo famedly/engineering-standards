@@ -159,6 +159,41 @@ in
         }
       ];
 
+      prek-pre-commit = {
+        package.runtimePkgs = [ pkgs.ripgrep ];
+        workspaces.".".repos = [
+          {
+            repo = "local";
+
+            hooks = [
+              {
+                id = "store_paths_in_filegen";
+                name = "store_paths_in_filegen";
+                description = "Check that we don't have nix store paths in filegen generated files. Nix store paths will vary from system to system, causing a Linux user to generate different files from a mac user, and getting an error.";
+
+                entry = "bash";
+                args = [
+                  "-c"
+                  "--"
+                  "echo \"/nix/store/ path found in filegen-generated file, which is forbidden:\"; ! rg --with-filename '/nix/store/[0-9a-z]{32}' $@"
+                  "--"
+                ];
+                language = "system";
+                files =
+                  let
+                    inside = lib.strings.concatStringsSep "," cfg.generatedFiles;
+                    glob = "{${inside}}";
+                  in
+                  {
+                    inherit glob;
+                  };
+              }
+            ];
+          }
+        ];
+
+      };
+
       apps =
         let
           activate = pkgs.writers.writeNuBin "filegen-apply-script" ''
