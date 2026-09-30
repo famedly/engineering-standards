@@ -59,12 +59,6 @@ includes = [
 ]
 options = ["--write"]
 
-[formatter.rustfmt]
-command = "rustfmt"
-excludes = []
-includes = ["*.rs"]
-options = ["--config", "skip_children=true", "--edition", "2024"]
-
 [formatter.shfmt]
 command = "shfmt"
 excludes = []

@@ -49,13 +49,14 @@
   config.perSystem =
     {
       config,
+      lib,
       pkgs,
       self',
       standardsLib,
       ...
     }:
     {
-      treefmt = {
+      treefmt = lib.mkIf (config.famedly.standards.rust.projects != { }) {
         programs.rustfmt = {
           enable = true;
           package = self'.packages.famedly-rust-toolchain;
