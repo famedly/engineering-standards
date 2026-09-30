@@ -37,12 +37,12 @@
               # We use nextest for testing, this cargo extension needs to be
               # installed for testing most of our projects
               cargo-nextest
+
+              # To check dependencies are actually used
+              cargo-machete
               ;
 
             inherit (self'.packages) famedly-rust-toolchain;
-
-            # To check dependencies are actually used
-            cargo-udeps = pkgs.callPackage ./packages/cargo-udeps.nix { inherit inputs; };
           };
 
           env = [
