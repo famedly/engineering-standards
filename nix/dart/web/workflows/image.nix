@@ -8,7 +8,6 @@
   ...
 }:
 let
-  allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
   inherit (standardsLib) directory suffix;
 
@@ -18,9 +17,7 @@ in
   perSystem =
     { config, ... }:
     let
-      projects = lib.filterAttrs (
-        _: project: project.web.enable && project.web.image.enable
-      ) config.famedly.standards.dart.projects;
+      projects = standardsLib.webProjects "image" config.famedly.standards.dart.projects;
 
       mkJobs =
         project: projectConfig:
@@ -87,48 +84,42 @@ in
 
             needs = [ "build" ];
 
-            steps = steps.setup ++ [
-              {
-                uses = allowed-actions."actions/download-artifact".uses;
+            steps =
+              steps.setup
+              ++ steps.downloadArtifact { name = projectConfig.web.artifact; }
+              ++ [
+                (imageWorkflow.buildStep {
+                  inherit project;
 
-                with_ = {
-                  name = projectConfig.web.artifact;
-                  path = "site";
-                };
-              }
+                  name = "Assemble the image";
+                  output = "dartWebImages";
 
-              (imageWorkflow.buildStep {
-                inherit project;
+                  artefact = {
+                    name = "site";
+                    path = "site";
+                  };
+                })
 
-                name = "Assemble the image";
-                output = "dartWebImages";
+                (imageWorkflow.smokeTest {
+                  # It fetches the site's real files, so a missing entry
+                  # document fails here too.
+                  name = "Smoke test the image";
 
-                artefact = {
-                  name = "site";
-                  path = "site";
-                };
-              })
+                  inherit container;
+                  image = cfg.name;
 
-              (imageWorkflow.smokeTest {
-                # It fetches the site's real files, so a missing entry
-                # document fails here too.
-                name = "Smoke test the image";
+                  # An ephemeral port, so that concurrent jobs can't collide.
+                  options = [ "--publish 127.0.0.1::${toString cfg.port}" ];
 
-                inherit container;
-                image = cfg.name;
+                  checks = [
+                    serve
+                  ]
+                  ++ lib.mapAttrsToList checkHeader cfg.sentHeaders
+                  ++ lib.mapAttrsToList checkContentType cfg.contentTypes;
+                })
 
-                # An ephemeral port, so that concurrent jobs can't collide.
-                options = [ "--publish 127.0.0.1::${toString cfg.port}" ];
-
-                checks = [
-                  serve
-                ]
-                ++ lib.mapAttrsToList checkHeader cfg.sentHeaders
-                ++ lib.mapAttrsToList checkContentType cfg.contentTypes;
-              })
-
-              imageWorkflow.uploadStep
-            ];
+                imageWorkflow.uploadStep
+              ];
           };
 
           publish = imageWorkflow.publishJob {

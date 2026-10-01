@@ -10,24 +10,17 @@
 importingFlake: {
   imports = [ ];
 
-  options.perSystem = flake-parts-lib.mkPerSystemOption ({
-    options.famedly.standards.python.projects = lib.mkOption {
-      description = ''
-        Python projects in the repository that should be equipped with our
-        standards.
+  options.perSystem = flake-parts-lib.mkPerSystemOption (
+    { standardsLib, ... }: {
+      options.famedly.standards.python.projects = standardsLib.projectsOption {
+        language = "Python";
 
-        This must be a relative path starting with `.`. Simply use `.` if the
-        whole project is a Python project.
-      '';
-      default = { };
-
-      example = ''
-        {
-          "." = { };
-        }
-      '';
-
-      type = lib.types.attrsOf (lib.types.submodule { });
-    };
-  });
+        example = ''
+          {
+            "." = { };
+          }
+        '';
+      };
+    }
+  );
 }

@@ -15,7 +15,9 @@
 
       inherit (config.famedly.standards.dart) projects;
 
-      usesVodozemac = lib.any (project: project.vodozemac.enable) (lib.attrValues projects);
+      vodozemacProjects = lib.filterAttrs (_: project: project.vodozemac.enable) projects;
+
+      usesVodozemac = vodozemacProjects != { };
 
       # Forgetting the `include` is silent, `dart analyze` just falls back to
       # the default rule set without telling anyone.
@@ -42,11 +44,9 @@
             status=1
           }
 
-          ${lib.concatLines (
-            lib.mapAttrsToList (
-              project: _: ''check analysis_options.standards.yaml "${directory project}analysis_options.yaml"''
-            ) projects
-          )}
+          ${lib.concatMapAttrsStringSep "\n" (
+            project: _: ''check analysis_options.standards.yaml "${directory project}analysis_options.yaml"''
+          ) projects}
           exit "$status"
         '';
       };
@@ -151,31 +151,34 @@
             fi
 
             printf '       Both are released together and have to match. Either bump the\n'
-            printf '       constraint, or bump nix/dart/vodozemac/source.nix in the\n'
+            printf '       constraint, or bump `famedly.standards.dart.vodozemac.version`\n'
             printf '       engineering standards to the version this project needs.\n\n'
             status=1
           }
 
-          ${lib.concatLines (
-            lib.mapAttrsToList (project: _: ''check "${directory project}pubspec.yaml"'') (
-              lib.filterAttrs (_: project: project.vodozemac.enable) projects
-            )
-          )}
+          ${lib.concatMapAttrsStringSep "\n" (
+            project: _: ''check "${directory project}pubspec.yaml"''
+          ) vodozemacProjects}
           exit "$status"
         '';
       };
 
-      hook = drv: description: {
-        id = drv.meta.mainProgram;
-        name = drv.meta.mainProgram;
-        inherit description;
+      hook =
+        drv: description:
+        let
+          mainProgram = drv.meta.mainProgram;
+        in
+        {
+          id = mainProgram;
+          name = mainProgram;
+          inherit description;
 
-        entry = drv.meta.mainProgram;
-        # These check for files that may be absent.
-        pass_filenames = false;
+          entry = mainProgram;
+          # These check for files that may be absent.
+          pass_filenames = false;
 
-        language = "system";
-      };
+          language = "system";
+        };
     in
     lib.mkIf (projects != { }) {
       prek-pre-commit = {

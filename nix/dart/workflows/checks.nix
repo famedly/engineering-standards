@@ -20,12 +20,6 @@ in
         lib.types.submodule (
           { config, ... }: {
             options.checks = {
-              analyze = lib.mkOption {
-                description = "Whether to run `dart analyze` in CI.";
-                type = lib.types.bool;
-                default = true;
-              };
-
               fatalInfos = lib.mkOption {
                 description = ''
                   Whether the analyze step fails on info level diagnostics.
@@ -320,7 +314,7 @@ in
                 (check "Resolve dependencies" "${cli} pub get --no-example")
                 lockfile
               ]
-              ++ lib.optional cfg.analyze (check "Analyze" analyze)
+              ++ [ (check "Analyze" analyze) ]
 
               # `dart analyze` doesn't see the plugin's findings, so without
               # this step the rules would only ever apply in an editor. We

@@ -108,13 +108,11 @@
         inherit (config.famedly.standards.dart.vodozemac) version hash cargoHash;
       };
     in
-    lib.mkMerge [
-      (lib.mkIf (config.famedly.standards.dart.projects != { }) {
-        packages.famedly-vodozemac = pkgs.callPackage ./native.nix { inherit source; };
-        packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { inherit source; };
-      })
+    lib.mkIf needed {
+      packages.famedly-vodozemac = pkgs.callPackage ./native.nix { inherit source; };
+      packages.famedly-vodozemac-web = pkgs.callPackage ./web.nix { inherit source; };
 
       # The lookup goes through `runtime.env`, this only builds the library.
-      (lib.mkIf needed { devshells.standards.packages = [ self'.packages.famedly-vodozemac ]; })
-    ];
+      devshells.standards.packages = [ self'.packages.famedly-vodozemac ];
+    };
 }

@@ -50,6 +50,6 @@
           name = "LD_LIBRARY_PATH";
           prefix = lib.makeLibraryPath libraries;
         }
-        ++ lib.mapAttrsToList (name: value: { inherit name value; }) environment;
+        ++ lib.attrsToList environment;
     };
 }
