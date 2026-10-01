@@ -12,7 +12,7 @@
 # `image-output.nix` is deliberately absent: it is called from a module's
 # `imports`, which the module system resolves before `_module.args` exists.
 { lib }: {
-  inherit (import ./project-paths.nix { inherit lib; }) directory inProject suffix;
+  inherit (import ./project-paths.nix { inherit lib; }) directory suffix;
 
   script = import ./compose-script.nix { inherit lib; };
 

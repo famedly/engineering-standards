@@ -9,7 +9,7 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib) directory suffix;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
@@ -65,7 +65,8 @@ in
                   {
                     name = "Compile";
                     shell = steps.devshell;
-                    run = inProject project ''
+                    run = ''
+                      cd ${project}
                       dart pub get
                       dart compile exe ${cfg.entrypoint} -o ${cfg.binary}
                     '';
