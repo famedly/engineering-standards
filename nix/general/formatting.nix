@@ -5,6 +5,7 @@
   perSystem =
     {
       config,
+      lib,
       pkgs,
       standardsLib,
       ...
@@ -15,11 +16,18 @@
         # want to run formatters with `nix flake check`.
         flakeCheck = false;
 
+        # treefmt-nix's default excludes name files no formatter here matches,
+        # except `package-lock.json`: prettier formats it as `*.json`, and npm
+        # rewrites it afterwards. That one is named below.
+        #
+        # `allowMissingFormatter` is likewise left at its default.
+        enableDefaultExcludes = false;
+
         settings = {
-          allowMissingFormatter = false;
           walk = "git";
 
-          excludes = config.filegen.generatedFiles;
+          # Nothing may format these: generated files, and the npm lockfile.
+          excludes = lib.unique (config.filegen.generatedFiles ++ [ "package-lock.json" ]);
         };
 
         # We include shfmt in general, because all projects probably use shell scripts
@@ -65,7 +73,12 @@
           source = standardsLib.managedFile {
             inherit pkgs;
             name = "treefmt.toml";
-            file = config.treefmt.build.configFile;
+
+            # treefmt-nix renders `excludes = []` into every formatter table
+            # that has none; a table without the key means the same.
+            file = pkgs.runCommand "treefmt.toml" { } ''
+              grep -v '^excludes = \[\]$' ${config.treefmt.build.configFile} >$out
+            '';
           };
         }
         {

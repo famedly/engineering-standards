@@ -68,7 +68,9 @@ in
         timeoutMinutes = 30;
 
         steps =
-          steps.setup
+          # The job builds nothing, so it skips the step that makes room.
+          steps.checkout
+          ++ steps.installNix
           ++ config.famedly.standards.ci.preCommit.setupSteps
           ++ [
             {
