@@ -1,14 +1,18 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{
-  flake-parts-lib,
-  lib,
-  importApply,
-  ...
-}:
-importingFlake: {
-  imports = [ ];
+{ flake-parts-lib, lib, ... }: importingFlake: {
+  # These are flake modules. Saying so turns importing them into, say, a NixOS
+  # configuration into an error that names the mistake.
+  _class = "flake";
+
+  imports = [
+    ./toolchain.nix
+    ./devshell.nix
+    ./formatting.nix
+    ./linting.nix
+    ./pre-commit-hooks.nix
+  ];
 
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
     options.famedly.standards.python.projects = lib.mkOption {
