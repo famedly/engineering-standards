@@ -81,6 +81,7 @@ To use the standards in a new project, create the following
           #
           # dart.projects."." = { };                  # Flutter: { flutter = true; }
           # rust.projects."." = { };
+          # python.projects."." = { };
         };
       };
     };
@@ -139,6 +140,38 @@ For example:
   };
 }
 ```
+
+### Python
+
+Set `python.projects."." = { };` (the key is the path to the project, relative
+to the repository root) to apply the Python standards. With it set:
+
+- `ruff format` and `ruff check --fix` are wired into `nix fmt`.
+- A managed `ruff.toml`, holding the shared lint and format rules, is generated
+  next to each project.
+
+The generated `ruff.toml` is owned by the standards and overwritten on each
+`nix run .#filegen-activate`. Put project-specific overrides in `flake.nix`
+rather than editing the file:
+
+```nix
+famedly.standards.python.projects."." = {
+  ruff = {
+    line-length = 100;
+    lint.extend-ignore = [ "E501" ];
+  };
+};
+```
+
+Prefer Ruff's `extend-*` keys (`extend-select`, `extend-ignore`,
+`extend-per-file-ignores`) so the shared rules are extended rather than
+replaced.
+
+Ruff reads its target version from `requires-python` in `pyproject.toml`, so
+declare the supported Python version there.
+
+After enabling this, run `nix run .#filegen-activate` to generate the files
+(see [Updating](#updating)).
 
 ### Updating
 
