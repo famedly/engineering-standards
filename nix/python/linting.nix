@@ -2,42 +2,13 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Generates the shared `ruff.standards.toml` for each Python project.
+# Generates each Python project's `ruff.toml` from the shared standards plus the
+# project's own overrides (`famedly.standards.python.projects.<path>.ruff`).
 #
-# We own this file rather than writing into the project's `ruff.toml`, which
-# holds the project's own overrides and which `filegen` would clobber. Each
-# project keeps a `ruff.toml` that extends this one; the
-# `python-ruff-extends-standards` hook checks that it does.
-{ lib, ... }:
-let
-  # Rules we turn off across all Python code, on top of Ruff's default
-  # selection. Taken from `famedly/synapse-invite-checker`.
-  ignore = [
-    "FBT001" # Boolean-typed positional argument
-    "FBT002" # Boolean default positional argument
-    "N802" # Function name should be lowercase
-    "N815" # mixedCase variable in class scope
-    "PLW0603" # Using the global statement to update a variable
-    "TRY002" # Create your own exception
-    "TRY003" # Avoid specifying long messages outside the exception class
-  ];
-
-  # Rules that don't apply to test code, which leans on patterns a linter reads
-  # as smells but which are normal in tests. Taken from
-  # `famedly/synapse-invite-checker`.
-  testIgnore = [
-    "N803" # Argument name should be lowercase
-    "PLR2004" # Magic value used in comparison
-    "PT019" # Fixture without value injected as parameter
-    "S101" # Use of assert detected
-    "S105" # Possible hardcoded password
-    "SLF001" # Private member accessed
-    "UP035" # Deprecated import
-    "UP046" # Generic class uses type parameters (PEP 695)
-    "UP047" # Generic function uses type parameters (PEP 695)
-  ];
-in
-{
+# The standards own this file and overwrite it on each `filegen-activate`, so
+# project-specific rules live in `flake.nix` rather than in a hand-maintained
+# `ruff.toml`.
+{ lib, ... }: {
   config.perSystem =
     {
       config,
@@ -46,16 +17,14 @@ in
       ...
     }:
     let
-      inherit (standardsLib) directory;
-      inherit (config.famedly.standards.python) projects pythonVersion;
+      inherit (standardsLib) directory managedFile;
+      inherit (config.famedly.standards.python) projects;
 
-      # `3.10` → `py310`, the form Ruff names a target version with.
-      target = "py" + lib.replaceStrings [ "." ] [ "" ] pythonVersion;
-
-      # A standalone Ruff config, so the keys sit at the top level rather than
-      # under a `[tool.ruff]` table the way they would in `pyproject.toml`.
+      # The shared Ruff rules, laid out as a standalone `ruff.toml` (keys at the
+      # top level rather than under a `[tool.ruff]` table). `target-version` is
+      # left unset on purpose: Ruff reads it from `requires-python` in
+      # `pyproject.toml`, so the supported version is declared in one place.
       standards = {
-        target-version = target;
         line-length = 88;
 
         lint = {
@@ -63,50 +32,67 @@ in
           # black and isort produced survives the switch to `ruff format`.
           extend-select = [ "I" ];
 
-          inherit ignore;
+          # Rules we turn off across all Python code, on top of Ruff's default
+          # selection. Taken from `famedly/synapse-invite-checker`.
+          ignore = [
+            "FBT001" # Boolean-typed positional argument
+            "FBT002" # Boolean default positional argument
+            "N802" # Function name should be lowercase
+            "N815" # mixedCase variable in class scope
+            "PLW0603" # Using the global statement to update a variable
+            "TRY002" # Create your own exception
+            "TRY003" # Avoid specifying long messages outside the exception class
+          ];
 
+          # Rules that don't apply to test code, which leans on patterns a linter
+          # reads as smells but which are normal in tests. Taken from
+          # `famedly/synapse-invite-checker`.
           per-file-ignores = {
-            "tests/*" = testIgnore;
+            "tests/*" = [
+              "N803" # Argument name should be lowercase
+              "PLR2004" # Magic value used in comparison
+              "PT019" # Fixture without value injected as parameter
+              "S101" # Use of assert detected
+              "S105" # Possible hardcoded password
+              "SLF001" # Private member accessed
+              "UP035" # Deprecated import
+              "UP046" # Generic class uses type parameters (PEP 695)
+              "UP047" # Generic function uses type parameters (PEP 695)
+            ];
           };
         };
       };
 
-      standardsFile = standardsLib.managedFile {
-        inherit pkgs;
+      # The project's own `ruff` overrides win over the shared defaults. Downstream
+      # should reach for Ruff's `extend-*` keys to add to the shared lists rather
+      # than replacing them wholesale.
+      ruffToml =
+        project: cfg:
+        managedFile {
+          inherit pkgs;
 
-        name = "ruff.standards.toml";
-        file = pkgs.writers.writeTOML "ruff.standards.toml" standards;
+          name = "ruff.toml";
+          file = pkgs.writers.writeTOML "ruff.toml" (lib.recursiveUpdate standards cfg.ruff);
 
-        note = ''
-          This holds the shared Ruff rules. Keep each project's own `ruff.toml`
-          next to it with:
+          note = ''
+            The shared rules come from the engineering standards. Add
+            project-specific rules in `flake.nix` under
+            `famedly.standards.python.projects."${project}".ruff`, using Ruff's
+            `extend-*` keys to extend the shared lists.
 
-            extend = "ruff.standards.toml"
+            Declare the supported Python version with `requires-python` in
+            `pyproject.toml`; Ruff reads its target version from there.
+          '';
+        };
 
-          Put repository-specific rules there, for example extra `tests/*`
-          ignores through `extend-per-file-ignores`. The
-          `python-ruff-extends-standards` hook checks that the `extend` is
-          present; without it this rule set has no effect.
-
-          Remove any `[tool.ruff]` table from `pyproject.toml`, since Ruff reads
-          `ruff.toml` in preference to it.
-        '';
+      mkProjectFile = project: cfg: {
+        type = "copy";
+        target = "./${directory project}ruff.toml";
+        source = ruffToml project cfg;
+        clobber = true;
       };
-
-      # We only write the managed file. The project's own `ruff.toml` has to
-      # extend it, which the `python-ruff-extends-standards` hook checks. Writing
-      # that one ourselves would trample the overrides it is meant to hold, since
-      # `filegen` has no create-once mode.
-      mkProjectFiles = project: _: [
-        {
-          type = "copy";
-          target = "./${directory project}ruff.standards.toml";
-          source = standardsFile;
-          clobber = true;
-        }
-      ];
     in
     {
-      filegen.settings.files = lib.concatLists (lib.mapAttrsToList mkProjectFiles projects);
+      filegen.settings.files = lib.mapAttrsToList mkProjectFile projects;
     };
 }

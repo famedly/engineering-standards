@@ -103,7 +103,6 @@ The following basic devshells are available:
 | --------- | ------------------------------------------------------------------------------------ |
 | standards | Contains basic tools and configuration used by all famedly projects.                 |
 | rust      | Contains the Famedly Rust toolchain, and everything required to build Rust projects. |
-| python    | Contains the pinned Python toolchain: `hatch`, `uv`, `ruff`, and an interpreter.     |
 | k8s       | Contains miscellaneous k8s-related utilities, especially useful on MacOS.            |
 
 Projects should generally choose one of these to alias to the
@@ -147,35 +146,29 @@ For example:
 Set `python.projects."." = { };` (the key is the path to the project, relative
 to the repository root) to apply the Python standards. With it set:
 
-- A `python` devshell carries `hatch`, `uv`, `ruff`, and a pinned Python
-  interpreter, and prints their versions on entry. Alias it to the project's
-  default shell (`devShells.default = config.devShells.python;`, as shown in the
-  starter flake above), so that `nix develop -c hatch --version`, `uv --version`,
-  and `ruff --version` all print the pinned nixpkgs builds. A repository with no
-  Python project does not pull these in.
-- `ruff format` and `ruff check` are wired into `nix fmt`.
-- A managed `ruff.standards.toml`, holding the shared lint and format rules, is
-  generated next to each project.
+- `ruff format` and `ruff check --fix` are wired into `nix fmt`.
+- A managed `ruff.toml`, holding the shared lint and format rules, is generated
+  next to each project.
 
-Each project keeps its own `ruff.toml` beside the generated file, extending it:
-
-```toml
-extend = "ruff.standards.toml"
-```
-
-Put project-specific overrides there. A pre-commit hook checks that this
-`extend` is present, and that no `[tool.ruff]` table is left in
-`pyproject.toml` (Ruff ignores that table once a `ruff.toml` exists).
-
-The lowest supported Python version defaults to `3.10`; `ruff` targets it, so
-newer syntax is reported. Raise it with `pythonVersion`:
+The generated `ruff.toml` is owned by the standards and overwritten on each
+`nix run .#filegen-activate`. Put project-specific overrides in `flake.nix`
+rather than editing the file:
 
 ```nix
-famedly.standards.python = {
-  projects."." = { };
-  pythonVersion = "3.11";
+famedly.standards.python.projects."." = {
+  ruff = {
+    line-length = 100;
+    lint.extend-ignore = [ "E501" ];
+  };
 };
 ```
+
+Prefer Ruff's `extend-*` keys (`extend-select`, `extend-ignore`,
+`extend-per-file-ignores`) so the shared rules are extended rather than
+replaced.
+
+Ruff reads its target version from `requires-python` in `pyproject.toml`, so
+declare the supported Python version there.
 
 After enabling this, run `nix run .#filegen-activate` to generate the files
 (see [Updating](#updating)).
