@@ -9,7 +9,12 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib)
+    directory
+    inProject
+    projectLabel
+    suffix
+    ;
 
   imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 
@@ -20,9 +25,7 @@ in
   perSystem =
     { config, ... }:
     let
-      projects = lib.filterAttrs (
-        _: project: project.image.enable
-      ) config.famedly.standards.dart.projects;
+      projects = standardsLib.featureProjects "image" config.famedly.standards.dart.projects;
 
       mkWorkflow =
         project: projectConfig:
@@ -31,28 +34,9 @@ in
 
           container = "smoke${suffix project}";
         in
-        {
-          name = "Build and push the container image${
-            lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
-          }";
-
-          # The floor for every job here, the job that publishes raises it.
-          permissions.contents = "read";
-
-          on.pullRequest.branches = [ "**" ];
-          on.push = {
-            branches = [ "main" ];
-            tags = [ "v*" ];
-          };
-
-          # A queue needs to see the build and the gate. Publishing skips
-          # itself there, since the queue's ref would make a nonsense tag.
-          on.mergeGroup = { };
-
-          concurrency = {
-            group = "${workflowId project}-\${{ github.ref }}";
-            cancelInProgress = true;
-          };
+        imageWorkflow.head { id = workflowId project; }
+        // {
+          name = "Build and push the container image${projectLabel project}";
 
           jobs = {
             build = imageWorkflow.buildJob {
@@ -131,9 +115,10 @@ in
       ) projects;
 
       # The registry a tag is pushed to, which is the one a release refers to.
-      famedly.standards.release.signedImages = lib.mapAttrsToList (project: projectConfig: {
-        reference = "${projectConfig.image.releaseRegistry}/${projectConfig.image.name}";
-        workflow = "${workflowId project}.yml";
-      }) projects;
+      famedly.standards.release.signedImages = imageWorkflow.signedImages {
+        inherit projects;
+        id = project: _: workflowId project;
+        image = projectConfig: projectConfig.image;
+      };
     };
 }

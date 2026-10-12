@@ -25,26 +25,20 @@
     ./workflows/pre-commit.nix
   ];
 
-  options.perSystem = flake-parts-lib.mkPerSystemOption ({
-    options.famedly.standards.dart.projects = lib.mkOption {
-      description = ''
-        Dart and Flutter projects in the repository that should be equipped
-        with our standards.
+  options.perSystem = flake-parts-lib.mkPerSystemOption (
+    { standardsLib, ... }: {
+      options.famedly.standards.dart.projects = standardsLib.projectsOption {
+        language = "Dart and Flutter";
+        kind = "Dart";
 
-        This must be a relative path starting with `.`. Simply use `.` if the
-        whole project is a Dart project.
-      '';
-      default = { };
+        example = lib.literalExpression ''
+          {
+            "." = { };
+            "./app" = { flutter = true; };
+          }
+        '';
 
-      example = lib.literalExpression ''
-        {
-          "." = { };
-          "./app" = { flutter = true; };
-        }
-      '';
-
-      type = lib.types.attrsOf (
-        lib.types.submodule {
+        submodule = {
           options.flutter = lib.mkOption {
             description = ''
               Whether this is a Flutter project rather than a plain Dart one.
@@ -55,8 +49,8 @@
             type = lib.types.bool;
             default = false;
           };
-        }
-      );
-    };
-  });
+        };
+      };
+    }
+  );
 }
