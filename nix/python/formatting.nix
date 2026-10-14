@@ -17,7 +17,8 @@
           package = pkgs.ruff;
         };
 
-        # `treefmt.toml` is committed, so it must not embed a store path.
+        # ruff-format runs `ruff format`, ruff-check runs `ruff check --fix`;
+        # treefmt-nix supplies those subcommands as `options`.
         settings.formatter.ruff-format.command = "ruff";
         settings.formatter.ruff-check.command = "ruff";
       };
