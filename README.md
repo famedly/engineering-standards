@@ -158,14 +158,22 @@ rather than editing the file:
 famedly.standards.python.projects."." = {
   ruff = {
     line-length = 100;
-    lint.extend-ignore = [ "E501" ];
+    lint.extend-select = [
+      "I"
+      "D"
+    ];
   };
 };
 ```
 
-Prefer Ruff's `extend-*` keys (`extend-select`, `extend-ignore`,
-`extend-per-file-ignores`) so the shared rules are extended rather than
-replaced.
+Project settings override shared settings. To enable a rule that the shared
+configuration ignores, list it in `disabledRules`:
+
+```nix
+famedly.standards.python.projects."." = {
+  ruff.disabledRules = [ "TRY003" ];
+};
+```
 
 Ruff reads its target version from `requires-python` in `pyproject.toml`, so
 declare the supported Python version there.

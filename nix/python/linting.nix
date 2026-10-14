@@ -2,9 +2,6 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 
-# Generates each Python project's `ruff.toml` from the shared standards plus the
-# project's own overrides (`famedly.standards.python.projects.<path>.ruff`).
-#
 # The standards own this file and overwrite it on each `filegen-activate`, so
 # project-specific rules live in `flake.nix` rather than in a hand-maintained
 # `ruff.toml`.
@@ -20,20 +17,14 @@
       inherit (standardsLib) directory managedFile;
       inherit (config.famedly.standards.python) projects;
 
-      # The shared Ruff rules, laid out as a standalone `ruff.toml` (keys at the
-      # top level rather than under a `[tool.ruff]` table). `target-version` is
-      # left unset on purpose: Ruff reads it from `requires-python` in
-      # `pyproject.toml`, so the supported version is declared in one place.
-      standards = {
+      # `target-version` is left unset: Ruff reads it from `requires-python`.
+      sharedRuff = {
         line-length = 88;
-
         lint = {
-          # Import sorting. Ruff's `I` rules replace isort, so the import layout
-          # black and isort produced survives the switch to `ruff format`.
+          # Ruff's `I` rules replace isort; `extend-select` keeps Ruff's defaults.
           extend-select = [ "I" ];
 
-          # Rules we turn off across all Python code, on top of Ruff's default
-          # selection. Taken from `famedly/synapse-invite-checker`.
+          # Turned off across all Python code. From `famedly/synapse-invite-checker`.
           ignore = [
             "FBT001" # Boolean-typed positional argument
             "FBT002" # Boolean default positional argument
@@ -44,41 +35,47 @@
             "TRY003" # Avoid specifying long messages outside the exception class
           ];
 
-          # Rules that don't apply to test code, which leans on patterns a linter
-          # reads as smells but which are normal in tests. Taken from
+          # Patterns a linter reads as smells but which are normal in tests. From
           # `famedly/synapse-invite-checker`.
-          per-file-ignores = {
-            "tests/*" = [
-              "N803" # Argument name should be lowercase
-              "PLR2004" # Magic value used in comparison
-              "PT019" # Fixture without value injected as parameter
-              "S101" # Use of assert detected
-              "S105" # Possible hardcoded password
-              "SLF001" # Private member accessed
-              "UP035" # Deprecated import
-              "UP046" # Generic class uses type parameters (PEP 695)
-              "UP047" # Generic function uses type parameters (PEP 695)
-            ];
-          };
+          per-file-ignores."tests/*" = [
+            "N803" # Argument name should be lowercase
+            "PLR2004" # Magic value used in comparison
+            "PT019" # Fixture without value injected as parameter
+            "S101" # Use of assert detected
+            "S105" # Possible hardcoded password
+            "SLF001" # Private member accessed
+            "UP035" # Deprecated import
+            "UP046" # Generic class uses type parameters (PEP 695)
+            "UP047" # Generic function uses type parameters (PEP 695)
+          ];
         };
       };
 
-      # The project's own `ruff` overrides win over the shared defaults. Downstream
-      # should reach for Ruff's `extend-*` keys to add to the shared lists rather
-      # than replacing them wholesale.
+      ruffSettings =
+        cfg:
+        let
+          ruff = lib.recursiveUpdate sharedRuff (lib.removeAttrs cfg.ruff [ "disabledRules" ]);
+        in
+        ruff
+        // {
+          lint = ruff.lint // {
+            ignore = lib.subtractLists cfg.ruff.disabledRules (ruff.lint.ignore or [ ]);
+          };
+        };
+
       ruffToml =
         project: cfg:
         managedFile {
           inherit pkgs;
 
           name = "ruff.toml";
-          file = pkgs.writers.writeTOML "ruff.toml" (lib.recursiveUpdate standards cfg.ruff);
+          file = pkgs.writers.writeTOML "ruff.toml" (ruffSettings cfg);
 
           note = ''
             The shared rules come from the engineering standards. Add
             project-specific rules in `flake.nix` under
-            `famedly.standards.python.projects."${project}".ruff`, using Ruff's
-            `extend-*` keys to extend the shared lists.
+            `famedly.standards.python.projects."${project}".ruff`; project
+            settings override shared settings.
 
             Declare the supported Python version with `requires-python` in
             `pyproject.toml`; Ruff reads its target version from there.
