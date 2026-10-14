@@ -149,6 +149,8 @@ to the repository root) to apply the Python standards. With it set:
 - `ruff format` and `ruff check --fix` are wired into `nix fmt`.
 - A managed `ruff.toml`, holding the shared lint and format rules, is generated
   next to each project.
+- A pre-commit hook rejects black (in a `[tool.black]` table, a hatch env
+  dependency, or a hatch script), since `ruff format` replaces it.
 
 The generated `ruff.toml` is owned by the standards and overwritten on each
 `nix run .#filegen-activate`. Put project-specific overrides in `flake.nix`
