@@ -152,9 +152,11 @@ in
             holding an `image-<architecture>.tar`, and credentials in the
             `REGISTRY_USER` variable and the `registry_password` secret.
 
-            Each image is described in an SPDX document before it is pushed.
-            `lockfile` adds one for the packages the application was built
-            from, which a compiled bundle no longer names.
+            Each image is described in a CycloneDX document before it is
+            pushed. `lockfile` adds one for the packages the application was
+            built from, which a compiled bundle no longer names; that one is
+            named after the image with `-source` appended, so the two documents
+            cannot be mistaken for versions of each other.
 
             `release` attaches those documents to the GitHub release for a
             version tag as well, named after the image they describe, for
@@ -266,13 +268,24 @@ in
         {
           # From the archives rather than the recipe, so it describes what is
           # pushed.
+          #
+          # CycloneDX 1.6, which is a version BSI TR-03183-2 accepts and syft
+          # writes. Its SPDX output stops at 2.3 where that guideline asks for
+          # 3.0.1, so the format used until now could not serve the purpose the
+          # documents exist for. `syft convert` still produces SPDX for whoever
+          # asks in that format, and it is the only format Dependency-Track and
+          # its kind ingest — the same direction from two sides.
           name = "Describe what the images hold";
 
-          shell = "nix shell --inputs-from . nixpkgs#syft --command bash -e {0}";
+          shell = "nix shell --inputs-from . nixpkgs#syft nixpkgs#jq --command bash -e {0}";
 
           env = {
             IMAGE = reference;
             TAG = tag;
+
+            # Who a reader is to ask about the document, which the guidelines
+            # asking for these documents all want named.
+            SUPPLIER = "Famedly GmbH";
           };
 
           run = script (
@@ -284,14 +297,41 @@ in
             ++ map (architecture: ''
               syft scan docker-archive:images/image-${architecture}.tar \
               	--source-name "$IMAGE" --source-version "$TAG-${architecture}" \
-              	--output spdx-json=sboms/image-${architecture}.spdx.json
+              	--source-supplier "$SUPPLIER" \
+              	--output cyclonedx-json=sboms/image-${architecture}.cdx.json
             '') architectures
             ++ lib.optional (lockfile != null) ''
-              # A compiled bundle no longer names its packages; this does.
+              # A compiled bundle no longer names its packages; this does. Under
+              # a name of its own, because the packages an application was built
+              # from are not another version of the image built from them, and a
+              # reader given one name for both has no way to tell them apart.
               syft scan file:${lockfile} \
-              	--source-name "$IMAGE" --source-version "$TAG" \
-              	--output spdx-json=sboms/source.spdx.json
+              	--source-name "$IMAGE-source" --source-version "$TAG" \
+              	--source-supplier "$SUPPLIER" \
+              	--output cyclonedx-json=sboms/source.cdx.json
+
+              # syft names what it read, and what it read is a lockfile. The
+              # document is about the application built from that lockfile, and
+              # anything sorting documents by kind reads this field to decide.
+              jq '.metadata.component.type = "application"' \
+              	sboms/source.cdx.json >sboms/source.cdx.json.new
+              mv sboms/source.cdx.json.new sboms/source.cdx.json
             ''
+            ++ [
+              ''
+                # syft guesses a CPE for every package it finds, and NVD entries
+                # match those on vendor and product alone. A guess of
+                # `tokio:tokio` therefore collects an advisory about a different
+                # crate entirely, reported as critical and with no upper version
+                # bound to ever release it again. PURLs carry the ecosystem, so
+                # dropping the guesses loses nothing: grype reports the same
+                # advisories from these documents either way.
+                for sbom in sboms/*.cdx.json; do
+                	jq 'del(.components[]?.cpe)' "$sbom" >"$sbom.new"
+                	mv "$sbom.new" "$sbom"
+                done
+              ''
+            ]
           );
         }
 
@@ -323,8 +363,8 @@ in
 
               status=0
 
-              for sbom in sboms/*.spdx.json; do
-              	name="$(basename "$sbom" .spdx.json)"
+              for sbom in sboms/*.cdx.json; do
+              	name="$(basename "$sbom" .cdx.json)"
 
               	# Into a file, so the summary is written even when the report
               	# is what fails this step.
@@ -411,8 +451,8 @@ in
 
               cosign sign --yes "$IMAGE@$digest"
 
-              cosign attest --yes --type spdxjson \
-              	--predicate sboms/image-${architecture}.spdx.json \
+              cosign attest --yes --type cyclonedx \
+              	--predicate sboms/image-${architecture}.cdx.json \
               	"$IMAGE@$digest"
             '') architectures
             ++ [
@@ -424,8 +464,8 @@ in
               ''
             ]
             ++ lib.optional (lockfile != null) ''
-              cosign attest --yes --type spdxjson \
-              	--predicate sboms/source.spdx.json \
+              cosign attest --yes --type cyclonedx \
+              	--predicate sboms/source.cdx.json \
               	"$IMAGE@$list"
             ''
           );
@@ -463,11 +503,11 @@ in
           	# document that reads as though it covered both.
           	mkdir -p assets
 
-          	for sbom in sboms/*.spdx.json; do
+          	for sbom in sboms/*.cdx.json; do
           		cp "$sbom" "assets/${baseNameOf reference}-$(basename "$sbom")"
           	done
 
-          	gh release upload "$TAG" assets/*.spdx.json --clobber
+          	gh release upload "$TAG" assets/*.cdx.json --clobber
           else
           	# The images are pushed and signed by the time this runs, and the
           	# documents are attached to them. Worth saying, not worth failing.
