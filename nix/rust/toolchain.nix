@@ -23,22 +23,7 @@
 
         paths =
           let
-            # The toolchain whose rustfmt we want to use.
-            rustfmtToolchain = rust-bin.selectLatestNightlyWith (
-              toolchain: toolchain.default.override { extensions = [ "rustfmt" ]; }
-            );
-            # We want *only* the rustfmt binaries. This trick doesn't
-            # really work for other components of the rust toolchain,
-            # but specifically rustfmt is quite self-contained.
-            # Symlink so rustfmt keeps working on aarch64-darwin, where
-            # it's dynamically linked against the toolchain's lib/.
-            rustfmtNightly = pkgs.runCommand rustfmtToolchain.name { } ''
-              mkdir -p $out/bin
-              ln -s ${rustfmtToolchain}/bin/{cargo-fmt,rustfmt} $out/bin
-            '';
-          in
-          [
-            # We currently use rustfmt nightly for these features:
+            # We currently use rustfmt from nightly for these features:
             #
             # - [comment_width](https://github.com/rust-lang/rustfmt/issues/3349)
             # - [doc_comment_code_block_width](https://github.com/rust-lang/rustfmt/issues/5359)
@@ -46,6 +31,18 @@
             # - [group_imports](https://github.com/rust-lang/rustfmt/issues/5083)
             # - [imports_granularity](https://github.com/rust-lang/rustfmt/issues/4991)
             # - [wrap_comments](https://github.com/rust-lang/rustfmt/issues/3347)
+            #
+            # fenix fetches *only* the `rustfmt-preview` dist component
+            # (bin/{rustfmt,cargo-fmt}) alongside the `rustc` package
+            # it depends on for its runtime libraries (librustc_driver,
+            # libLLVM). fenix patches the rpath on Linux and wraps
+            # rustfmt with `DYLD_LIBRARY_PATH` on Darwin, so the
+            # binaries keep working on both platforms — no full
+            # nightly toolchain is needed alongside the stable one
+            # below.
+            rustfmtNightly = inputs.fenix.packages.${pkgs.system}.default.rustfmt-preview;
+          in
+          [
             rustfmtNightly
             (rust-bin.stable.latest.default.override {
               extensions = [
