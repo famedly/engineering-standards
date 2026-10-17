@@ -11,7 +11,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib) directory suffix;
 in
 {
   options.perSystem = flake-parts-lib.mkPerSystemOption ({
@@ -251,7 +251,10 @@ in
             check = name: run: {
               inherit name;
               shell = steps.devshell;
-              run = inProject project run;
+              run = ''
+                cd ${project}
+                project run
+              '';
             };
 
             # These two need no toolchain, and therefore no devshell.
@@ -260,7 +263,9 @@ in
               # committed one wasn't what the manifest asks for.
               name = "Check that the lockfile is up to date";
 
-              run = inProject project ''
+              run = ''
+                cd ${project}
+
                 # A library leaves its lockfile untracked on purpose, since it
                 # resolves against whatever the application above it picks.
                 if git check-ignore -q pubspec.lock; then
@@ -286,7 +291,9 @@ in
               # Codecov's own error says little about why the file is missing.
               name = "Check that the tests produced a coverage report";
 
-              run = inProject project ''
+              run = ''
+                cd ${project}
+
                 if ! test -s ${cfg.coverage.file}; then
                   echo '::error::${cfg.coverage.file} is missing or empty — does the test command ask for coverage?'
                   exit 1
