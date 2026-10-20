@@ -21,4 +21,10 @@
   imageWorkflow = import ./image-workflow.nix { inherit lib; };
 
   ociLabels = import ./oci-labels.nix { inherit lib; };
+
+  breakingChangeMarks = ''
+    breaking_footer='^BREAKING CHANGE:'
+    has_bang() { [[ ''${1%%:*} == *! ]]; }
+    has_footer() { grep -q "$breaking_footer" <<<"$1"; }
+  '';
 }
