@@ -1,0 +1,46 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
+# managed-by: engineering-standards — do not edit manually.
+#
+# Regenerate with `nix run .#filegen-activate`.
+
+name: Change
+description: Propose a change to how this project behaves
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: What should change, and why
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: breaking
+    attributes:
+      label: Breaking change
+      description: >-
+        A change is breaking when anyone depending on this project has to act
+        (update configuration, keys, secrets, code or deployment) to keep the
+        same behavior, or gets different behavior if they do not.
+      options:
+        - label: This change is breaking
+
+  - type: textarea
+    id: consumers
+    attributes:
+      label: Affected consumers
+      description: If breaking, who has to act.
+
+  - type: textarea
+    id: migration
+    attributes:
+      label: Migration steps
+      description: If breaking, what they have to do, and how long the old form keeps working.
+
+  - type: textarea
+    id: deprecations
+    attributes:
+      label: Deprecations
+      description: What this change deprecates, and what replaces it.
