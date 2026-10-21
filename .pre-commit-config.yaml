@@ -6,6 +6,9 @@
 #
 # Regenerate with `nix run .#filegen-activate`.
 
+default_install_hook_types:
+- pre-commit
+- pre-push
 repos:
 - hooks:
   - id: check-added-large-files
