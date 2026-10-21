@@ -25,6 +25,13 @@ importingFlake: {
           // config.treefmt.build.programs
         );
 
+        # `prek install` only installs the pre-commit hook otherwise, and the
+        # pre-push hooks would never run before CI does.
+        workspaces.".".default_install_hook_types = [
+          "pre-commit"
+          "pre-push"
+        ];
+
         workspaces.".".repos = [
           {
             repo = "builtin";
