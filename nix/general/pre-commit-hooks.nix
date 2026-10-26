@@ -2,13 +2,30 @@
 ##
 ## SPDX-License-Identifier: Apache-2.0
 {
+  flake-parts-lib,
   flakeModules,
   inputs,
   lib,
   ...
 }:
 importingFlake: {
-  perSystem =
+  options.perSystem = flake-parts-lib.mkPerSystemOption ({
+    options.famedly.standards.detectPrivateKey.exclude = lib.mkOption {
+      default = null;
+      example = "^tests/(test\\.key|dummy-service-account\\.json)$";
+      description = ''
+        A regex of paths to exclude from the `detect-private-key` hook.
+
+        Useful for repositories that deliberately commit dummy private keys
+        as test fixtures. Prefer this over a workspace-wide `exclude`, which
+        would also hide the matched files from every other hook (the
+        json/toml checks, typos, reuse, …), not just `detect-private-key`.
+      '';
+      type = lib.types.nullOr lib.types.str;
+    };
+  });
+
+  config.perSystem =
     {
       config,
       pkgs,
@@ -73,7 +90,12 @@ importingFlake: {
               { id = "check-symlinks"; }
               { id = "destroyed-symlinks"; }
               { id = "check-merge-conflict"; }
-              { id = "detect-private-key"; }
+              {
+                id = "detect-private-key";
+                exclude = lib.mkIf (
+                  config.famedly.standards.detectPrivateKey.exclude != null
+                ) config.famedly.standards.detectPrivateKey.exclude;
+              }
 
               # Branch protection rules should be set on the git forge
               # instead.
