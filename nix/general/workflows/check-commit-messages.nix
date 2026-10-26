@@ -25,6 +25,9 @@ in
       types = lib.mkOption {
         description = ''
           Types a commit subject may declare itself as.
+
+          Each one becomes a section of the release notes, see
+          `famedly.standards.changelog`.
         '';
 
         type = lib.types.listOf (lib.types.strMatching "[a-z]+");
@@ -41,6 +44,7 @@ in
           "revert"
           "style"
           "test"
+          "update"
         ];
       };
     };
@@ -82,37 +86,20 @@ in
           steps =
             # The base commit has to be there for the range below to resolve,
             # and a shallow clone does not carry it.
-            steps.withHistory steps.checkout ++ [
+            steps.withHistory steps.setup ++ [
               {
                 name = "Check the commit messages";
 
+                # The same command the pre-push hook runs, so that a push that
+                # got past it locally gets past this too.
+                shell = steps.devshell;
+
                 env = {
-                  PATTERN = "^(${lib.concatStringsSep "|" cfg.types})(\\([^)]+\\))?!?: .+";
                   BASE = "\${{ github.event.pull_request.base.sha }}";
                   HEAD = "\${{ github.event.pull_request.head.sha }}";
                 };
 
-                # One commit per line, and every line read. The workflow this
-                # replaces pulled the whole log into a single string and matched
-                # it once, which anchored the pattern to the first subject and
-                # let every later commit through unexamined.
-                #
-                # Merges are exempt: their subjects are written by whoever
-                # pressed the button, not by us.
-                run = ''
-                  failed=0
-
-                  while IFS= read -r subject; do
-                    if [[ $subject =~ $PATTERN ]]; then
-                      echo "ok:  $subject"
-                    else
-                      echo "::error::not a conventional commit subject: $subject"
-                      failed=1
-                    fi
-                  done < <(git log --no-merges --format=%s "$BASE..$HEAD")
-
-                  exit "$failed"
-                '';
+                run = ''check-commits "$BASE..$HEAD"'';
               }
             ];
         };
