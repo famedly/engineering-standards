@@ -220,10 +220,6 @@
             ];
           };
 
-          labels = standardsLib.ociLabels {
-            inherit source revision version;
-            title = cfg.name;
-          };
         in
         pkgs.dockerTools.streamLayeredImage {
           inherit (cfg) name;
@@ -271,7 +267,10 @@
               "--health"
             ];
 
-            Labels = labels;
+            Labels = standardsLib.ociLabels {
+              inherit source revision version;
+              title = cfg.name;
+            };
 
             User = "${toString cfg.user.uid}:${toString cfg.user.gid}";
 

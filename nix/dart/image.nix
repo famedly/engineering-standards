@@ -179,19 +179,6 @@
             install -Dm555 ${server} $out/bin/${cfg.binary}
           '';
 
-          files = pkgs.runCommand "${cfg.name}-files" { } (
-            # A project that places no files still has to leave an output.
-            ''
-              mkdir -p "$out"
-            ''
-            + lib.concatLines (
-              lib.mapAttrsToList (target: source: ''
-                mkdir -p "$out"${lib.escapeShellArg (builtins.dirOf target)}
-                cp -r ${source} "$out"${lib.escapeShellArg target}
-              '') cfg.files
-            )
-          );
-
           # We don't use `fakeNss`, since it isn't overridable here and only
           # knows root and nobody. Without an nsswitch.conf glibc resolves no
           # hostnames at all.
@@ -222,11 +209,23 @@
           tag = "latest";
 
           contents = [
-            files
             nss
             pkgs.dockerTools.caCertificates
           ]
           ++ lib.optional (cfg.healthPath != null) pkgs.curl;
+
+          # The files a project places go in as they are; a target that
+          # names no directory of its own still gets one.
+          extraCommands = lib.concatMapAttrsStringSep "\n" (
+            target: source:
+            let
+              path = lib.escapeShellArg (lib.removePrefix "/" target);
+            in
+            ''
+              mkdir -p "$(dirname ${path})"
+              cp -r ${source} ${path}
+            ''
+          ) cfg.files;
 
           # This runs under fakeroot, so that we can hand directories to a
           # user which only exists inside the image. Paths are relative to

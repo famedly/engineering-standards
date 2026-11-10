@@ -20,28 +20,31 @@ in
     { config, pkgs, ... }:
     let
       inherit (config.famedly.standards.dart) projects;
-
-      builds = project: project.image.enable || (project.web.enable && project.web.image.enable);
     in
-    lib.mkIf (lib.any builds (lib.attrValues projects)) {
-      filegen.settings.files = [
-        {
-          type = "copy";
-          target = buildImage.target;
+    lib.mkIf
+      (
+        standardsLib.featureProjects "image" projects != { }
+        || standardsLib.webProjects "image" projects != { }
+      )
+      {
+        filegen.settings.files = [
+          {
+            type = "copy";
+            target = buildImage.target;
 
-          source = standardsLib.managedFile {
-            inherit pkgs;
+            source = standardsLib.managedFile {
+              inherit pkgs;
 
-            name = "build-image.nix";
-            file = buildImage.source;
+              name = "build-image.nix";
+              file = buildImage.source;
 
-            note = ''
-              The workflows that call this pass what it reads in the
-              environment, so it takes no arguments and is not useful to
-              evaluate by hand.
-            '';
-          };
-        }
-      ];
-    };
+              note = ''
+                The workflows that call this pass what it reads in the
+                environment, so it takes no arguments and is not useful to
+                evaluate by hand.
+              '';
+            };
+          }
+        ];
+      };
 }
