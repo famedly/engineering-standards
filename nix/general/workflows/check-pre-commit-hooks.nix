@@ -63,7 +63,11 @@ in
       };
 
       jobs.prek = {
-        runsOn = "ubuntu-latest";
+        strategy.matrix.runner = [
+          "ubuntu-latest"
+          "arm-ubuntu-latest-8core"
+        ];
+        runsOn = "\${{ matrix.runner }}";
 
         timeoutMinutes = 30;
 

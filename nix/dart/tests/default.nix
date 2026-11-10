@@ -158,7 +158,7 @@
     in
     # Flutter is not packaged everywhere, and the fixture holds a Flutter
     # project on purpose.
-    lib.mkIf (self'.packages ? famedly-flutter-sdk) {
+    {
       checks = {
         dart-standards = generated.overrideAttrs (old: {
           buildCommand = lib.concatStringsSep "\n" (
