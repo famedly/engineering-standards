@@ -1,38 +1,40 @@
 {
-	"version": "3.47.1",
-	"engineVersion": "5d531788691ec3404cac0cee66ead4007b177363",
+	"version": "3.47.9",
+	"engineVersion": "89c39edfdfae2949f6806e4a315c0c08522238b7",
 	"engineSwiftShaderHash": "sha256-qbtCl2nTpmtp9dnaoXc7rF3RqLnAZEmzw1BzPoCRWrc=",
 	"engineSwiftShaderRev": "794b0cfce1d828d187637e6d932bae484fbe0976",
 	"channel": "stable",
 	"engineHashes": {},
-	"dartVersion": "3.13.1",
+	"dartVersion": "3.13.7",
 	"dartHash": {
-		"x86_64-linux": "sha256-klHEYG67MUgMRfQwvmn84ml+O4iKCoKLnhbn0jQD1yo=",
-		"aarch64-linux": "sha256-UUHVrGLav88NPdj79cTRQ9AJLvQvrQ8l9s9lh+XPw78=",
-		"aarch64-darwin": "sha256-NnmElB2NFMZTeJ9veHMS5xXlxUb26fXTDYZhXGkpB6k="
+		"x86_64-linux": "sha256-65mu0mbvvLYVxq4hwS9Sz+k1ufIIvMxf6n9kwh6Gcik=",
+		"aarch64-linux": "sha256-iHy7djvEodbz18NKbqCPDwUhGAer+YwG1uQmOQfMrBo=",
+		"aarch64-darwin": "sha256-n5cu4eETnLT4RfNcfHe+8mndLscnsjn7F6Lry2bQ+y8="
 	},
-	"flutterHash": "sha256-z6kL1i6kHVi/Zhq9b20EaGZsddUnTEanflVWMqAIX2E=",
+	"flutterHash": "sha256-JBauGMdb1lmply2yAekkeonIX7+duVFixiHEREg+EG8=",
 	"artifactHashes": {
 		"android": {
-			"aarch64-darwin": "sha256-ZnU9mefUFsSgZbZH3qTPsFxr68He/m4iOlv/0vOefeM=",
-			"x86_64-linux": "sha256-m2YriPT9/yEV0PEd8ghAHKbQLqPakWjlh12iDu8+H90="
+			"x86_64-linux": "sha256-Z2FytegTjvkPL+o2DybQS8XJDiE5cU3sbjjJpSqOTnY=",
+			"aarch64-darwin": "sha256-Z2FytegTjvkPL+o2DybQS8XJDiE5cU3sbjjJpSqOTnY="
 		},
 		"ios": {
-			"aarch64-darwin": "sha256-/cOLVJSOgfMaGFj6bga8WvHBJmSfYim/+lsz67nj34c="
+			"x86_64-linux": "sha256-zZmzyJPACqSyobtQV1PdNKUW277afi3ZSmqIPmJovQo=",
+			"aarch64-darwin": "sha256-zZmzyJPACqSyobtQV1PdNKUW277afi3ZSmqIPmJovQo="
 		},
 		"linux": {
-			"x86_64-linux": "sha256-IGdrt/dwP/UiDQZikHTZrJb9KHEdy4X0yR6FI61KJiQ="
+			"x86_64-linux": "sha256-+DUtf7w4eBS7nZk9N6RloM0sKEU4iCncuOoywEr2nR4="
 		},
 		"macos": {
-			"aarch64-darwin": "sha256-KoIbwWwcWFHJHfBfb4hI3Ca8R3QOa9BdJk0iaYLA9fI="
+			"x86_64-linux": "sha256-zBoSkVBtHpRPh4GbHoBhD/Y4xdwq88K7r69PzHWiZ9M=",
+			"aarch64-darwin": "sha256-zBoSkVBtHpRPh4GbHoBhD/Y4xdwq88K7r69PzHWiZ9M="
 		},
 		"universal": {
-			"aarch64-darwin": "sha256-DAQVe6g/BS0RCuvH3ie50LlFyi/okEL1c9ykzxYl2zI=",
-			"x86_64-linux": "sha256-7NPUm/S0IpCqi9OHgdC3EJAhnygpi6/uzgK22fF0SW4="
+			"x86_64-linux": "sha256-B6IM29V+t69de/ONgaGSZwTvk8UdrzitsoW3Y0iI+Z0=",
+			"aarch64-darwin": "sha256-B6IM29V+t69de/ONgaGSZwTvk8UdrzitsoW3Y0iI+Z0="
 		},
 		"web": {
-			"aarch64-darwin": "sha256-bm8yRc1sbAEORGpzVQCSO2SzmV2Q4d13AcrnEpvNGDE=",
-			"x86_64-linux": "sha256-bm8yRc1sbAEORGpzVQCSO2SzmV2Q4d13AcrnEpvNGDE="
+			"x86_64-linux": "sha256-NBIQYXuHBVe4V6TsBNTU46R+zIC6tWAHod7JIMm6ckw=",
+			"aarch64-darwin": "sha256-NBIQYXuHBVe4V6TsBNTU46R+zIC6tWAHod7JIMm6ckw="
 		}
 	},
 	"pubspecLock": {
@@ -281,11 +283,11 @@
 				"dependency": "direct main",
 				"description": {
 					"name": "dds",
-					"sha256": "6673c5b29e502fd44dbf5836685e7c7c16b11c0fa7f91ef241e0cbf0638c8794",
+					"sha256": "f8e875dcd7b5e5073a7bfe54095144c70487f18e2f8e47fa51c09dd67eccfb0c",
 					"url": "https://pub.dev"
 				},
 				"source": "hosted",
-				"version": "5.3.0"
+				"version": "5.4.0"
 			},
 			"dds_service_extensions": {
 				"dependency": "direct main",
@@ -301,11 +303,11 @@
 				"dependency": "direct main",
 				"description": {
 					"name": "devtools_shared",
-					"sha256": "2daf7a9fba6a470668b26ecbd04200f7bf992aad81a2c31d12457c7791419dea",
+					"sha256": "13df2c17d5f21dd7c92d08145386d45e1153364c04e531e994afb0ee7b67554b",
 					"url": "https://pub.dev"
 				},
 				"source": "hosted",
-				"version": "12.1.0"
+				"version": "13.1.0"
 			},
 			"dtd": {
 				"dependency": "direct main",
