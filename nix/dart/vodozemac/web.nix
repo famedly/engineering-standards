@@ -80,13 +80,23 @@ stdenv.mkDerivation {
     # grants that to the stable toolchain rather than adding a second one.
     RUSTC_BOOTSTRAP = 1;
 
-    RUSTFLAGS = "-C target-feature=+atomics,+bulk-memory,+mutable-globals";
+    RUSTFLAGS = lib.concatStringsSep " " [
+      "-C target-feature=+atomics,+bulk-memory,+mutable-globals"
+      "-C link-args=--shared-memory"
+      "-C link-args=--max-memory=1073741824"
+      "-C link-args=--import-memory"
+      "-C link-args=--export=__heap_base"
+      "-C link-args=--export=__wasm_init_tls"
+      "-C link-args=--export=__tls_size"
+      "-C link-args=--export=__tls_align"
+      "-C link-args=--export=__tls_base"
+    ];
   };
 
   # The `flutter_rust_bridge` release whose `build_web/executor.dart` we read
   # the flags below off. They have changed before, and a module built without
   # them fails in the browser rather than here.
-  frbVersion = "2.11.1";
+  frbVersion = "2.13.0";
 
   # We use `no-modules` because the glue is loaded by a plain script tag from
   # a Flutter web application rather than by a bundler.
