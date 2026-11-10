@@ -1,15 +1,9 @@
 ## SPDX-FileCopyrightText: 2026 Famedly GmbH
 ##
 ## SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  standardsLib,
-  ...
-}:
+{ config, lib, ... }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) inProject;
 in
 {
   perSystem =
@@ -33,9 +27,10 @@ in
 
           # We pass `--no-example` as in the checks workflow, since a bundled
           # example app needs whatever it needs and no hook looks at it.
-          run = inProject project "${
-            if projectConfig.flutter then "flutter" else "dart"
-          } pub get --no-example";
+          run = ''
+            cd ${project}
+            ${if projectConfig.flutter then "flutter" else "dart"} pub get --no-example
+          '';
         }) projects;
     };
 }
