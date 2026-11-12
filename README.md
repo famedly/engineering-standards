@@ -175,6 +175,46 @@ You can then use the SPDX header
 
 <!-- REUSE-IgnoreEnd -->
 
+### Commits and releases
+
+`famedly.standards.commitMessages.enable` checks every commit, and `famedly.standards.release.enable` publishes a GitHub release for every version tag.
+
+#### Writing commits
+
+Every commit follows [Conventional Commits](https://www.conventionalcommits.org/), with one of the types in `famedly.standards.commitMessages.types`.
+
+A breaking change needs both `!` after the type or scope and a `BREAKING CHANGE:` footer that says how to migrate. Either one alone fails the check. The optional trailers fill in the "Breaking changes and migration" section of the release notes, and `Deprecated:` adds an entry to its "Deprecations" section:
+
+```text
+feat(api)!: drop the v1 login endpoint
+
+Clients have been able to log in through /v2/login since 0.4.0.
+
+BREAKING CHANGE: Call /v2/login instead of /v1/login. The request
+body is the same.
+Affected: mobile and web clients
+Security-Relevant: no
+Schema-Diff: none
+Removed-In: 0.6.0
+Deprecated: the login_v1 config key, use login instead
+```
+
+`prek install` sets up a pre-push hook that runs `check-commits` on the commits being pushed, and the "Make sure all commit messages are conventional" workflow runs the same command on every pull request. `check-commits main..HEAD` checks a given range. `SKIP=check-commits git push` skips the hook for one push, but CI still checks the commits.
+
+Commits from before the rule was adopted are only read by the first release's notes. To skip validation for older commits that would fail, list their hashes in `.cliffignore`.
+
+#### Releasing
+
+Push a tag named after the version, e.g. `v0.5.0`. To preview the next version and its notes before tagging:
+
+```console
+$ git cliff --offline --unreleased --bump --strip all
+```
+
+The release workflow renders the notes from the commits since the previous version and publishes them as the release. A tag with a hyphen, e.g. `v0.5.0-rc.1`, becomes a prerelease whose notes cover everything since the last final version.
+
+`publish-release` in the devshell does this for the next version. Run from an up-to-date default branch, it picks the version with `git cliff --bumped-version`, prints the notes the release workflow will publish, and after you confirm, creates a signed tag and pushes it. It never picks 1.0.0 or a prerelease, so tag those by hand.
+
 ## Contributing
 
 ### Simple changes for non-nix developers

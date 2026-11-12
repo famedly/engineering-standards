@@ -83,6 +83,10 @@ in
                 #
                 # We do not add `--fail-on-change`, since prek takes care of that
                 TREEFMT_NO_CACHE = "1";
+                # With no range it checks the commits no remote has, and a CI
+                # checkout has none, so it would pass without checking anything.
+                # The commit messages workflow checks the pull request's.
+                SKIP = "check-commits";
               };
             }
           ];
