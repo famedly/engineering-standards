@@ -11,7 +11,7 @@
 }:
 let
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) script;
+  inherit (standardsLib) script breakingChangeMarks;
 
   issuer = "https://token.actions.githubusercontent.com";
 
@@ -26,7 +26,9 @@ in
       enable = lib.mkEnableOption ''
         publishing a GitHub release for every version tag
 
-        A tag says a version exists; the release says what changed in it
+        A tag says a version exists; the release says what changed in it,
+        what of that breaks anyone depending on it, and whether the version
+        says so too
       '';
 
       changelog = lib.mkOption {
@@ -79,6 +81,7 @@ in
     { config, ... }:
     let
       cfg = config.famedly.standards.release;
+      inherit (config.famedly.standards.breakingChanges) enforce;
     in
     lib.mkIf cfg.enable {
       githubActions.workflows.release = {
@@ -94,14 +97,56 @@ in
           # The only write this workflow makes.
           permissions.contents = "write";
 
-          steps = steps.checkout ++ [
+          env.TAG = "\${{ github.ref_name }}";
+
+          # The commits since the previous release, and the tag that marks it.
+          steps = steps.withHistory steps.checkout ++ [
+            {
+              name = "Find the breaking changes since the previous release";
+
+              run = script [
+                breakingChangeMarks
+                ''
+                  # The latest release before this one, prereleases aside, so that
+                  # a release candidate is compared with the last real release.
+                  previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' "$TAG^" 2>/dev/null || true)
+                  echo "$previous" >previous
+
+                  range=$TAG
+                  if test -n "$previous"; then
+                  	range="$previous..$TAG"
+                  fi
+
+                  : >breaking.md
+
+                  for commit in $(git rev-list --no-merges --reverse "$range"); do
+                  	subject=$(git show -s --format=%s "$commit")
+                  	body=$(git show -s --format=%b "$commit")
+
+                  	# Either mark will do here, the commit check is where a
+                  	# missing one is pointed out.
+                  	if has_bang "$subject" || has_footer "$body"; then
+                  		echo "- $subject ($(git rev-parse --short "$commit"))" >>breaking.md
+
+                  		# The migration notes: from the footer to the end of the
+                  		# message, indented to stay in the list item, without the
+                  		# Co-authored-by and Signed-off-by lines.
+                  		awk -v footer="$breaking_footer" '
+                  			$0 ~ footer { notes = 1; print "" }
+                  			notes && !/-by: / { print "  " $0 }
+                  		' <<<"$body" >>breaking.md
+                  	fi
+                  done
+                ''
+              ];
+            }
+
             {
               name = "Publish the release";
 
               env = {
                 GH_TOKEN = "\${{ github.token }}";
                 CHANGELOG = cfg.changelog;
-                TAG = "\${{ github.ref_name }}";
               };
 
               run = script (
@@ -165,6 +210,22 @@ in
                     		mv summary.md notes.md
                     		described=1
                     	fi
+                    fi
+                  ''
+
+                  ''
+                    # Every release says whether it breaks anything. A changelog
+                    # that already does is left to say it in its own words.
+                    if ! grep -qE '^#+[[:space:]]+Breaking changes and migration' notes.md; then
+                    	{
+                    		printf '\n## Breaking changes and migration\n\n'
+
+                    		if test -s breaking.md; then
+                    			cat breaking.md
+                    		else
+                    			echo 'None.'
+                    		fi
+                    	} >>notes.md
                     fi
                   ''
                 ]
@@ -246,6 +307,47 @@ in
                   ''
                 ]
               );
+            }
+
+            {
+              # After publishing rather than before, so that a version that
+              # hides a break still tells its readers about it.
+              name = "Check that the version signals its breaking changes";
+
+              env.LEVEL = if enforce then "error" else "warning";
+
+              run = ''
+                previous=$(cat previous)
+
+                if ! test -s breaking.md || test -z "$previous"; then
+                	echo "Nothing breaking since the previous release, or there is none"
+                	exit 0
+                fi
+
+                # v1.2.3 and v1.2.3-rc.1 both read as major 1 and minor 2.
+                IFS=. read -r old_major old_minor _ <<<"''${previous#v}"
+                IFS=. read -r new_major new_minor _ <<<"''${TAG#v}"
+
+                # From 1.0.0 on a break raises the major version, below it the
+                # minor one.
+                if ((old_major > 0)); then
+                	signalled=$((new_major > old_major))
+                else
+                	signalled=$((new_major > 0 || new_minor > old_minor))
+                fi
+
+                if ((signalled)); then
+                	echo "$TAG raises the version enough for its breaking changes"
+                	exit 0
+                fi
+
+                echo "::$LEVEL::$TAG breaks what $previous offered, but does not raise the version enough to say so"
+                cat breaking.md
+
+                if [[ $LEVEL == error ]]; then
+                	exit 1
+                fi
+              '';
             }
           ];
         };

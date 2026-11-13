@@ -10,6 +10,7 @@
 importingFlake: {
   imports = [
     ./action-versions.nix
+    ./breaking-changes.nix
     (importApply ./devshell.nix args)
     ./editorconfig.nix
     ./formatting.nix
