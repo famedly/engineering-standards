@@ -40,9 +40,6 @@
               ;
 
             inherit (self'.packages) famedly-rust-toolchain;
-
-            # To check dependencies are actually used
-            cargo-udeps = pkgs.callPackage ./packages/cargo-udeps.nix { inherit inputs; };
           };
 
           env = [
