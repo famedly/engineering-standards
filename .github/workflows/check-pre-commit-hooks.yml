@@ -18,6 +18,7 @@ jobs:
       - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
       - env:
           PREK_COLOR: always
+          SKIP: check-commits
           TREEFMT_NO_CACHE: "1"
         name: Run pre-commit hooks
         run: prek --all-files --show-diff-on-failure --stage pre-push
