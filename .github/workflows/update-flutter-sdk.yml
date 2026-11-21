@@ -1,0 +1,145 @@
+## SPDX-FileCopyrightText: 2026 Famedly GmbH
+##
+## SPDX-License-Identifier: Apache-2.0
+
+name: Update Flutter SDK
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday at 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Flutter version to update to (leave empty for latest stable)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    outputs:
+      flutter-version: ${{ steps.run.outputs.flutter-version }}
+      needs-update: ${{ steps.run.outputs.needs-update }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/share/swift /usr/local/lib/android \
+            /opt/ghc /opt/hostedtoolcache
+
+      - name: Run update script (linux)
+        id: run
+        run: |
+          VERSION_FLAG=""
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION_FLAG="--version ${{ inputs.version }}"
+          fi
+
+          nix shell nixpkgs#python3Packages.pyyaml --command \
+            python3 nix/dart/packages/update-flutter-sdk.py \
+              $VERSION_FLAG --output linux.json 2>&1 | tee update.log
+
+          if grep -q "nothing to do" update.log; then
+            echo "needs-update=false" >> "$GITHUB_OUTPUT"
+            echo "flutter-version=$(jq -r .version nix/dart/packages/flutter-sdk-data.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs-update=true" >> "$GITHUB_OUTPUT"
+            echo "flutter-version=$(jq -r .version linux.json)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: steps.run.outputs.needs-update == 'true'
+        with:
+          name: linux
+          path: linux.json
+          retention-days: 1
+
+  darwin:
+    needs: linux
+    if: needs.linux.outputs.needs-update == 'true'
+    runs-on: macos-14 # aarch64-darwin
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: linux
+          path: .
+
+      - name: Seed flutter-sdk-data.json with linux data (darwin script reads it)
+        run: cp linux.json nix/dart/packages/flutter-sdk-data.json
+
+      - name: Run update script (darwin artifacts)
+        run: |
+          VERSION_FLAG=""
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION_FLAG="--version ${{ inputs.version }}"
+          fi
+
+          nix shell nixpkgs#python3Packages.pyyaml --command \
+            python3 nix/dart/packages/update-flutter-sdk.py \
+              $VERSION_FLAG --output darwin.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: darwin
+          path: darwin.json
+          retention-days: 1
+
+  open-pr:
+    needs: [linux, darwin]
+    if: needs.linux.outputs.needs-update == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: true
+
+      - uses: cachix/install-nix-action@8aa03977d8d733052d78f4e008a241fd1dbf36b3
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: linux
+          path: .
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: darwin
+          path: .
+
+      - name: Merge outputs and update files
+        run: |
+          nix shell nixpkgs#python3Packages.pyyaml --command \
+            python3 nix/dart/packages/update-flutter-sdk.py \
+              --merge linux.json darwin.json
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLUTTER_VERSION: ${{ needs.linux.outputs.flutter-version }}
+        run: |
+          branch="auto/flutter-${FLUTTER_VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$branch"
+          git add nix/dart/packages/flutter-sdk-data.json nix/dart/packages/dart-sdk.nix
+          git commit -m "chore: bump Flutter SDK to ${FLUTTER_VERSION}"
+          git push origin "$branch"
+
+          gh pr create \
+            --title "chore: bump Flutter SDK to ${FLUTTER_VERSION}" \
+            --body "Automated update of \`flutter-sdk-data.json\` and \`dart-sdk.nix\` to Flutter ${FLUTTER_VERSION}." \
+            --head "$branch" \
+            --base main
