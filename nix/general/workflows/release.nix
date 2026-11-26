@@ -43,6 +43,17 @@ in
         default = "CHANGELOG.md";
       };
 
+      notesCommand = lib.mkOption {
+        description = ''
+          Command that prints the release notes for the tag in `$TAG`, for a
+          repository that generates them rather than keeping a changelog.
+        '';
+
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "git cliff --offline --current --strip all";
+      };
+
       signedImages = lib.mkOption {
         description = ''
           Images a version tag publishes, which its release notes then say
@@ -79,6 +90,84 @@ in
     { config, ... }:
     let
       cfg = config.famedly.standards.release;
+
+      # Each leaves the notes for the tag in `notes.md`, empty when there are
+      # none to be found.
+      notes =
+        if cfg.notesCommand == null then
+          steps.checkout
+          ++ [
+            {
+              name = "Extract the release notes from ${cfg.changelog}";
+
+              env = {
+                CHANGELOG = cfg.changelog;
+                TAG = "\${{ github.ref_name }}";
+              };
+
+              run = ''
+                version="''${TAG#v}"
+
+                # awk exits non-zero on a file that is not there, which would
+                # fail the run rather than fall back to the commit summary.
+                input="$CHANGELOG"
+                test -f "$input" || input=/dev/null
+
+                awk -v version="$version" '
+                	BEGIN {
+                		pattern = version
+                		gsub(/\./, "\\.", pattern)
+
+                		# Bounded on both sides, so that 1.2.3 answers neither for
+                		# 1.2.30 nor for 1.2.3-rc.1.
+                		pattern = "(^|[^0-9.])" pattern "([^0-9.-]|$)"
+                	}
+
+                	/^#+[[:space:]]/ {
+                		match($0, /^#+/)
+                		level = RLENGTH
+
+                		# `### Fixed` under `## 1.2.3` belongs to the section, so
+                		# only a heading at the same level or above ends it.
+                		if (found) {
+                			if (level <= depth) exit
+                		} else {
+                			heading = $0
+                			sub(/^#+[[:space:]]*/, "", heading)
+
+                			if (heading ~ pattern) {
+                				found = 1
+                				depth = level
+                				next
+                			}
+                		}
+                	}
+
+                	found { print }
+                ' "$input" >notes.md
+              '';
+            }
+          ]
+        else
+          # The history and tags are what a generator reads the notes from,
+          # and the devshell is where its tool comes from.
+          steps.withHistory steps.setup
+          ++ [
+            {
+              name = "Render the release notes";
+
+              shell = steps.devshell;
+
+              env.TAG = "\${{ github.ref_name }}";
+
+              # Redirected as a whole rather than appended to, which would
+              # only catch the last line of a command written as a `''` string.
+              run = script [
+                "exec >notes.md"
+                cfg.notesCommand
+              ];
+            }
+          ];
     in
     lib.mkIf cfg.enable {
       githubActions.workflows.release = {
@@ -94,13 +183,12 @@ in
           # The only write this workflow makes.
           permissions.contents = "write";
 
-          steps = steps.checkout ++ [
+          steps = notes ++ [
             {
               name = "Publish the release";
 
               env = {
                 GH_TOKEN = "\${{ github.token }}";
-                CHANGELOG = cfg.changelog;
                 TAG = "\${{ github.ref_name }}";
               };
 
@@ -109,48 +197,10 @@ in
                   ''
                     version="''${TAG#v}"
 
-                    # awk exits non-zero on a file that is not there, which would
-                    # fail the run rather than fall back below.
-                    input="$CHANGELOG"
-                    test -f "$input" || input=/dev/null
-
-                    awk -v version="$version" '
-                    	BEGIN {
-                    		pattern = version
-                    		gsub(/\./, "\\.", pattern)
-
-                    		# Bounded on both sides, so that 1.2.3 answers neither for
-                    		# 1.2.30 nor for 1.2.3-rc.1.
-                    		pattern = "(^|[^0-9.])" pattern "([^0-9.-]|$)"
-                    	}
-
-                    	/^#+[[:space:]]/ {
-                    		match($0, /^#+/)
-                    		level = RLENGTH
-
-                    		# `### Fixed` under `## 1.2.3` belongs to the section, so
-                    		# only a heading at the same level or above ends it.
-                    		if (found) {
-                    			if (level <= depth) exit
-                    		} else {
-                    			heading = $0
-                    			sub(/^#+[[:space:]]*/, "", heading)
-
-                    			if (heading ~ pattern) {
-                    				found = 1
-                    				depth = level
-                    				next
-                    			}
-                    		}
-                    	}
-
-                    	found { print }
-                    ' "$input" >notes.md
-
                     if test -s notes.md; then
                     	described=1
                     else
-                    	echo "::warning::$CHANGELOG says nothing about $version, falling back to the commit summary"
+                    	echo "::warning::No release notes for $version, falling back to the commit summary"
 
                     	# The summary `--generate-notes` writes, asked for here
                     	# instead: that flag fills the whole body and only on
