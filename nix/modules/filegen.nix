@@ -180,6 +180,7 @@ in
                 }
               }
             }
+            git --no-pager diff
           '';
         in
         {

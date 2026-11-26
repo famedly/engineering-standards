@@ -5,7 +5,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   prek:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Free up disk space
         run: |
@@ -22,6 +22,11 @@ jobs:
         name: Run pre-commit hooks
         run: prek --all-files --show-diff-on-failure --stage pre-push
         shell: nix develop .#standards --command bash -e {0}
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - arm-ubuntu-latest-8core
     timeout-minutes: 30
 name: Make sure all pre-commit hooks pass
 "on":
