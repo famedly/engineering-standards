@@ -175,6 +175,21 @@ in
           type = lib.types.functionTo (lib.types.listOf lib.types.attrs);
           readOnly = true;
         };
+
+        downloadArtifact = lib.mkOption {
+          description = ''
+            The step that fetches an artefact an earlier job uploaded, into
+            the path the job reads it from.
+
+            E.g.:
+
+            ```nix
+            steps.downloadArtifact { name = "site"; }
+            ```
+          '';
+          type = lib.types.functionTo (lib.types.listOf lib.types.attrs);
+          readOnly = true;
+        };
       };
     };
   };
@@ -235,6 +250,19 @@ in
         '';
       }
     ];
+
+    downloadArtifact =
+      {
+        name,
+        path ? "site",
+      }:
+      [
+        {
+          uses = allowed-actions."actions/download-artifact".uses;
+
+          with_ = { inherit name path; };
+        }
+      ];
 
     # `-e` because a custom `shell` replaces the `bash -e` GitHub runs `run`
     # scripts with, and a multi-command script that carries on after a failure

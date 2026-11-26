@@ -143,37 +143,14 @@
                 description = ''
                   Where `flutter build web` writes the site, relative to the
                   project. This is the framework's choice, and we only expose
-                  it so that `extraSteps` reads the same path the build does.
+                  it so that the steps around the build read the same path it
+                  wrote.
                 '';
                 type = lib.types.str;
                 readOnly = true;
                 default = "build/web";
               };
 
-              extraSteps = lib.mkOption {
-                description = ''
-                  Extra GitHub Actions steps to run after the web target is
-                  built and before it is uploaded as the artefact every
-                  destination reads from.
-
-                  Use this for whatever a project needs that we don't know
-                  about and that has to see the built output on disk. These
-                  run in the build's job with the working directory unchanged,
-                  so a step here reads and writes `outputPath` as the build
-                  did.
-                '';
-                type = lib.types.listOf (lib.types.attrsOf lib.types.anything);
-                default = [ ];
-                example = lib.literalExpression ''
-                  [
-                    {
-                      name = "Upload source maps to Sentry";
-                      env.SENTRY_AUTH_TOKEN = "\''${{ secrets.SENTRY_AUTH_TOKEN }}";
-                      run = "dart run sentry_dart_plugin";
-                    }
-                  ]
-                '';
-              };
             };
 
             config.web = {

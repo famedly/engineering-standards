@@ -34,7 +34,5 @@ rustPlatform.buildRustPackage {
   # This is a pure `cdylib`/`staticlib`, `cargo test` would only relink it.
   doCheck = false;
 
-  meta = source.meta // {
-    license = lib.licenses.asl20;
-  };
+  meta = source.meta;
 }

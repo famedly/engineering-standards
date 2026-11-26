@@ -12,7 +12,6 @@
   binaryen,
   buildPackages,
   cargo,
-  lib,
   removeReferencesTo,
   rustPlatform,
   rustc,
@@ -136,7 +135,5 @@ stdenv.mkDerivation {
     find $out -name '*.wasm' -exec remove-references-to -t ${sysroot} {} +
   '';
 
-  meta = source.meta // {
-    license = lib.licenses.asl20;
-  };
+  meta = source.meta;
 }

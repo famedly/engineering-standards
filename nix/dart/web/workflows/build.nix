@@ -10,7 +10,14 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib)
+    directory
+    inProject
+    projectLabel
+    suffix
+    ;
+
+  imageWorkflow = standardsLib.imageWorkflow { inherit config; };
 in
 {
   perSystem =
@@ -26,28 +33,9 @@ in
         assert lib.assertMsg projectConfig.flutter ''
           famedly.standards.dart.projects."${project}": web.enable needs flutter = true, since a plain Dart project has no web target.
         '';
-        {
-          name = "Build and deploy the web target${
-            lib.optionalString (project != ".") " (${lib.removePrefix "./" project})"
-          }";
-
-          # The floor for every job here, the ones that publish raise it.
-          permissions.contents = "read";
-
-          on.pullRequest.branches = [ "**" ];
-          on.push = {
-            branches = [ "main" ];
-            tags = [ "v*" ];
-          };
-
-          # A queue needs to see that the target still builds, the
-          # destinations skip themselves there.
-          on.mergeGroup = { };
-
-          concurrency = {
-            group = "${projectConfig.web.workflowId}-\${{ github.ref }}";
-            cancelInProgress = true;
-          };
+        imageWorkflow.head { id = projectConfig.web.workflowId; }
+        // {
+          name = "Build and deploy the web target${projectLabel project}";
 
           jobs.build = {
             runsOn = "ubuntu-latest";
@@ -71,7 +59,6 @@ in
                   run = inProject project projectConfig.web.buildCommand;
                 }
               ]
-              ++ projectConfig.web.extraSteps
               ++ lib.optionals projectConfig.web.sentry.enable [
                 {
                   name = "Hand the debug symbols to Sentry";

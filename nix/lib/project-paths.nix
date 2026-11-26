@@ -37,4 +37,14 @@
           ]
           project
       }";
+
+  # Display label for a workflow that belongs to one project: the path it
+  # lives at, or nothing when the project is the repository root.
+  projectLabel = project: lib.optionalString (project != ".") " (${lib.removePrefix "./" project})";
+
+  # The projects that turned one feature on.
+  featureProjects = flag: lib.filterAttrs (_: project: project.${flag}.enable);
+
+  # Web projects with one web feature turned on.
+  webProjects = flag: lib.filterAttrs (_: project: project.web.enable && project.web.${flag}.enable);
 }

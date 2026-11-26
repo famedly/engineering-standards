@@ -27,15 +27,17 @@ in
         lib.optionals (lib.any (project: project.checks.privateDependencies) (
           lib.attrValues projects
         )) steps.privateDependencies
-        ++ lib.mapAttrsToList (project: projectConfig: {
-          name = "Resolve dependencies${lib.optionalString (project != ".") " in ${project}"}";
-          shell = steps.devshell;
-
+        ++ lib.mapAttrsToList (
+          project: projectConfig:
           # We pass `--no-example` as in the checks workflow, since a bundled
           # example app needs whatever it needs and no hook looks at it.
-          run = inProject project "${
-            if projectConfig.flutter then "flutter" else "dart"
-          } pub get --no-example";
-        }) projects;
+          standardsLib.projectStep
+            {
+              shell = steps.devshell;
+              inherit project inProject;
+            }
+            "Resolve dependencies${standardsLib.projectLabel project}"
+            "${if projectConfig.flutter then "flutter" else "dart"} pub get --no-example"
+        ) projects;
     };
 }
