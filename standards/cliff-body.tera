@@ -1,0 +1,90 @@
+{#-
+  The release notes git-cliff renders for one version, and the check that a
+  version may be released at all: rendering fails (`throw`) when a breaking
+  commit lacks `!` or the `BREAKING CHANGE:` footer, when that footer is not in
+  the last paragraph, or when the version bump is too small for a breaking
+  change.
+-#}
+
+{%- macro trailer(commit, token, default) -%}
+    {%- set found = commit.footers | filter(attribute="token", value=token) -%}
+    {%- if found | length > 0 -%}{%- set first_found = found | first -%}{{ first_found.value | trim }}{%- else -%}{{ default }}{%- endif -%}
+{%- endmacro -%}
+
+{%- macro short_id(commit) -%}
+    {{ commit.id | truncate(length=7, end="") }}
+{%- endmacro -%}
+
+{%- set breaking = commits | filter(attribute="breaking", value=true) -%}
+
+{#- Either marker alone is how a break goes unannounced: `!` without the footer has no migration notes, the footer without `!` is easy to miss in a subject line. -#}
+
+{%- for commit in breaking -%}
+    {%- set type_scope = commit.raw_message | split(pat=":") | first -%}
+    {%- set bang = type_scope is ending_with("!") -%}
+    {%- set footer = commit.footers | filter(attribute="breaking", value=true) | length > 0 -%}
+    {%- if not bang or not footer -%}
+        {{ throw(message="commit " ~ commit.id ~ ": a breaking change needs both `!` after type/scope and a `BREAKING CHANGE:` footer with migration notes") }}
+    {%- endif -%}
+{%- endfor -%}
+
+{#- Only the last paragraph holds footers, so a `BREAKING CHANGE:` line with more text after it would leave the commit not breaking at all. -#}
+
+{%- for commit in commits | filter(attribute="breaking", value=false) -%}
+    {%- if commit.raw_message is matching("(?m)^BREAKING[ -]CHANGE:") -%}
+        {{ throw(message="commit " ~ commit.id ~ ": its `BREAKING CHANGE:` footer has to be in the last paragraph of the message, together with the other trailers") }}
+    {%- endif -%}
+{%- endfor -%}
+
+{#- A break must bump the minor version below 1.0.0 and the major version from 1.0.0 on. -#}
+
+{%- if version and previous and previous.version and breaking | length > 0 -%}
+    {%- set new = version | trim_start_matches(pat="v") | split(pat=".") -%}
+    {%- set old = previous.version | trim_start_matches(pat="v") | split(pat=".") -%}
+    {%- if old.0 == "0" and new.0 == "0" -%}
+        {%- set too_small = new.1 | int <= old.1 | int -%}
+    {%- else -%}
+        {%- set too_small = new.0 | int <= old.0 | int -%}
+    {%- endif -%}
+    {%- if too_small -%}
+        {{ throw(message=version ~ " contains breaking changes: bump the minor version (below 1.0.0) or the major version over " ~ previous.version) }}
+    {%- endif -%}
+{%- endif -%}
+
+{% if version -%}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## [unreleased]
+{% endif %}
+### Breaking changes and migration
+{% if breaking | length == 0 %}
+- Change: None
+{% else %}{% for commit in breaking %}
+- Change: {% if commit.scope %}*({{ commit.scope }})* {% endif %}{{ commit.message | upper_first }} ({{ self::short_id(commit=commit) }})
+- Affected consumers and customers: {{ self::trailer(commit=commit, token="Affected", default="not stated") }}
+- Security-relevant: {{ self::trailer(commit=commit, token="Security-Relevant", default="no") }}
+- Migration: {{ commit.breaking_description | trim }}
+{%- set schema_diff = self::trailer(commit=commit, token="Schema-Diff", default="") %}
+- Config schema diff: {% if schema_diff %}{{ schema_diff }}{% else %}see commit {{ self::short_id(commit=commit) }}{% endif %}
+- Old form removed in: {{ self::trailer(commit=commit, token="Removed-In", default="not scheduled") }}
+{% endfor %}{% endif %}
+
+{%- set_global deprecated = false -%}
+{%- for commit in commits -%}
+    {%- if commit.footers | filter(attribute="token", value="Deprecated") | length > 0 -%}{%- set_global deprecated = true -%}{%- endif -%}
+{%- endfor -%}
+{%- if deprecated %}
+### Deprecations
+{% for commit in commits -%}
+    {%- for footer in commit.footers | filter(attribute="token", value="Deprecated") %}
+- {{ footer.value | trim }} ({{ self::short_id(commit=commit) }})
+    {%- endfor -%}
+{%- endfor %}
+{% endif -%}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{% if commit.breaking %}[**breaking**] {% endif %}{{ commit.message | upper_first }} ({{ self::short_id(commit=commit) }})
+{%- endfor %}
+{% endfor %}
