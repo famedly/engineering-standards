@@ -99,6 +99,24 @@ repos:
     stages: []
   repo: local
 - hooks:
+  - args:
+    - -c
+    - --
+    - echo "/nix/store/ path found in filegen-generated file, which is forbidden:";
+      ! rg --with-filename '/nix/store/[0-9a-z]{32}' $@
+    - --
+    description: Check that we don't have nix store paths in filegen generated files.
+      Nix store paths will vary from system to system, causing a Linux user to generate
+      different files from a mac user, and getting an error.
+    entry: bash
+    files:
+      glob: '{.github/workflows/check-pre-commit-hooks.yml,.pre-commit-config.yaml,.editorconfig,.gitattributes,.github/workflows/check-pre-commit-hooks.yml.license,.taplo.toml,treefmt.toml}'
+    id: store_paths_in_filegen
+    language: system
+    name: store_paths_in_filegen
+    stages: []
+  repo: local
+- hooks:
   - description: Evaluate the Dart standards against the fixture repository
     entry: dart-standards-fixture
     id: dart-standards
