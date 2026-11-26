@@ -13,7 +13,9 @@ exclude = ["target-analyzer/**", "target/**"]
 # them for now.
 align_entries = false
 allowed_blank_lines = 1
-array_auto_collapse = true
+# Many arrays look better with one line per entry, so we don't want the
+# formatter to collapse them.
+array_auto_collapse = false
 array_auto_expand = true
 column_width = 120
 # We can't reorder arrays, since `module-item-order-groupings` in .clippy.toml
