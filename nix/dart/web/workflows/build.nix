@@ -10,7 +10,7 @@
 let
   allowed-actions = config.famedly.standards.allowed-action-versions;
   inherit (config.famedly.standards.ci) steps;
-  inherit (standardsLib) directory inProject suffix;
+  inherit (standardsLib) directory suffix;
 in
 {
   perSystem =
@@ -68,7 +68,10 @@ in
                 {
                   name = "Build the web target";
                   shell = steps.devshell;
-                  run = inProject project projectConfig.web.buildCommand;
+                  run = ''
+                    cd ${project}
+                    projectConfig.web.buildCommand
+                  '';
                 }
               ]
               ++ projectConfig.web.extraSteps
@@ -86,7 +89,8 @@ in
                   # Not in `env`, where GitHub only interpolates its own
                   # expressions and leaves command substitutions as plain
                   # characters.
-                  run = inProject project ''
+                  run = ''
+                    cd ${project}
                     SENTRY_RELEASE="${projectConfig.web.identity.version}" \
                     	SENTRY_DIST="${projectConfig.web.identity.commit}" \
                     	dart run sentry_dart_plugin
@@ -100,7 +104,8 @@ in
                   # that skipped the upload built the maps all the same.
                   name = "Take the source maps back out of the build";
 
-                  run = inProject project ''
+                  run = ''
+                    cd ${project}
                     find ${projectConfig.web.outputPath} \( -name '*.js.map' -o -name '*.wasm.map' \) -delete
                   '';
                 }
