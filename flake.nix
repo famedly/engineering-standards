@@ -71,6 +71,11 @@
           # This repository's own checks, which downstream flakes do not get.
           ./nix/dart/tests
         ];
+
+        # Public, so the public cache. GitHub will not hand a private cache's
+        # token to a public workflow, and a private cache cannot be read
+        # without one.
+        famedly.standards.ci.binaryCache.name = "famedly-oss";
       }
     );
 }
